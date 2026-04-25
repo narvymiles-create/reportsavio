@@ -26,6 +26,7 @@ import SignaturesPage from "./pages/SignaturesPage";
 import ReportCardsPage from "./pages/ReportCardsPage";
 import SettingsPage from "./pages/SettingsPage";
 import PrintReportCard from "./pages/PrintReportCard";
+import BulkReportCardsPage from "./pages/BulkReportCardsPage";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -64,6 +65,7 @@ const App = () => (
             <Route path="/report-cards" element={<Protected><ReportCardsPage /></Protected>} />
             <Route path="/settings" element={<Protected><SettingsPage /></Protected>} />
             <Route path="/print/report-card/:learnerId/:termId" element={<RequireAdmin><PrintReportCard /></RequireAdmin>} />
+            <Route path="/print/bulk/:termId/:classId" element={<RequireAdmin><BulkReportCardsPage /></RequireAdmin>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>

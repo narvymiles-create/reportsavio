@@ -5,8 +5,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
-import { Loader2, Trash2, Upload } from "lucide-react";
+import { Loader2, PenLine, Trash2, Upload } from "lucide-react";
+import SignatureCanvas from "react-signature-canvas";
+import { processCanvasDataUrl, processSignatureFile } from "@/lib/signatureProcessing";
 
 type School = { id: string; head_teacher_name: string | null; head_teacher_signature_path: string | null };
 type Cls = { id: string; name: string; class_signature_path: string | null; class_teacher_id: string | null };
@@ -15,7 +18,9 @@ type Teacher = { id: string; full_name: string; initials: string | null; signatu
 function SignatureCell({ path, onChange, kind }: { path: string | null; onChange: (newPath: string | null) => Promise<void>; kind: "school" | "class" | "teacher" }) {
   const [url, setUrl] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const ref = useRef<HTMLInputElement>(null);
+  const [drawOpen, setDrawOpen] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const padRef = useRef<SignatureCanvas | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -26,21 +31,48 @@ function SignatureCell({ path, onChange, kind }: { path: string | null; onChange
     return () => { cancelled = true; };
   }, [path]);
 
-  const upload = async (file: File) => {
+  const persist = async (blob: Blob) => {
+    setBusy(true);
+    try {
+      const newPath = `${kind}/${crypto.randomUUID()}.png`;
+      const { error } = await supabase.storage.from("signatures").upload(newPath, blob, { upsert: false, contentType: "image/png" });
+      if (error) throw error;
+      if (path) await supabase.storage.from("signatures").remove([path]);
+      await onChange(newPath);
+      toast({ title: "Signature saved" });
+    } catch (e: any) {
+      toast({ title: "Save failed", description: e.message, variant: "destructive" });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleUpload = async (file: File) => {
     if (!file.type.startsWith("image/")) {
       return toast({ title: "Image only", description: "Use PNG or JPG.", variant: "destructive" });
     }
-    if (file.size > 2 * 1024 * 1024) {
-      return toast({ title: "Too large", description: "Max 2 MB.", variant: "destructive" });
+    if (file.size > 5 * 1024 * 1024) {
+      return toast({ title: "Too large", description: "Max 5 MB.", variant: "destructive" });
     }
     setBusy(true);
-    const ext = file.name.split(".").pop() || "png";
-    const newPath = `${kind}/${crypto.randomUUID()}.${ext}`;
-    const { error } = await supabase.storage.from("signatures").upload(newPath, file, { upsert: false, contentType: file.type });
-    if (error) { setBusy(false); return toast({ title: "Upload failed", description: error.message, variant: "destructive" }); }
-    if (path) await supabase.storage.from("signatures").remove([path]);
-    await onChange(newPath);
-    setBusy(false);
+    try {
+      const processed = await processSignatureFile(file);
+      await persist(processed);
+    } catch (e: any) {
+      toast({ title: "Processing failed", description: e.message, variant: "destructive" });
+      setBusy(false);
+    }
+  };
+
+  const handleSaveDrawing = async () => {
+    const pad = padRef.current;
+    if (!pad || pad.isEmpty()) {
+      return toast({ title: "Empty signature", description: "Draw your signature first.", variant: "destructive" });
+    }
+    const dataUrl = pad.getCanvas().toDataURL("image/png");
+    setDrawOpen(false);
+    const processed = await processCanvasDataUrl(dataUrl);
+    await persist(processed);
   };
 
   const remove = async () => {
@@ -53,17 +85,44 @@ function SignatureCell({ path, onChange, kind }: { path: string | null; onChange
   };
 
   return (
-    <div className="flex items-center gap-3">
-      <div className="h-16 w-40 border rounded bg-muted/30 flex items-center justify-center overflow-hidden">
+    <div className="flex items-center gap-3 flex-wrap">
+      <div className="h-16 w-40 border rounded bg-[repeating-conic-gradient(#f3f3f3_0%_25%,#fff_0%_50%)_50%/12px_12px] flex items-center justify-center overflow-hidden">
         {url ? <img src={url} alt="signature" className="h-full w-full object-contain" /> : <span className="text-xs text-muted-foreground">No signature</span>}
       </div>
-      <input ref={ref} type="file" accept="image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f); e.currentTarget.value = ""; }} />
-      <Button size="sm" variant="outline" onClick={() => ref.current?.click()} disabled={busy}>
+      <input ref={fileRef} type="file" accept="image/png,image/jpeg" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUpload(f); e.currentTarget.value = ""; }} />
+      <Button size="sm" variant="outline" onClick={() => fileRef.current?.click()} disabled={busy}>
         {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-        {path ? "Replace" : "Upload"}
+        Upload
       </Button>
+
+      <Dialog open={drawOpen} onOpenChange={setDrawOpen}>
+        <DialogTrigger asChild>
+          <Button size="sm" variant="outline" disabled={busy}>
+            <PenLine className="mr-2 h-4 w-4" /> Draw
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Draw signature</DialogTitle>
+            <DialogDescription>Use your mouse or finger. Background will be saved as transparent.</DialogDescription>
+          </DialogHeader>
+          <div className="border rounded-md bg-white">
+            <SignatureCanvas
+              ref={(r) => { padRef.current = r; }}
+              penColor="#000"
+              canvasProps={{ width: 600, height: 220, className: "w-full h-[220px]" }}
+            />
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="ghost" onClick={() => padRef.current?.clear()}>Clear</Button>
+            <Button variant="outline" onClick={() => setDrawOpen(false)}>Cancel</Button>
+            <Button onClick={handleSaveDrawing}>Save signature</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {path && (
-        <Button size="icon" variant="ghost" onClick={remove} disabled={busy}><Trash2 className="h-4 w-4" /></Button>
+        <Button size="icon" variant="ghost" onClick={remove} disabled={busy} title="Remove"><Trash2 className="h-4 w-4" /></Button>
       )}
     </div>
   );
@@ -122,7 +181,7 @@ export default function SignaturesPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold">Signatures</h1>
-        <p className="text-muted-foreground">Upload signatures used on report cards. Use a transparent PNG for best results.</p>
+        <p className="text-muted-foreground">Upload an image OR draw directly. Backgrounds are removed and signatures auto-cropped & scaled for the report card.</p>
       </div>
 
       <Tabs defaultValue="head">
@@ -174,7 +233,7 @@ export default function SignaturesPage() {
                   {classes.map(c => {
                     const ct = teachers.find(t => t.id === c.class_teacher_id);
                     return (
-                      <div key={c.id} className="flex items-center justify-between border rounded-lg p-3">
+                      <div key={c.id} className="flex items-center justify-between border rounded-lg p-3 gap-4 flex-wrap">
                         <div>
                           <div className="font-semibold">{c.name}</div>
                           <div className="text-xs text-muted-foreground">{ct ? `Class teacher: ${ct.full_name}` : "No class teacher assigned"}</div>
@@ -201,7 +260,7 @@ export default function SignaturesPage() {
               ) : (
                 <div className="space-y-4">
                   {teachers.map(t => (
-                    <div key={t.id} className="flex items-center justify-between border rounded-lg p-3">
+                    <div key={t.id} className="flex items-center justify-between border rounded-lg p-3 gap-4 flex-wrap">
                       <div>
                         <div className="font-semibold">{t.full_name}</div>
                         <div className="text-xs text-muted-foreground">{t.initials ? `Initials: ${t.initials}` : "No initials"}</div>
