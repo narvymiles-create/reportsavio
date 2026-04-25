@@ -16,6 +16,7 @@ import TermsPage from "./pages/TermsPage";
 import LearnersPage from "./pages/LearnersPage";
 import GradingPage from "./pages/GradingPage";
 import CommentsPage from "./pages/CommentsPage";
+import MarksPage from "./pages/MarksPage";
 import { ComingSoon } from "@/components/ComingSoon";
 import NotFound from "./pages/NotFound.tsx";
 
@@ -43,7 +44,7 @@ const App = () => (
             <Route path="/teachers" element={<Protected><TeachersPage /></Protected>} />
             <Route path="/terms" element={<Protected><TermsPage /></Protected>} />
             <Route path="/learners" element={<Protected><LearnersPage /></Protected>} />
-            <Route path="/marks" element={<Protected><ComingSoon title="Marks Entry" description="Enter marks per learner per subject for all 3 stages." /></Protected>} />
+            <Route path="/marks" element={<Protected><MarksPage /></Protected>} />
             <Route path="/grading" element={<Protected><GradingPage /></Protected>} />
             <Route path="/comments" element={<Protected><CommentsPage /></Protected>} />
             <Route path="/signatures" element={<Protected><ComingSoon title="Signatures" description="Upload per-class teacher signatures and the head teacher signature." /></Protected>} />
