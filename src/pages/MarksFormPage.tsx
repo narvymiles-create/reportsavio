@@ -1,11 +1,16 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
-import { Loader2, Save, Printer } from "lucide-react";
+import { Loader2, Save, Printer, Download, Upload, FileSpreadsheet, FileText, FileDown } from "lucide-react";
 import { computeTotal, gradeFor, divisionFor, type GradeBand, type DivisionRule } from "@/lib/grading";
+import * as XLSX from "xlsx";
+import Papa from "papaparse";
+import jsPDF from "jspdf";
 import "./MarksFormPage.css";
 
 export type ExamColumn = "bot" | "mid" | "eot";
