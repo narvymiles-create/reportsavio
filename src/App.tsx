@@ -26,6 +26,7 @@ import SignaturesPage from "./pages/SignaturesPage";
 import ReportCardsPage from "./pages/ReportCardsPage";
 import SettingsPage from "./pages/SettingsPage";
 import PrintReportCard from "./pages/PrintReportCard";
+import BulkReportCardsPage from "./pages/BulkReportCardsPage";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
