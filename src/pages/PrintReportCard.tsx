@@ -279,7 +279,7 @@ export default function PrintReportCard() {
                    (learner.index_no ?? "")}
                 </span>
               </td>
-              <td><span className="rc-lbl">DOB:</span> <span className="rc-fill">{learner.dob ? new Date(learner.dob).toLocaleDateString() : ""}</span></td>
+              <td />
               <td />
             </tr>
             <tr>
