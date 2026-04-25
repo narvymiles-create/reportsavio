@@ -12,6 +12,7 @@ import {
   PenLine,
   FileText,
   UserCog,
+  Settings as SettingsIcon,
 } from "lucide-react";
 import {
   Sidebar,
@@ -54,6 +55,10 @@ const groups = [
   {
     label: "Reports",
     items: [{ title: "Report Cards", url: "/report-cards", icon: FileText }],
+  },
+  {
+    label: "System",
+    items: [{ title: "Settings", url: "/settings", icon: SettingsIcon }],
   },
 ];
 

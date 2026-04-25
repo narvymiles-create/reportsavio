@@ -1,16 +1,45 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, GraduationCap, FileText, CalendarDays } from "lucide-react";
+import {
+  Users,
+  GraduationCap,
+  FileText,
+  CalendarDays,
+  School,
+  BookOpen,
+  ClipboardList,
+  Award,
+  MessageSquareText,
+  PenLine,
+  UserCog,
+  Settings as SettingsIcon,
+} from "lucide-react";
 
-type Stat = { label: string; value: number | string; icon: any; hint?: string };
+type Stat = { label: string; value: number | string; icon: any; to: string };
+
+const navItems = [
+  { label: "School Info", to: "/school", icon: School, desc: "Logo, contacts, motto" },
+  { label: "Classes", to: "/classes", icon: GraduationCap, desc: "Classes & streams" },
+  { label: "Subjects", to: "/subjects", icon: BookOpen, desc: "Subjects per class" },
+  { label: "Teachers", to: "/teachers", icon: UserCog, desc: "Manage staff" },
+  { label: "Terms", to: "/terms", icon: CalendarDays, desc: "Academic terms" },
+  { label: "Learners", to: "/learners", icon: Users, desc: "Pupils & photos" },
+  { label: "Marks", to: "/marks", icon: ClipboardList, desc: "Enter exam marks" },
+  { label: "Grading", to: "/grading", icon: Award, desc: "Grading scale" },
+  { label: "Comments", to: "/comments", icon: MessageSquareText, desc: "Auto comments" },
+  { label: "Signatures", to: "/signatures", icon: PenLine, desc: "Head & class teacher" },
+  { label: "Report Cards", to: "/report-cards", icon: FileText, desc: "Generate & print" },
+  { label: "Settings", to: "/settings", icon: SettingsIcon, desc: "Houses & field config" },
+];
 
 export default function Dashboard() {
   const [stats, setStats] = useState<Stat[]>([
-    { label: "Learners", value: "—", icon: Users },
-    { label: "Classes", value: "—", icon: GraduationCap },
-    { label: "Terms", value: "—", icon: CalendarDays },
-    { label: "Report cards", value: "—", icon: FileText },
+    { label: "Learners", value: "—", icon: Users, to: "/learners" },
+    { label: "Classes", value: "—", icon: GraduationCap, to: "/classes" },
+    { label: "Terms", value: "—", icon: CalendarDays, to: "/terms" },
+    { label: "Report cards", value: "—", icon: FileText, to: "/report-cards" },
   ]);
 
   useEffect(() => {
@@ -22,10 +51,10 @@ export default function Dashboard() {
         supabase.from("report_cards" as any).select("*", { count: "exact", head: true }),
       ]);
       setStats([
-        { label: "Learners", value: learners.count ?? 0, icon: Users },
-        { label: "Classes", value: classes.count ?? 0, icon: GraduationCap },
-        { label: "Terms", value: terms.count ?? 0, icon: CalendarDays },
-        { label: "Report cards", value: reports.count ?? 0, icon: FileText },
+        { label: "Learners", value: learners.count ?? 0, icon: Users, to: "/learners" },
+        { label: "Classes", value: classes.count ?? 0, icon: GraduationCap, to: "/classes" },
+        { label: "Terms", value: terms.count ?? 0, icon: CalendarDays, to: "/terms" },
+        { label: "Report cards", value: reports.count ?? 0, icon: FileText, to: "/report-cards" },
       ]);
     })();
   }, []);
@@ -36,33 +65,43 @@ export default function Dashboard() {
         <h1 className="text-3xl font-bold">Dashboard</h1>
         <p className="text-muted-foreground">Overview of your school's report card system.</p>
       </div>
+
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((s) => (
-          <Card key={s.label} className="overflow-hidden">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">{s.label}</CardTitle>
-              <s.icon className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">{s.value}</div>
-            </CardContent>
-          </Card>
+          <Link key={s.label} to={s.to} className="block">
+            <Card className="overflow-hidden cursor-pointer transition hover:border-primary hover:shadow-md">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">{s.label}</CardTitle>
+                <s.icon className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{s.value}</div>
+              </CardContent>
+            </Card>
+          </Link>
         ))}
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Getting started</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2 text-sm">
-          <p>1. Configure your <strong>School Info</strong> (logo, contacts, motto).</p>
-          <p>2. Add <strong>Classes &amp; Streams</strong>, then <strong>Subjects</strong>.</p>
-          <p>3. Add <strong>Teachers</strong> and assign them to classes / subjects.</p>
-          <p>4. Add <strong>Learners</strong> and create the current academic <strong>Term</strong>.</p>
-          <p>5. Configure <strong>Grading System</strong> and <strong>Comments</strong>.</p>
-          <p>6. Enter <strong>Marks</strong>, then generate <strong>Report Cards</strong>.</p>
-        </CardContent>
-      </Card>
+      <div>
+        <h2 className="text-xl font-semibold mb-3">Modules</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+          {navItems.map((n) => (
+            <Link key={n.to} to={n.to} className="block">
+              <Card className="cursor-pointer transition hover:border-primary hover:shadow-md hover:bg-accent/40">
+                <CardContent className="p-4 flex items-start gap-3">
+                  <div className="h-9 w-9 rounded-md bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                    <n.icon className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="font-semibold text-sm">{n.label}</div>
+                    <div className="text-xs text-muted-foreground truncate">{n.desc}</div>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

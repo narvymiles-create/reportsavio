@@ -24,6 +24,7 @@ import MarksMIDPage from "./pages/MarksMIDPage";
 import MarksEOTPage from "./pages/MarksEOTPage";
 import SignaturesPage from "./pages/SignaturesPage";
 import ReportCardsPage from "./pages/ReportCardsPage";
+import SettingsPage from "./pages/SettingsPage";
 import PrintReportCard from "./pages/PrintReportCard";
 import NotFound from "./pages/NotFound.tsx";
 
@@ -61,6 +62,7 @@ const App = () => (
             <Route path="/comments" element={<Protected><CommentsPage /></Protected>} />
             <Route path="/signatures" element={<Protected><SignaturesPage /></Protected>} />
             <Route path="/report-cards" element={<Protected><ReportCardsPage /></Protected>} />
+            <Route path="/settings" element={<Protected><SettingsPage /></Protected>} />
             <Route path="/print/report-card/:learnerId/:termId" element={<RequireAdmin><PrintReportCard /></RequireAdmin>} />
             <Route path="*" element={<NotFound />} />
           </Routes>

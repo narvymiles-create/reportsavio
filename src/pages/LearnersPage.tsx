@@ -12,6 +12,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "@/hooks/use-toast";
 import { Loader2, Plus, Pencil, Trash2, Upload, User } from "lucide-react";
 
+import { useLearnerFieldSettings } from "@/hooks/useLearnerFieldSettings";
+
+type House = { id: string; name: string };
 type ClassRow = { id: string; name: string };
 type Stream = { id: string; class_id: string; name: string };
 type Learner = {
@@ -43,6 +46,8 @@ export default function LearnersPage() {
   const [learners, setLearners] = useState<Learner[]>([]);
   const [classes, setClasses] = useState<ClassRow[]>([]);
   const [streams, setStreams] = useState<Stream[]>([]);
+  const [houses, setHouses] = useState<House[]>([]);
+  const { flags } = useLearnerFieldSettings();
   const [photoUrls, setPhotoUrls] = useState<Record<string, string>>({});
   const [filterClass, setFilterClass] = useState<string>("all");
   const [filterStream, setFilterStream] = useState<string>("all");
@@ -56,15 +61,17 @@ export default function LearnersPage() {
 
   const load = async () => {
     setLoading(true);
-    const [l, c, s] = await Promise.all([
+    const [l, c, s, h] = await Promise.all([
       supabase.from("learners").select("*").order("full_name"),
       supabase.from("classes").select("id, name").order("sort_order"),
       supabase.from("streams").select("id, class_id, name").order("name"),
+      supabase.from("houses" as any).select("id, name").order("sort_order").order("name"),
     ]);
     const ls = (l.data ?? []) as Learner[];
     setLearners(ls);
     setClasses((c.data ?? []) as ClassRow[]);
     setStreams((s.data ?? []) as Stream[]);
+    setHouses(((h as any).data ?? []) as House[]);
     // Sign photo URLs in batch
     const withPhotos = ls.filter((x) => x.photo_path);
     if (withPhotos.length) {
@@ -114,7 +121,7 @@ export default function LearnersPage() {
       stream_id: sid && sid !== "none" ? sid : null,
       section: fd.get("section"),
       age: ageRaw === "" ? null : ageRaw,
-      house: fd.get("house"),
+      house: (fd.get("house") === "none" ? "" : fd.get("house")),
       index_no: fd.get("index_no"),
       pay_code: fd.get("pay_code"),
     });
@@ -208,40 +215,54 @@ export default function LearnersPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="stream_id">Stream</Label>
-                  <Select name="stream_id" defaultValue={editing?.stream_id ?? "none"}>
-                    <SelectTrigger id="stream_id"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Unassigned</SelectItem>
-                      {streamsForForm.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
+                {flags.stream && (
+                  <div className="space-y-1.5">
+                    <Label htmlFor="stream_id">Stream</Label>
+                    <Select name="stream_id" defaultValue={editing?.stream_id ?? "none"}>
+                      <SelectTrigger id="stream_id"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Unassigned</SelectItem>
+                        {streamsForForm.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
               <div className="grid grid-cols-3 gap-3">
-                <div className="space-y-1.5">
-                  <Label htmlFor="section">Section</Label>
-                  <Input id="section" name="section" defaultValue={editing?.section ?? ""} maxLength={50} />
-                </div>
+                {flags.section && (
+                  <div className="space-y-1.5">
+                    <Label htmlFor="section">Section</Label>
+                    <Input id="section" name="section" defaultValue={editing?.section ?? ""} maxLength={50} />
+                  </div>
+                )}
                 <div className="space-y-1.5">
                   <Label htmlFor="age">Age</Label>
                   <Input id="age" name="age" type="number" min={3} max={30} defaultValue={editing?.age ?? ""} />
                 </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="house">House</Label>
-                  <Input id="house" name="house" defaultValue={editing?.house ?? ""} maxLength={80} />
-                </div>
+                {flags.house && (
+                  <div className="space-y-1.5">
+                    <Label htmlFor="house">House</Label>
+                    <Select name="house" defaultValue={editing?.house ?? "none"}>
+                      <SelectTrigger id="house"><SelectValue placeholder="Select house" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Unassigned</SelectItem>
+                        {houses.map((h) => <SelectItem key={h.id} value={h.name}>{h.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <Label htmlFor="index_no">Index / LIN no.</Label>
                   <Input id="index_no" name="index_no" defaultValue={editing?.index_no ?? ""} maxLength={50} />
                 </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="pay_code">Pay code</Label>
-                  <Input id="pay_code" name="pay_code" defaultValue={editing?.pay_code ?? ""} maxLength={50} />
-                </div>
+                {flags.pay_code && (
+                  <div className="space-y-1.5">
+                    <Label htmlFor="pay_code">Pay code</Label>
+                    <Input id="pay_code" name="pay_code" defaultValue={editing?.pay_code ?? ""} maxLength={50} />
+                  </div>
+                )}
               </div>
               <DialogFooter>
                 <Button type="submit" disabled={submitting}>
@@ -297,8 +318,8 @@ export default function LearnersPage() {
                   <TableHead>Class / Stream</TableHead>
                   <TableHead>Age</TableHead>
                   <TableHead>Index No.</TableHead>
-                  <TableHead>Pay code</TableHead>
-                  <TableHead>House</TableHead>
+                  {flags.pay_code && <TableHead>Pay code</TableHead>}
+                  {flags.house && <TableHead>House</TableHead>}
                   <TableHead className="w-32" />
                 </TableRow>
               </TableHeader>
@@ -317,8 +338,8 @@ export default function LearnersPage() {
                     <TableCell className="text-sm">{className(l.class_id)} / {streamName(l.stream_id)}</TableCell>
                     <TableCell>{l.age ?? "—"}</TableCell>
                     <TableCell className="text-sm">{l.index_no ?? "—"}</TableCell>
-                    <TableCell className="text-sm">{l.pay_code ?? "—"}</TableCell>
-                    <TableCell className="text-sm">{l.house ?? "—"}</TableCell>
+                    {flags.pay_code && <TableCell className="text-sm">{l.pay_code ?? "—"}</TableCell>}
+                    {flags.house && <TableCell className="text-sm">{l.house ?? "—"}</TableCell>}
                     <TableCell>
                       <div className="flex gap-1">
                         <Button size="icon" variant="ghost" onClick={() => { setEditing(l); setOpen(true); }}>
