@@ -65,6 +65,7 @@ const App = () => (
             <Route path="/report-cards" element={<Protected><ReportCardsPage /></Protected>} />
             <Route path="/settings" element={<Protected><SettingsPage /></Protected>} />
             <Route path="/print/report-card/:learnerId/:termId" element={<RequireAdmin><PrintReportCard /></RequireAdmin>} />
+            <Route path="/print/bulk/:termId/:classId" element={<RequireAdmin><BulkReportCardsPage /></RequireAdmin>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
