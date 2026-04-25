@@ -454,8 +454,10 @@ export type Database = {
         Row: {
           class_id: string
           code: Database["public"]["Enums"]["subject_code"]
+          code_label: string | null
           created_at: string
           id: string
+          is_core: boolean
           max_marks: number
           name: string
           sort_order: number
@@ -465,8 +467,10 @@ export type Database = {
         Insert: {
           class_id: string
           code: Database["public"]["Enums"]["subject_code"]
+          code_label?: string | null
           created_at?: string
           id?: string
+          is_core?: boolean
           max_marks?: number
           name: string
           sort_order?: number
@@ -476,8 +480,10 @@ export type Database = {
         Update: {
           class_id?: string
           code?: Database["public"]["Enums"]["subject_code"]
+          code_label?: string | null
           created_at?: string
           id?: string
+          is_core?: boolean
           max_marks?: number
           name?: string
           sort_order?: number
