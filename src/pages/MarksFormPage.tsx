@@ -456,15 +456,42 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
               </SelectContent>
             </Select>
           </div>
-          <div className="flex items-end gap-2">
-            <Button onClick={saveAll} disabled={saving || !termId || !classId || filteredLearners.length === 0} className="flex-1">
+          <div className="flex items-end">
+            <Button
+              onClick={saveAll}
+              disabled={saving || !termId || !classId || filteredLearners.length === 0 || !isDirty}
+              className="w-full"
+              title={!isDirty ? "No new changes made" : "Save changes"}
+            >
               {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-              Save
-            </Button>
-            <Button variant="outline" onClick={handlePrint} disabled={!classId || filteredLearners.length === 0}>
-              <Printer className="mr-2 h-4 w-4" /> Download Form (PDF)
+              Save{isDirty ? " *" : ""}
             </Button>
           </div>
+        </div>
+
+        {/* Action toolbar */}
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={downloadPDF} disabled={!classId || filteredLearners.length === 0}>
+            <FileDown className="mr-2 h-4 w-4" /> Download PDF
+          </Button>
+          <Button variant="outline" onClick={handlePrint} disabled={!classId || filteredLearners.length === 0}>
+            <Printer className="mr-2 h-4 w-4" /> Print
+          </Button>
+          <Button variant="outline" onClick={() => setImportOpen(true)} disabled={!classId || subjects.length === 0}>
+            <Upload className="mr-2 h-4 w-4" /> Import Marks (CSV)
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" disabled={!classId || filteredLearners.length === 0}>
+                <Download className="mr-2 h-4 w-4" /> Export
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem onClick={exportXLSX}><FileSpreadsheet className="mr-2 h-4 w-4" /> Excel (.xlsx)</DropdownMenuItem>
+              <DropdownMenuItem onClick={exportCSV}><FileText className="mr-2 h-4 w-4" /> CSV (.csv)</DropdownMenuItem>
+              <DropdownMenuItem onClick={exportPDF}><FileDown className="mr-2 h-4 w-4" /> PDF (.pdf)</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         {classId && !coreCountValid && (
