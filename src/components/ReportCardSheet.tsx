@@ -31,6 +31,7 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
   const [loading, setLoading] = useState(true);
   const [school, setSchool] = useState<Anything | null>(null);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [stampUrl, setStampUrl] = useState<string | null>(null);
   const [headSigUrl, setHeadSigUrl] = useState<string | null>(null);
   const [classSigUrl, setClassSigUrl] = useState<string | null>(null);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
@@ -83,14 +84,15 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
       const { data: mks } = await supabase.from("marks").select("*").eq("term_id", termId).eq("learner_id", learnerId);
       setMarks(mks ?? []);
 
-      const [lg, hs, cs, ph] = await Promise.all([
+      const [lg, hs, cs, ph, st] = await Promise.all([
         signedUrl("school-assets", si?.logo_path ?? null),
         signedUrl("signatures", si?.head_teacher_signature_path ?? null),
         signedUrl("signatures", cls?.class_signature_path ?? null),
         signedUrl("learner-photos", ln?.photo_path ?? null),
+        signedUrl("school-assets", si?.stamp_path ?? null),
       ]);
       if (cancelled) return;
-      setLogoUrl(lg); setHeadSigUrl(hs); setClassSigUrl(cs); setPhotoUrl(ph);
+      setLogoUrl(lg); setHeadSigUrl(hs); setClassSigUrl(cs); setPhotoUrl(ph); setStampUrl(st);
       setLoading(false);
       onReady?.();
     })();
@@ -378,6 +380,25 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
           </tr>
         </tbody>
       </table>
+
+      {stampUrl && (
+        <img
+          src={stampUrl}
+          alt="school stamp"
+          className="rc-stamp"
+          style={{
+            position: "absolute",
+            left: `${school?.stamp_x ?? 75}%`,
+            top: `${school?.stamp_y ?? 78}%`,
+            width: `${28 * (school?.stamp_size ?? 1)}mm`,
+            height: `${28 * (school?.stamp_size ?? 1)}mm`,
+            objectFit: "contain",
+            opacity: school?.stamp_opacity ?? 0.6,
+            transform: "translate(-50%, -50%)",
+            pointerEvents: "none",
+          }}
+        />
+      )}
     </div>
   );
 }
