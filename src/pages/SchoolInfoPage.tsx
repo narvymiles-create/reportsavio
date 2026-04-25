@@ -60,14 +60,23 @@ export default function SchoolInfoPage() {
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
-    setInfo((data as any) ?? null);
-    if ((data as any)?.logo_path) {
+    const row = (data as any) ?? null;
+    setInfo(row);
+    if (row?.logo_path) {
       const { data: signed } = await supabase.storage
         .from("school-assets")
-        .createSignedUrl((data as any).logo_path, 3600);
+        .createSignedUrl(row.logo_path, 3600);
       setLogoUrl(signed?.signedUrl ?? null);
     } else {
       setLogoUrl(null);
+    }
+    if (row?.stamp_path) {
+      const { data: signed } = await supabase.storage
+        .from("school-assets")
+        .createSignedUrl(row.stamp_path, 3600);
+      setStampUrl(signed?.signedUrl ?? null);
+    } else {
+      setStampUrl(null);
     }
     setLoading(false);
   };
