@@ -214,6 +214,57 @@ export type Database = {
           },
         ]
       }
+      marks: {
+        Row: {
+          bot: number | null
+          created_at: string
+          eot: number | null
+          grade: string | null
+          id: string
+          learner_id: string
+          mid: number | null
+          points: number | null
+          remark: string | null
+          subject_id: string
+          teacher_initials: string | null
+          term_id: string
+          total: number | null
+          updated_at: string
+        }
+        Insert: {
+          bot?: number | null
+          created_at?: string
+          eot?: number | null
+          grade?: string | null
+          id?: string
+          learner_id: string
+          mid?: number | null
+          points?: number | null
+          remark?: string | null
+          subject_id: string
+          teacher_initials?: string | null
+          term_id: string
+          total?: number | null
+          updated_at?: string
+        }
+        Update: {
+          bot?: number | null
+          created_at?: string
+          eot?: number | null
+          grade?: string | null
+          id?: string
+          learner_id?: string
+          mid?: number | null
+          points?: number | null
+          remark?: string | null
+          subject_id?: string
+          teacher_initials?: string | null
+          term_id?: string
+          total?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
