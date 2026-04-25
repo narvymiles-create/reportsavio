@@ -51,6 +51,11 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
 
   // marks keyed by learner|subject
   const [marks, setMarks] = useState<Record<string, MarkRow>>({});
+  // baseline snapshot used to detect dirty state
+  const [baseline, setBaseline] = useState<Record<string, MarkRow>>({});
+  // CSV import dialog
+  const [importOpen, setImportOpen] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     (async () => {
