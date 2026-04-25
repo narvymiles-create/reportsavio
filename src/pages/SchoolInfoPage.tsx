@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
 import { Loader2, Upload, Image as ImageIcon, Stamp, Settings2 } from "lucide-react";
-import { StampPositionDialog } from "@/components/StampPositionDialog";
+import { StampPositionDialog, StampPositionPanel } from "@/components/StampPositionDialog";
 import { processSignatureFile } from "@/lib/signatureProcessing";
 
 const schema = z.object({
