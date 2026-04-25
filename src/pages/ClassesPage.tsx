@@ -11,6 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { Loader2, Plus, Pencil, Trash2, X } from "lucide-react";
 
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
 type Teacher = { id: string; full_name: string };
 type Stream = { id: string; class_id: string; name: string };
 type ClassRow = {
@@ -21,9 +23,14 @@ type ClassRow = {
   class_teacher_id: string | null;
 };
 
+const LEVEL_OPTIONS = [
+  { value: "Lower", label: "Lower (P1–P3)" },
+  { value: "Upper", label: "Upper (P4–P7)" },
+];
+
 const classSchema = z.object({
   name: z.string().trim().min(1).max(50),
-  level: z.string().trim().max(20).optional().or(z.literal("")),
+  level: z.enum(["Lower", "Upper"]).optional().or(z.literal("")),
   sort_order: z.coerce.number().int().min(0).max(999),
   class_teacher_id: z.string().uuid().nullable().optional(),
 });
@@ -149,7 +156,12 @@ export default function ClassesPage() {
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="level">Level</Label>
-                  <Input id="level" name="level" defaultValue={editing?.level ?? ""} maxLength={20} placeholder="Lower / Upper" />
+                  <Select name="level" defaultValue={editing?.level ?? ""}>
+                    <SelectTrigger id="level"><SelectValue placeholder="Select level" /></SelectTrigger>
+                    <SelectContent>
+                      {LEVEL_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -163,9 +175,26 @@ export default function ClassesPage() {
                     <SelectTrigger id="class_teacher_id"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">Unassigned</SelectItem>
-                      {teachers.map((t) => (
-                        <SelectItem key={t.id} value={t.id}>{t.full_name}</SelectItem>
-                      ))}
+                      {teachers.map((t) => {
+                        const assignedTo = classes.find(c => c.class_teacher_id === t.id && c.id !== editing?.id);
+                        const disabled = !!assignedTo;
+                        return (
+                          <TooltipProvider key={t.id} delayDuration={150}>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div>
+                                  <SelectItem value={t.id} disabled={disabled} className={disabled ? "opacity-50" : ""}>
+                                    {t.full_name}{disabled ? ` — assigned to ${assignedTo!.name}` : ""}
+                                  </SelectItem>
+                                </div>
+                              </TooltipTrigger>
+                              {disabled && (
+                                <TooltipContent side="right">Already assigned to {assignedTo!.name}</TooltipContent>
+                              )}
+                            </Tooltip>
+                          </TooltipProvider>
+                        );
+                      })}
                     </SelectContent>
                   </Select>
                 </div>

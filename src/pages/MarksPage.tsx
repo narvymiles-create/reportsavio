@@ -230,7 +230,7 @@ export default function MarksPage() {
               <Select value={subjectId} onValueChange={setSubjectId} disabled={!classId || subjects.length === 0}>
                 <SelectTrigger><SelectValue placeholder={subjects.length ? "Select subject" : "No subjects"} /></SelectTrigger>
                 <SelectContent>
-                  {subjects.map(s => <SelectItem key={s.id} value={s.id}>{s.code} – {s.name}</SelectItem>)}
+                  {subjects.map(s => <SelectItem key={s.id} value={s.id}>{(s as any).code === "OTHER" && (s as any).code_label ? (s as any).code_label : (s as any).code} – {s.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
