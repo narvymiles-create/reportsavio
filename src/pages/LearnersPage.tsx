@@ -6,17 +6,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "@/hooks/use-toast";
-import { Loader2, Plus, Pencil, Trash2, Upload, User } from "lucide-react";
+import { Loader2, Plus, Pencil, Trash2, User, Upload } from "lucide-react";
 
 import { useLearnerFieldSettings } from "@/hooks/useLearnerFieldSettings";
 
 type House = { id: string; name: string };
 type ClassRow = { id: string; name: string };
 type Stream = { id: string; class_id: string; name: string };
+type Term = { id: string; name: string; is_current: boolean };
+type RegType = "INDEX" | "LIN" | "REG";
 type Learner = {
   id: string;
   full_name: string;
@@ -24,21 +27,39 @@ type Learner = {
   stream_id: string | null;
   section: string | null;
   age: number | null;
+  dob: string | null;
+  sex: string | null;
   house: string | null;
   index_no: string | null;
+  lin_no: string | null;
+  reg_no: string | null;
+  active_reg_type: RegType | null;
   pay_code: string | null;
   photo_path: string | null;
 };
 
+const calcAge = (dob: string | null | undefined): number | null => {
+  if (!dob) return null;
+  const d = new Date(dob);
+  if (isNaN(d.getTime())) return null;
+  const now = new Date();
+  let age = now.getFullYear() - d.getFullYear();
+  const m = now.getMonth() - d.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < d.getDate())) age--;
+  return age >= 0 ? age : null;
+};
+
+const isP7Class = (name?: string | null) =>
+  !!name && /\bp\.?\s*7\b|primary\s*7/i.test(name);
+
+const isTerm2or3 = (name?: string | null) => {
+  if (!name) return false;
+  const n = name.toLowerCase();
+  return /\b(2|3|ii|iii|two|three)\b/.test(n) || n.includes("term 2") || n.includes("term 3");
+};
+
 const schema = z.object({
   full_name: z.string().trim().min(1).max(150),
-  class_id: z.string().uuid().nullable().optional(),
-  stream_id: z.string().uuid().nullable().optional(),
-  section: z.string().trim().max(50).optional().or(z.literal("")),
-  age: z.coerce.number().int().min(3).max(30).nullable().optional(),
-  house: z.string().trim().max(80).optional().or(z.literal("")),
-  index_no: z.string().trim().max(50).optional().or(z.literal("")),
-  pay_code: z.string().trim().max(50).optional().or(z.literal("")),
 });
 
 export default function LearnersPage() {
@@ -47,6 +68,7 @@ export default function LearnersPage() {
   const [classes, setClasses] = useState<ClassRow[]>([]);
   const [streams, setStreams] = useState<Stream[]>([]);
   const [houses, setHouses] = useState<House[]>([]);
+  const [currentTerm, setCurrentTerm] = useState<Term | null>(null);
   const { flags } = useLearnerFieldSettings();
   const [photoUrls, setPhotoUrls] = useState<Record<string, string>>({});
   const [filterClass, setFilterClass] = useState<string>("all");
@@ -55,39 +77,53 @@ export default function LearnersPage() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Learner | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  // form state
   const [classIdInForm, setClassIdInForm] = useState<string>("");
-  const photoRef = useRef<HTMLInputElement>(null);
-  const [uploadingId, setUploadingId] = useState<string | null>(null);
+  const [dob, setDob] = useState<string>("");
+  const [regType, setRegType] = useState<RegType>("INDEX");
+  const [indexNo, setIndexNo] = useState("");
+  const [linNo, setLinNo] = useState("");
+  const [regNo, setRegNo] = useState("");
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const photoInputRef = useRef<HTMLInputElement>(null);
+
+  const age = useMemo(() => calcAge(dob), [dob]);
+
+  const selectedClass = classes.find((c) => c.id === classIdInForm);
+  const p7Lock = isP7Class(selectedClass?.name) && isTerm2or3(currentTerm?.name);
+
+  useEffect(() => {
+    if (p7Lock && regType !== "INDEX") setRegType("INDEX");
+  }, [p7Lock]); // eslint-disable-line
 
   const load = async () => {
     setLoading(true);
-    const [l, c, s, h] = await Promise.all([
+    const [l, c, s, h, t] = await Promise.all([
       supabase.from("learners").select("*").order("full_name"),
       supabase.from("classes").select("id, name").order("sort_order"),
       supabase.from("streams").select("id, class_id, name").order("name"),
       supabase.from("houses" as any).select("id, name").order("sort_order").order("name"),
+      supabase.from("terms").select("id, name, is_current").eq("is_current", true).maybeSingle(),
     ]);
     const ls = (l.data ?? []) as Learner[];
     setLearners(ls);
     setClasses((c.data ?? []) as ClassRow[]);
     setStreams((s.data ?? []) as Stream[]);
     setHouses(((h as any).data ?? []) as House[]);
-    // Sign photo URLs in batch
+    setCurrentTerm((t.data ?? null) as Term | null);
     const withPhotos = ls.filter((x) => x.photo_path);
     if (withPhotos.length) {
       const map: Record<string, string> = {};
       await Promise.all(
         withPhotos.map(async (x) => {
-          const { data } = await supabase.storage
-            .from("learner-photos")
-            .createSignedUrl(x.photo_path!, 3600);
+          const { data } = await supabase.storage.from("learner-photos").createSignedUrl(x.photo_path!, 3600);
           if (data?.signedUrl) map[x.id] = data.signedUrl;
         })
       );
       setPhotoUrls(map);
-    } else {
-      setPhotoUrls({});
-    }
+    } else setPhotoUrls({});
     setLoading(false);
   };
   useEffect(() => { load(); }, []);
@@ -105,47 +141,98 @@ export default function LearnersPage() {
   const streamName = (id: string | null) => streams.find((s) => s.id === id)?.name ?? "—";
   const streamsForForm = streams.filter((s) => s.class_id === classIdInForm);
 
+  // initialize form when opening / editing
   useEffect(() => {
-    setClassIdInForm(editing?.class_id ?? "");
+    if (open) {
+      setClassIdInForm(editing?.class_id ?? "");
+      setDob(editing?.dob ?? "");
+      setIndexNo(editing?.index_no ?? "");
+      setLinNo(editing?.lin_no ?? "");
+      setRegNo(editing?.reg_no ?? "");
+      setRegType(((editing?.active_reg_type as RegType) ?? "INDEX"));
+      setPhotoFile(null);
+      setPhotoPreview(null);
+    }
   }, [editing, open]);
+
+  const onPhotoPick = (file: File | null) => {
+    setPhotoFile(file);
+    if (photoPreview) URL.revokeObjectURL(photoPreview);
+    setPhotoPreview(file ? URL.createObjectURL(file) : null);
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
-    const cid = String(fd.get("class_id") ?? "");
-    const sid = String(fd.get("stream_id") ?? "");
-    const ageRaw = String(fd.get("age") ?? "");
-    const parsed = schema.safeParse({
-      full_name: fd.get("full_name"),
-      class_id: cid && cid !== "none" ? cid : null,
-      stream_id: sid && sid !== "none" ? sid : null,
-      section: fd.get("section"),
-      age: ageRaw === "" ? null : ageRaw,
-      house: (fd.get("house") === "none" ? "" : fd.get("house")),
-      index_no: fd.get("index_no"),
-      pay_code: fd.get("pay_code"),
-    });
+    const parsed = schema.safeParse({ full_name: fd.get("full_name") });
     if (!parsed.success) {
-      toast({ title: "Invalid input", description: Object.values(parsed.error.flatten().fieldErrors).flat().join(", "), variant: "destructive" });
+      toast({ title: "Invalid input", description: "Full name is required.", variant: "destructive" });
       return;
     }
-    const payload = {
+
+    // Validate reg fields: exactly one based on selected regType, others must be empty
+    const indexVal = regType === "INDEX" ? indexNo.trim() : "";
+    const linVal = regType === "LIN" ? linNo.trim() : "";
+    const regVal = regType === "REG" ? regNo.trim() : "";
+    const filledCount = [indexVal, linVal, regVal].filter((v) => v !== "").length;
+    if (filledCount === 0) {
+      toast({ title: "Registration required", description: `Enter a value for ${regType}.`, variant: "destructive" });
+      return;
+    }
+    if (filledCount > 1) {
+      toast({ title: "Only one allowed", description: "Only the selected registration type can have a value.", variant: "destructive" });
+      return;
+    }
+    if (p7Lock && regType !== "INDEX") {
+      toast({ title: "Index Number required", description: "P7 candidates in Term 2/3 must use Index Number.", variant: "destructive" });
+      return;
+    }
+
+    const cid = String(fd.get("class_id") ?? "");
+    const sid = String(fd.get("stream_id") ?? "");
+    const sectionVal = String(fd.get("section") ?? "");
+    const sexVal = String(fd.get("sex") ?? "");
+    const houseVal = String(fd.get("house") ?? "");
+    const payCodeVal = String(fd.get("pay_code") ?? "");
+
+    const payload: any = {
       full_name: parsed.data.full_name,
-      class_id: parsed.data.class_id ?? null,
-      stream_id: parsed.data.stream_id ?? null,
-      section: parsed.data.section || null,
-      age: parsed.data.age ?? null,
-      house: parsed.data.house || null,
-      index_no: parsed.data.index_no || null,
-      pay_code: parsed.data.pay_code || null,
+      class_id: cid && cid !== "none" ? cid : null,
+      stream_id: sid && sid !== "none" ? sid : null,
+      section: sectionVal && sectionVal !== "none" ? sectionVal : null,
+      sex: sexVal && sexVal !== "none" ? sexVal : null,
+      dob: dob || null,
+      age: age,
+      house: houseVal && houseVal !== "none" ? houseVal : null,
+      index_no: indexVal || null,
+      lin_no: linVal || null,
+      reg_no: regVal || null,
+      active_reg_type: regType,
+      pay_code: payCodeVal || null,
     };
+
     setSubmitting(true);
-    let error;
+    let savedId: string | null = editing?.id ?? null;
+    let error: any = null;
     if (editing) {
       ({ error } = await supabase.from("learners").update(payload).eq("id", editing.id));
     } else {
-      ({ error } = await supabase.from("learners").insert([payload as any]));
+      const { data, error: insErr } = await supabase.from("learners").insert([payload]).select("id").maybeSingle();
+      error = insErr;
+      savedId = (data as any)?.id ?? null;
     }
+
+    if (!error && photoFile && savedId) {
+      const ext = photoFile.name.split(".").pop();
+      const path = `learner-${savedId}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("learner-photos").upload(path, photoFile, { upsert: true, contentType: photoFile.type });
+      if (upErr) {
+        toast({ title: "Photo upload failed", description: upErr.message, variant: "destructive" });
+      } else {
+        await supabase.from("learners").update({ photo_path: path }).eq("id", savedId);
+      }
+    }
+
     setSubmitting(false);
     if (error) {
       toast({ title: "Save failed", description: error.message, variant: "destructive" });
@@ -164,28 +251,6 @@ export default function LearnersPage() {
     else { toast({ title: "Learner deleted" }); load(); }
   };
 
-  const handlePhoto = async (learner: Learner, file: File) => {
-    if (file.size > 3 * 1024 * 1024) {
-      toast({ title: "Photo too large", description: "Max 3 MB.", variant: "destructive" });
-      return;
-    }
-    setUploadingId(learner.id);
-    const ext = file.name.split(".").pop();
-    const path = `learner-${learner.id}.${ext}`;
-    const { error: upErr } = await supabase.storage
-      .from("learner-photos")
-      .upload(path, file, { upsert: true, contentType: file.type });
-    if (upErr) {
-      setUploadingId(null);
-      toast({ title: "Upload failed", description: upErr.message, variant: "destructive" });
-      return;
-    }
-    await supabase.from("learners").update({ photo_path: path }).eq("id", learner.id);
-    setUploadingId(null);
-    toast({ title: "Photo updated" });
-    load();
-  };
-
   return (
     <div className="space-y-6">
       <div className="flex items-end justify-between gap-2 flex-wrap">
@@ -197,13 +262,37 @@ export default function LearnersPage() {
           <DialogTrigger asChild>
             <Button><Plus className="h-4 w-4 mr-1" /> Add learner</Button>
           </DialogTrigger>
-          <DialogContent className="max-w-xl">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader><DialogTitle>{editing ? "Edit learner" : "Add learner"}</DialogTitle></DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-3">
+              {/* Photo upload */}
+              <div className="flex items-center gap-4">
+                <Avatar className="h-20 w-20">
+                  {photoPreview ? <AvatarImage src={photoPreview} alt="preview" /> :
+                    editing?.photo_path && photoUrls[editing.id] ? <AvatarImage src={photoUrls[editing.id]} alt="learner" /> :
+                    null}
+                  <AvatarFallback><User className="h-8 w-8" /></AvatarFallback>
+                </Avatar>
+                <div>
+                  <input
+                    ref={photoInputRef}
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    className="hidden"
+                    onChange={(e) => onPhotoPick(e.target.files?.[0] ?? null)}
+                  />
+                  <Button type="button" variant="outline" size="sm" onClick={() => photoInputRef.current?.click()}>
+                    <Upload className="h-4 w-4 mr-1" /> {photoFile ? "Change photo" : "Upload photo"}
+                  </Button>
+                  <p className="text-xs text-muted-foreground mt-1">JPG / PNG, max 3 MB</p>
+                </div>
+              </div>
+
               <div className="space-y-1.5">
                 <Label htmlFor="full_name">Full name *</Label>
                 <Input id="full_name" name="full_name" defaultValue={editing?.full_name ?? ""} required maxLength={150} />
               </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <Label htmlFor="class_id">Class</Label>
@@ -228,17 +317,43 @@ export default function LearnersPage() {
                   </div>
                 )}
               </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="dob">Date of birth</Label>
+                  <Input id="dob" name="dob" type="date" value={dob} onChange={(e) => setDob(e.target.value)} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="age">Age (auto)</Label>
+                  <Input id="age" name="age" value={age ?? ""} readOnly disabled />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="sex">Sex</Label>
+                  <Select name="sex" defaultValue={editing?.sex ?? "none"}>
+                    <SelectTrigger id="sex"><SelectValue placeholder="—" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">—</SelectItem>
+                      <SelectItem value="M">M</SelectItem>
+                      <SelectItem value="F">F</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
               <div className="grid grid-cols-3 gap-3">
                 {flags.section && (
                   <div className="space-y-1.5">
                     <Label htmlFor="section">Section</Label>
-                    <Input id="section" name="section" defaultValue={editing?.section ?? ""} maxLength={50} />
+                    <Select name="section" defaultValue={editing?.section ?? "none"}>
+                      <SelectTrigger id="section"><SelectValue placeholder="—" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">—</SelectItem>
+                        <SelectItem value="DAY">DAY</SelectItem>
+                        <SelectItem value="BOARDING">BOARDING</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 )}
-                <div className="space-y-1.5">
-                  <Label htmlFor="age">Age</Label>
-                  <Input id="age" name="age" type="number" min={3} max={30} defaultValue={editing?.age ?? ""} />
-                </div>
                 {flags.house && (
                   <div className="space-y-1.5">
                     <Label htmlFor="house">House</Label>
@@ -251,12 +366,6 @@ export default function LearnersPage() {
                     </Select>
                   </div>
                 )}
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label htmlFor="index_no">Index / LIN no.</Label>
-                  <Input id="index_no" name="index_no" defaultValue={editing?.index_no ?? ""} maxLength={50} />
-                </div>
                 {flags.pay_code && (
                   <div className="space-y-1.5">
                     <Label htmlFor="pay_code">Pay code</Label>
@@ -264,6 +373,51 @@ export default function LearnersPage() {
                   </div>
                 )}
               </div>
+
+              {/* Registration type selector */}
+              <div className="border rounded-md p-3 space-y-3 bg-muted/30">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <Label className="text-sm font-semibold">Active Registration Type</Label>
+                  {p7Lock && (
+                    <span className="text-xs text-destructive font-medium">
+                      Index Number is required for P7 candidates in Term 2 and 3
+                    </span>
+                  )}
+                </div>
+                <RadioGroup
+                  value={regType}
+                  onValueChange={(v) => !p7Lock && setRegType(v as RegType)}
+                  className="flex gap-4"
+                >
+                  <div className="flex items-center gap-2">
+                    <RadioGroupItem value="INDEX" id="rt-index" disabled={false} />
+                    <Label htmlFor="rt-index" className="cursor-pointer">INDEX NO</Label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <RadioGroupItem value="LIN" id="rt-lin" disabled={p7Lock} />
+                    <Label htmlFor="rt-lin" className="cursor-pointer">LIN</Label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <RadioGroupItem value="REG" id="rt-reg" disabled={p7Lock} />
+                    <Label htmlFor="rt-reg" className="cursor-pointer">REG</Label>
+                  </div>
+                </RadioGroup>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="index_no">Index Number</Label>
+                    <Input id="index_no" value={indexNo} onChange={(e) => setIndexNo(e.target.value)} disabled={regType !== "INDEX"} maxLength={50} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="lin_no">LIN</Label>
+                    <Input id="lin_no" value={linNo} onChange={(e) => setLinNo(e.target.value)} disabled={regType !== "LIN"} maxLength={50} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="reg_no">REG</Label>
+                    <Input id="reg_no" value={regNo} onChange={(e) => setRegNo(e.target.value)} disabled={regType !== "REG"} maxLength={50} />
+                  </div>
+                </div>
+              </div>
+
               <DialogFooter>
                 <Button type="submit" disabled={submitting}>
                   {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
@@ -315,74 +469,54 @@ export default function LearnersPage() {
                 <TableRow>
                   <TableHead className="w-12">Photo</TableHead>
                   <TableHead>Name</TableHead>
+                  <TableHead>Sex</TableHead>
                   <TableHead>Class / Stream</TableHead>
                   <TableHead>Age</TableHead>
-                  <TableHead>Index No.</TableHead>
+                  <TableHead>Reg.</TableHead>
                   {flags.pay_code && <TableHead>Pay code</TableHead>}
                   {flags.house && <TableHead>House</TableHead>}
                   <TableHead className="w-32" />
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((l) => (
-                  <TableRow key={l.id}>
-                    <TableCell>
-                      <PhotoCell
-                        learner={l}
-                        url={photoUrls[l.id]}
-                        uploading={uploadingId === l.id}
-                        onPick={(file) => handlePhoto(l, file)}
-                      />
-                    </TableCell>
-                    <TableCell className="font-medium">{l.full_name}</TableCell>
-                    <TableCell className="text-sm">{className(l.class_id)} / {streamName(l.stream_id)}</TableCell>
-                    <TableCell>{l.age ?? "—"}</TableCell>
-                    <TableCell className="text-sm">{l.index_no ?? "—"}</TableCell>
-                    {flags.pay_code && <TableCell className="text-sm">{l.pay_code ?? "—"}</TableCell>}
-                    {flags.house && <TableCell className="text-sm">{l.house ?? "—"}</TableCell>}
-                    <TableCell>
-                      <div className="flex gap-1">
-                        <Button size="icon" variant="ghost" onClick={() => { setEditing(l); setOpen(true); }}>
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button size="icon" variant="ghost" onClick={() => handleDelete(l.id)}>
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {filtered.map((l) => {
+                  const regLabel =
+                    l.active_reg_type === "INDEX" ? `INDEX: ${l.index_no ?? ""}` :
+                    l.active_reg_type === "LIN" ? `LIN: ${l.lin_no ?? ""}` :
+                    l.active_reg_type === "REG" ? `REG: ${l.reg_no ?? ""}` : "—";
+                  return (
+                    <TableRow key={l.id}>
+                      <TableCell>
+                        <Avatar className="h-10 w-10">
+                          {photoUrls[l.id] ? <AvatarImage src={photoUrls[l.id]} alt={l.full_name} /> : null}
+                          <AvatarFallback className="text-xs"><User className="h-4 w-4" /></AvatarFallback>
+                        </Avatar>
+                      </TableCell>
+                      <TableCell className="font-medium">{l.full_name}</TableCell>
+                      <TableCell>{l.sex ?? "—"}</TableCell>
+                      <TableCell className="text-sm">{className(l.class_id)} / {streamName(l.stream_id)}</TableCell>
+                      <TableCell>{l.age ?? "—"}</TableCell>
+                      <TableCell className="text-sm">{regLabel}</TableCell>
+                      {flags.pay_code && <TableCell className="text-sm">{l.pay_code ?? "—"}</TableCell>}
+                      {flags.house && <TableCell className="text-sm">{l.house ?? "—"}</TableCell>}
+                      <TableCell>
+                        <div className="flex gap-1">
+                          <Button size="icon" variant="ghost" onClick={() => { setEditing(l); setOpen(true); }}>
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button size="icon" variant="ghost" onClick={() => handleDelete(l.id)}>
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           )}
         </CardContent>
       </Card>
-    </div>
-  );
-}
-
-function PhotoCell({
-  learner, url, uploading, onPick,
-}: { learner: Learner; url?: string; uploading: boolean; onPick: (f: File) => void; }) {
-  const ref = useRef<HTMLInputElement>(null);
-  return (
-    <div className="relative group">
-      <Avatar className="h-10 w-10 cursor-pointer" onClick={() => ref.current?.click()}>
-        {url ? <AvatarImage src={url} alt={learner.full_name} /> : null}
-        <AvatarFallback className="text-xs">
-          {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <User className="h-4 w-4" />}
-        </AvatarFallback>
-      </Avatar>
-      <input
-        ref={ref}
-        type="file"
-        accept="image/png,image/jpeg,image/webp"
-        className="hidden"
-        onChange={(e) => {
-          const f = e.target.files?.[0];
-          if (f) onPick(f);
-        }}
-      />
     </div>
   );
 }
