@@ -160,7 +160,36 @@ export default function SchoolInfoPage() {
     load();
   };
 
-  if (loading) {
+  const handleStamp = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!info) {
+      toast({ title: "Save first", description: "Save the school info before uploading a stamp.", variant: "destructive" });
+      return;
+    }
+    if (file.size > 4 * 1024 * 1024) {
+      toast({ title: "Too large", description: "Stamp must be under 4 MB.", variant: "destructive" });
+      return;
+    }
+    setUploadingStamp(true);
+    try {
+      // Strip white background → transparent PNG, auto-crop
+      const processed = await processSignatureFile(file, { whiteThreshold: 235, edgeFeather: 8 });
+      const path = `stamp-${info.id}.png`;
+      const { error: upErr } = await supabase.storage
+        .from("school-assets")
+        .upload(path, processed, { upsert: true, contentType: "image/png" });
+      if (upErr) throw upErr;
+      await supabase.from("school_info" as any).update({ stamp_path: path }).eq("id", info.id);
+      toast({ title: "Stamp uploaded", description: "Background removed automatically." });
+      load();
+    } catch (err: any) {
+      toast({ title: "Upload failed", description: err.message, variant: "destructive" });
+    } finally {
+      setUploadingStamp(false);
+      if (stampRef.current) stampRef.current.value = "";
+    }
+  };
     return (
       <div className="flex items-center justify-center py-12">
         <Loader2 className="h-6 w-6 animate-spin text-primary" />
