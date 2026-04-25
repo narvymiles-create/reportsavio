@@ -171,6 +171,8 @@ export default function PrintReportCard() {
             {orderedSubjects.map(s => {
               const m = marksBySubject.get(s.id);
               const v = m?.[phase];
+              // Only core subjects show a grade — non-core (e.g. RE, ICT) are excluded
+              if (!coreSubjectIds.has(s.id)) return <td key={s.id}></td>;
               const g = v != null ? gradeFor(Number(v), bands) : null;
               return <td key={s.id}>{g?.grade ?? ""}</td>;
             })}
