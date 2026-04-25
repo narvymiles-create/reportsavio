@@ -1,0 +1,151 @@
+/* Print-optimized report card layout */
+
+.print-root {
+  background: #f3f4f6;
+  min-height: 100vh;
+}
+
+.report-page {
+  width: 210mm;
+  min-height: 297mm;
+  margin: 16px auto;
+  padding: 14mm 14mm 12mm;
+  background: white;
+  color: #111;
+  font-family: "Times New Roman", Georgia, serif;
+  font-size: 11pt;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.08);
+}
+
+/* Header */
+.rc-header {
+  display: grid;
+  grid-template-columns: 80px 1fr 80px;
+  gap: 12px;
+  align-items: center;
+  border-bottom: 2px solid #111;
+  padding-bottom: 8px;
+}
+.rc-logo { width: 80px; height: 80px; object-fit: contain; }
+.rc-school { text-align: center; }
+.rc-school h1 { font-size: 20pt; font-weight: 700; margin: 0 0 2px; letter-spacing: 0.5px; }
+.rc-meta { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; font-size: 9pt; }
+.rc-motto { font-style: italic; font-size: 10pt; margin-top: 2px; }
+.rc-photo, .rc-photo-placeholder {
+  width: 80px; height: 96px; object-fit: cover; border: 1px solid #111;
+}
+.rc-photo-placeholder {
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9pt; color: #777;
+}
+
+.rc-title {
+  text-align: center;
+  font-size: 13pt;
+  font-weight: 700;
+  margin: 10px 0 8px;
+  letter-spacing: 1px;
+}
+
+/* Info table */
+.rc-info {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 8px;
+  font-size: 10.5pt;
+}
+.rc-info td {
+  border: 1px solid #333;
+  padding: 4px 8px;
+  width: 33.33%;
+}
+
+/* Marks table */
+.rc-marks {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 10pt;
+  margin-bottom: 12px;
+}
+.rc-marks th, .rc-marks td {
+  border: 1px solid #333;
+  padding: 4px 6px;
+  text-align: center;
+}
+.rc-marks thead th {
+  background: #1a2540;
+  color: white;
+  font-weight: 700;
+  font-size: 9.5pt;
+}
+.rc-marks .rc-subject { text-align: left; font-weight: 600; }
+.rc-marks tfoot td { background: #f1f3f7; font-size: 10.5pt; }
+.rc-marks .rc-total-label { text-align: right; }
+
+/* Comments */
+.rc-comments {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.rc-comment-block {
+  border: 1px solid #333;
+  padding: 8px 10px;
+  min-height: 110px;
+  display: flex;
+  flex-direction: column;
+}
+.rc-comment-label {
+  font-weight: 700;
+  font-size: 10pt;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid #333;
+  padding-bottom: 4px;
+  margin-bottom: 6px;
+}
+.rc-comment-text {
+  flex: 1;
+  font-style: italic;
+  font-size: 10.5pt;
+}
+.rc-sign-line {
+  border-top: 1px dashed #999;
+  margin-top: 8px;
+  padding-top: 4px;
+  position: relative;
+  min-height: 38px;
+}
+.rc-sign {
+  position: absolute;
+  bottom: 18px;
+  left: 0;
+  height: 38px;
+  object-fit: contain;
+}
+.rc-sign-name { font-weight: 600; font-size: 10pt; }
+.rc-sign-role { font-size: 9pt; color: #555; }
+
+/* Footer */
+.rc-footer {
+  display: flex;
+  justify-content: space-between;
+  font-size: 9.5pt;
+  border-top: 1px solid #333;
+  padding-top: 6px;
+}
+
+/* Print rules */
+@media print {
+  .no-print { display: none !important; }
+  .print-root { background: white; }
+  .report-page {
+    margin: 0;
+    box-shadow: none;
+    width: auto;
+    min-height: auto;
+    padding: 10mm;
+  }
+  @page { size: A4; margin: 8mm; }
+}

@@ -289,6 +289,60 @@ export type Database = {
         }
         Relationships: []
       }
+      report_cards: {
+        Row: {
+          aggregate: number | null
+          average: number | null
+          class_id: string | null
+          class_size: number | null
+          class_teacher_comment: string | null
+          created_at: string
+          division: string | null
+          generated_at: string
+          head_teacher_comment: string | null
+          id: string
+          learner_id: string
+          position: number | null
+          term_id: string
+          total_marks: number | null
+          updated_at: string
+        }
+        Insert: {
+          aggregate?: number | null
+          average?: number | null
+          class_id?: string | null
+          class_size?: number | null
+          class_teacher_comment?: string | null
+          created_at?: string
+          division?: string | null
+          generated_at?: string
+          head_teacher_comment?: string | null
+          id?: string
+          learner_id: string
+          position?: number | null
+          term_id: string
+          total_marks?: number | null
+          updated_at?: string
+        }
+        Update: {
+          aggregate?: number | null
+          average?: number | null
+          class_id?: string | null
+          class_size?: number | null
+          class_teacher_comment?: string | null
+          created_at?: string
+          division?: string | null
+          generated_at?: string
+          head_teacher_comment?: string | null
+          id?: string
+          learner_id?: string
+          position?: number | null
+          term_id?: string
+          total_marks?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       school_info: {
         Row: {
           created_at: string

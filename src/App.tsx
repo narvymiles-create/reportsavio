@@ -18,7 +18,8 @@ import GradingPage from "./pages/GradingPage";
 import CommentsPage from "./pages/CommentsPage";
 import MarksPage from "./pages/MarksPage";
 import SignaturesPage from "./pages/SignaturesPage";
-import { ComingSoon } from "@/components/ComingSoon";
+import ReportCardsPage from "./pages/ReportCardsPage";
+import PrintReportCard from "./pages/PrintReportCard";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -49,7 +50,8 @@ const App = () => (
             <Route path="/grading" element={<Protected><GradingPage /></Protected>} />
             <Route path="/comments" element={<Protected><CommentsPage /></Protected>} />
             <Route path="/signatures" element={<Protected><SignaturesPage /></Protected>} />
-            <Route path="/report-cards" element={<Protected><ComingSoon title="Report Cards" description="Generate, view, download, and re-generate report card PDFs." /></Protected>} />
+            <Route path="/report-cards" element={<Protected><ReportCardsPage /></Protected>} />
+            <Route path="/print/report-card/:learnerId/:termId" element={<RequireAdmin><PrintReportCard /></RequireAdmin>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
