@@ -8,8 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
-import { Loader2, Save } from "lucide-react";
+import { Loader2, Save, ClipboardList } from "lucide-react";
 import { computeTotal, gradeFor, type GradeBand } from "@/lib/grading";
+import { Link } from "react-router-dom";
 
 type Term = { id: string; name: string; year: number; is_current: boolean };
 type Cls = { id: string; name: string };
@@ -168,6 +169,26 @@ export default function MarksPage() {
         <h1 className="text-3xl font-bold">Marks Entry</h1>
         <p className="text-muted-foreground">Enter Beginning, Mid and End-of-term marks. Grade and points are computed automatically on save.</p>
       </div>
+
+      <Card>
+        <CardHeader><CardTitle>Register-Style Exam Forms</CardTitle></CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground mb-3">
+            Open a notebook-style form to enter marks for an entire class at once. Saved marks appear automatically on each learner&rsquo;s report card.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <Button asChild variant="outline" className="justify-start h-auto py-3">
+              <Link to="/marks/bot"><ClipboardList className="mr-2 h-4 w-4" /> Beginning of Term Form</Link>
+            </Button>
+            <Button asChild variant="outline" className="justify-start h-auto py-3">
+              <Link to="/marks/mid"><ClipboardList className="mr-2 h-4 w-4" /> Mid-Term Form</Link>
+            </Button>
+            <Button asChild variant="outline" className="justify-start h-auto py-3">
+              <Link to="/marks/eot"><ClipboardList className="mr-2 h-4 w-4" /> End of Term Form</Link>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader><CardTitle>Selection</CardTitle></CardHeader>
