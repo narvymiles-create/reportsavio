@@ -202,8 +202,22 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
     return counts;
   }, [filteredLearners, rowCalcs]);
 
+  // Dirty detection: compare current marks vs baseline for the active exam column only
+  const isDirty = useMemo(() => {
+    const keys = new Set([...Object.keys(marks), ...Object.keys(baseline)]);
+    for (const k of keys) {
+      const a = marks[k]?.[exam] ?? null;
+      const b = baseline[k]?.[exam] ?? null;
+      if ((a ?? null) !== (b ?? null)) return true;
+    }
+    return false;
+  }, [marks, baseline, exam]);
+
   const saveAll = async () => {
     if (!termId || !classId) return;
+    if (!isDirty) {
+      return toast({ title: "No new changes made" });
+    }
     if (bands.length === 0) {
       return toast({ title: "Set up grading first", description: "Add grade bands in Grading System.", variant: "destructive" });
     }
@@ -234,10 +248,167 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
     const { error } = await supabase.from("marks").upsert(payload, { onConflict: "term_id,learner_id,subject_id" });
     setSaving(false);
     if (error) return toast({ title: "Save failed", description: error.message, variant: "destructive" });
+    setBaseline(JSON.parse(JSON.stringify(marks)));
     toast({ title: `Saved ${payload.length} record(s)` });
   };
 
   const handlePrint = () => window.print();
+
+  // Build a tabular export representation of the current view
+  const buildExportRows = () => {
+    const headers = [
+      "NAMES",
+      ...subjects.map(s => (s.code === "OTHER" && s.code_label) ? s.code_label : s.code),
+      "TOTAL", "AVE", "POSITION", "AGG", "DIV",
+    ];
+    const rows = filteredLearners.map(l => {
+      const calc = rowCalcs.get(l.id);
+      const pos = positions.get(l.id) ?? 0;
+      const subjectCells = subjects.map(s => marks[`${l.id}|${s.id}`]?.[exam] ?? "");
+      return [
+        l.full_name,
+        ...subjectCells,
+        calc && calc.total > 0 ? calc.total : "",
+        calc && calc.total > 0 ? calc.ave : "",
+        pos > 0 ? pos : "",
+        calc && calc.total > 0 ? calc.agg : "",
+        calc && calc.total > 0 ? calc.div : "",
+      ];
+    });
+    return { headers, rows };
+  };
+
+  const baseFileName = () => {
+    const t = terms.find(x => x.id === termId);
+    const c = classes.find(x => x.id === classId);
+    return `${TITLES[exam].replace(/\s+/g, "_")}_${c?.name ?? "Class"}_${t ? `${t.name}_${t.year}` : ""}`.replace(/[^A-Za-z0-9_\-]/g, "");
+  };
+
+  const downloadFile = (data: BlobPart, mime: string, ext: string) => {
+    const blob = new Blob([data], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `${baseFileName()}.${ext}`;
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const exportCSV = () => {
+    const { headers, rows } = buildExportRows();
+    const csv = Papa.unparse([headers, ...rows]);
+    downloadFile(csv, "text/csv;charset=utf-8;", "csv");
+  };
+
+  const exportXLSX = () => {
+    const { headers, rows } = buildExportRows();
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Marks");
+    // Summary sheet
+    const sumWs = XLSX.utils.aoa_to_sheet([
+      ["DIV1", "DIV2", "DIV3", "DIV4", "U"],
+      [divSummary.I || 0, divSummary.II || 0, divSummary.III || 0, divSummary.IV || 0, divSummary.U || 0],
+    ]);
+    XLSX.utils.book_append_sheet(wb, sumWs, "Summary");
+    XLSX.writeFile(wb, `${baseFileName()}.xlsx`);
+  };
+
+  const exportPDF = () => {
+    const { headers, rows } = buildExportRows();
+    const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
+    const title = `${school?.name ?? ""} — ${TITLES[exam]}`;
+    doc.setFontSize(12);
+    doc.text(title, 40, 30);
+    const t = terms.find(x => x.id === termId); const c = classes.find(x => x.id === classId);
+    doc.setFontSize(9);
+    doc.text(`Class: ${c?.name ?? "—"}    Term: ${t ? `${t.name} ${t.year}` : "—"}`, 40, 46);
+
+    const colW = Math.max(40, (doc.internal.pageSize.getWidth() - 80) / headers.length);
+    let y = 70;
+    doc.setFontSize(8);
+    headers.forEach((h, i) => doc.text(String(h), 40 + i * colW, y));
+    y += 12; doc.setLineWidth(0.5); doc.line(40, y - 8, 40 + headers.length * colW, y - 8);
+    rows.forEach(r => {
+      r.forEach((v, i) => doc.text(String(v ?? ""), 40 + i * colW, y));
+      y += 12;
+      if (y > doc.internal.pageSize.getHeight() - 40) { doc.addPage(); y = 40; }
+    });
+    y += 14;
+    doc.setFontSize(10); doc.text("SUMMARY", 40, y); y += 14;
+    doc.setFontSize(9);
+    doc.text(`DIV1: ${divSummary.I || 0}   DIV2: ${divSummary.II || 0}   DIV3: ${divSummary.III || 0}   DIV4: ${divSummary.IV || 0}   U: ${divSummary.U || 0}`, 40, y);
+    doc.save(`${baseFileName()}.pdf`);
+  };
+
+  // Download form as PDF (print-styled)
+  const downloadPDF = () => {
+    // Use the browser's native print-to-PDF flow with the existing print stylesheet.
+    // Most modern browsers expose "Save as PDF" in the print dialog, which respects A4 layout.
+    window.print();
+  };
+
+  // CSV TEMPLATE: NAMES, <core subject codes>
+  const downloadTemplate = () => {
+    const header = ["NAMES", ...subjects.map(s => (s.code === "OTHER" && s.code_label) ? s.code_label : s.code)];
+    const example = filteredLearners.slice(0, 1).map(l => [l.full_name, ...subjects.map(() => "")]);
+    if (example.length === 0) example.push(["Nalule", ...subjects.map((_, i) => String([50, 66, 78, 81, 70, 72, 65, 60][i] ?? ""))]);
+    const csv = Papa.unparse([header, ...example]);
+    downloadFile(csv, "text/csv;charset=utf-8;", "template.csv");
+  };
+
+  const handleImportFile = (file: File) => {
+    Papa.parse<Record<string, string>>(file, {
+      header: true, skipEmptyLines: true,
+      complete: (res) => {
+        const rows = res.data;
+        if (!rows.length) { toast({ title: "Empty file", variant: "destructive" }); return; }
+        const headerKeys = Object.keys(rows[0]).map(k => k.trim());
+        const nameKey = headerKeys.find(k => k.toUpperCase() === "NAMES" || k.toUpperCase() === "NAME");
+        if (!nameKey) { toast({ title: "Invalid format or unknown student/subject", description: "Missing NAMES column", variant: "destructive" }); return; }
+        // Map header -> subject id
+        const subByCode: Record<string, Subject> = {};
+        for (const s of subjects) {
+          const code = (s.code === "OTHER" && s.code_label) ? s.code_label : s.code;
+          subByCode[String(code).toUpperCase()] = s;
+        }
+        const learnerByName: Record<string, Learner> = {};
+        for (const l of filteredLearners) learnerByName[l.full_name.toUpperCase().trim()] = l;
+
+        const updates: Record<string, MarkRow> = { ...marks };
+        let updated = 0; const unknown: string[] = [];
+        for (const r of rows) {
+          const name = String(r[nameKey] ?? "").trim().toUpperCase();
+          const learner = learnerByName[name];
+          if (!learner) { unknown.push(name); continue; }
+          for (const h of headerKeys) {
+            if (h === nameKey) continue;
+            const subj = subByCode[h.toUpperCase()];
+            if (!subj) { unknown.push(h); continue; }
+            const raw = String(r[h] ?? "").trim();
+            if (raw === "") continue;
+            const num = Number(raw);
+            if (isNaN(num)) continue;
+            const key = `${learner.id}|${subj.id}`;
+            updates[key] = {
+              ...(updates[key] ?? { learner_id: learner.id, subject_id: subj.id, bot: null, mid: null, eot: null }),
+              [exam]: num,
+            } as MarkRow;
+            updated += 1;
+          }
+        }
+        if (updated === 0) {
+          toast({ title: "Invalid format or unknown student/subject", description: unknown.slice(0, 5).join(", "), variant: "destructive" });
+          return;
+        }
+        setMarks(updates);
+        setImportOpen(false);
+        toast({ title: `Imported ${updated} mark(s)`, description: unknown.length ? `Skipped: ${unknown.slice(0, 5).join(", ")}` : undefined });
+      },
+      error: (err) => toast({ title: "Import failed", description: err.message, variant: "destructive" }),
+    });
+  };
+
 
   if (loading) return <div className="flex items-center justify-center p-12"><Loader2 className="h-6 w-6 animate-spin" /></div>;
 
