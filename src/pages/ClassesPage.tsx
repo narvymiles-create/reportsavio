@@ -78,7 +78,7 @@ export default function ClassesPage() {
     if (editing) {
       ({ error } = await supabase.from("classes").update(payload).eq("id", editing.id));
     } else {
-      ({ error } = await supabase.from("classes").insert([payload]));
+      ({ error } = await supabase.from("classes").insert([payload as any]));
     }
     setSubmitting(false);
     if (error) {

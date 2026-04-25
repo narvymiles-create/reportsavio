@@ -102,7 +102,7 @@ export default function SubjectsPage() {
     if (editing) {
       ({ error } = await supabase.from("subjects").update(parsed.data).eq("id", editing.id));
     } else {
-      ({ error } = await supabase.from("subjects").insert([parsed.data]));
+      ({ error } = await supabase.from("subjects").insert([parsed.data as any]));
     }
     setSubmitting(false);
     if (error) {
