@@ -13,7 +13,7 @@ export type ExamColumn = "bot" | "mid" | "eot";
 type Term = { id: string; name: string; year: number; is_current: boolean };
 type Cls = { id: string; name: string };
 type Stream = { id: string; class_id: string; name: string };
-type Subject = { id: string; name: string; code: string; code_label: string | null; class_id: string; max_marks: number; sort_order: number; subject_teacher_id: string | null };
+type Subject = { id: string; name: string; code: string; code_label: string | null; class_id: string; max_marks: number; sort_order: number; subject_teacher_id: string | null; is_core: boolean };
 type Learner = { id: string; full_name: string; class_id: string | null; stream_id: string | null; index_no: string | null };
 type Teacher = { id: string; initials: string | null };
 
