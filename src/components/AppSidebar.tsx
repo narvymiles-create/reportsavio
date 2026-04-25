@@ -46,6 +46,9 @@ const groups = [
     items: [
       { title: "Learners", url: "/learners", icon: Users },
       { title: "Marks Entry", url: "/marks", icon: ClipboardList },
+      { title: "BOT Exams Form", url: "/marks/bot", icon: ClipboardList },
+      { title: "MID Exams Form", url: "/marks/mid", icon: ClipboardList },
+      { title: "EOT Exams Form", url: "/marks/eot", icon: ClipboardList },
       { title: "Grading System", url: "/grading", icon: Award },
       { title: "Comments", url: "/comments", icon: MessageSquareText },
       { title: "Signatures", url: "/signatures", icon: PenLine },

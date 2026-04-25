@@ -1,0 +1,170 @@
+/* Strict notebook-style table layout for marks entry forms */
+
+.marks-form {
+  background: #fff;
+  color: #0a2472;
+  padding: 16px;
+  font-family: "Times New Roman", Times, serif;
+}
+
+.marks-form__header {
+  text-align: center;
+  margin-bottom: 12px;
+}
+.marks-form__school {
+  font-weight: 700;
+  font-size: 16px;
+  letter-spacing: 0.5px;
+}
+.marks-form__title {
+  display: inline-block;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  margin: 6px 0;
+}
+.marks-form__meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+/* Main table */
+.marks-form__table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 13px;
+}
+.marks-form__table th,
+.marks-form__table td {
+  border: 1.5px solid #0a2472;
+  padding: 4px 6px;
+  text-align: center;
+  vertical-align: middle;
+  height: 30px;
+}
+.marks-form__table thead th {
+  font-weight: 700;
+  background: #fff;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+.marks-form__table .col-name {
+  width: 18%;
+  text-align: left;
+  padding-left: 8px;
+}
+.marks-form__table .col-sub {
+  width: auto;
+}
+.marks-form__table tbody tr.pad-row td {
+  color: transparent;
+}
+
+/* Diagonal NAMES / SUB header cell */
+.diag-cell {
+  position: relative;
+  height: 36px;
+  background:
+    linear-gradient(to top right,
+      transparent 0,
+      transparent calc(50% - 1px),
+      #0a2472 calc(50% - 1px),
+      #0a2472 calc(50% + 1px),
+      transparent calc(50% + 1px),
+      transparent 100%);
+}
+.diag-cell .diag-sub {
+  position: absolute;
+  top: 2px;
+  right: 6px;
+  font-size: 11px;
+  font-weight: 700;
+}
+.diag-cell .diag-name {
+  position: absolute;
+  bottom: 2px;
+  left: 6px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* Mark + grade cell */
+.mark-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+.mark-cell input {
+  width: 38px;
+  border: none;
+  outline: none;
+  background: transparent;
+  text-align: center;
+  font: inherit;
+  color: inherit;
+  padding: 2px;
+  -moz-appearance: textfield;
+}
+.mark-cell input::-webkit-outer-spin-button,
+.mark-cell input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.mark-cell input:focus {
+  background: #f3f6ff;
+  outline: 1px solid #0a2472;
+}
+.mark-grade {
+  font-size: 11px;
+  font-weight: 600;
+  min-width: 22px;
+  text-align: left;
+}
+
+/* Summary */
+.marks-form__summary-wrap {
+  margin-top: 18px;
+  text-align: center;
+}
+.marks-form__summary-title {
+  display: inline-block;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  margin-bottom: 6px;
+  letter-spacing: 1px;
+}
+.marks-form__summary {
+  margin: 0 auto;
+  border-collapse: collapse;
+  font-size: 13px;
+  min-width: 60%;
+}
+.marks-form__summary th,
+.marks-form__summary td {
+  border: 1.5px solid #0a2472;
+  padding: 6px 14px;
+  text-align: center;
+  font-weight: 700;
+}
+.marks-form__summary tbody td:first-child {
+  font-weight: 700;
+}
+
+/* Print */
+@media print {
+  @page { size: A4 landscape; margin: 10mm; }
+  body { background: #fff; }
+  .no-print { display: none !important; }
+  /* Hide app chrome */
+  [data-sidebar], header, nav, aside { display: none !important; }
+  .marks-form { padding: 0; }
+  .marks-form__table input { color: #0a2472; }
+}
