@@ -202,6 +202,40 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
     return counts;
   }, [filteredLearners, rowCalcs]);
 
+  // Subject performance summary: per-subject grade distribution + first-grade contribution
+  const GRADE_COLS = ["D1", "D2", "C3", "C4", "C5", "C6", "P7", "P8"] as const;
+  const subjectPerformance = useMemo(() => {
+    const rows = subjects.map(s => {
+      const counts: Record<string, number> = { D1: 0, D2: 0, C3: 0, C4: 0, C5: 0, C6: 0, P7: 0, P8: 0 };
+      for (const l of filteredLearners) {
+        const v = marks[`${l.id}|${s.id}`]?.[exam] ?? null;
+        if (v == null || isNaN(v)) continue;
+        const band = gradeFor(v, bands);
+        const g = band?.grade?.toUpperCase();
+        if (g && counts[g] != null) counts[g] += 1;
+      }
+      const firstGrade = counts.D1 + counts.D2 + counts.C3;
+      return {
+        subjectId: s.id,
+        label: (s.code === "OTHER" && s.code_label) ? s.code_label : s.code,
+        counts,
+        firstGrade,
+      };
+    });
+    // Rank by firstGrade desc, tie-break on D1 desc, then D2 desc
+    const sorted = [...rows].sort((a, b) => {
+      if (b.firstGrade !== a.firstGrade) return b.firstGrade - a.firstGrade;
+      if (b.counts.D1 !== a.counts.D1) return b.counts.D1 - a.counts.D1;
+      return b.counts.D2 - a.counts.D2;
+    });
+    let lastKey = ""; let lastRank = 0;
+    return sorted.map((r, i) => {
+      const key = `${r.firstGrade}|${r.counts.D1}|${r.counts.D2}`;
+      if (key !== lastKey) { lastRank = i + 1; lastKey = key; }
+      return { ...r, rank: lastRank };
+    });
+  }, [subjects, filteredLearners, marks, bands, exam]);
+
   // Dirty detection: compare current marks vs baseline for the active exam column only
   const isDirty = useMemo(() => {
     const keys = new Set([...Object.keys(marks), ...Object.keys(baseline)]);
