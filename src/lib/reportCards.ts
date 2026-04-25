@@ -35,7 +35,7 @@ export async function generateClassReports(termId: string, classId: string): Pro
     supabase.from("comment_templates").select("audience,min_average,max_average,text"),
     supabase.from("learners").select("id,full_name,class_id").eq("class_id", classId),
     supabase.from("marks").select("learner_id,subject_id,total,points").eq("term_id", termId),
-    supabase.from("subjects").select("id").eq("class_id", classId),
+    supabase.from("subjects").select("id,is_core").eq("class_id", classId),
   ]);
 
   const bands = (bandsRes.data ?? []) as GradeBand[];
@@ -43,11 +43,12 @@ export async function generateClassReports(termId: string, classId: string): Pro
   const tpls = (tplsRes.data ?? []) as Tpl[];
   const learners = (learnersRes.data ?? []) as { id: string; full_name: string }[];
   const subjectIds = new Set((subjectsRes.data ?? []).map((s: any) => s.id));
-  const marksByLearner = new Map<string, { total: number | null; points: number | null }[]>();
+  const coreSubjectIds = new Set((subjectsRes.data ?? []).filter((s: any) => s.is_core).map((s: any) => s.id));
+  const marksByLearner = new Map<string, { subject_id: string; total: number | null; points: number | null }[]>();
   for (const m of (marksRes.data ?? []) as any[]) {
     if (!subjectIds.has(m.subject_id)) continue;
     const arr = marksByLearner.get(m.learner_id) ?? [];
-    arr.push({ total: m.total, points: m.points });
+    arr.push({ subject_id: m.subject_id, total: m.total, points: m.points });
     marksByLearner.set(m.learner_id, arr);
   }
 
@@ -56,8 +57,12 @@ export async function generateClassReports(termId: string, classId: string): Pro
     const totals = ms.map(m => m.total).filter((v): v is number => v != null);
     const total = totals.reduce((a, b) => a + b, 0);
     const average = totals.length ? Math.round((total / totals.length) * 100) / 100 : 0;
-    const points = ms.map(m => m.points).filter((v): v is number => v != null);
-    const aggregate = points.reduce((a, b) => a + b, 0);
+    // Aggregate: ONLY core subjects contribute
+    const corePoints = ms
+      .filter(m => coreSubjectIds.has(m.subject_id))
+      .map(m => m.points)
+      .filter((v): v is number => v != null);
+    const aggregate = corePoints.reduce((a, b) => a + b, 0);
     return { learner_id: l.id, name: l.full_name, total, average, aggregate };
   });
 
