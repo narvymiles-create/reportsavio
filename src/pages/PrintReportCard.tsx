@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Loader2, Printer } from "lucide-react";
+import { gradeFor, type GradeBand } from "@/lib/grading";
 import "./PrintReportCard.css";
 
 type Anything = Record<string, any>;
@@ -12,6 +13,9 @@ async function signedUrl(bucket: string, path: string | null): Promise<string | 
   const { data } = await supabase.storage.from(bucket).createSignedUrl(path, 3600);
   return data?.signedUrl ?? null;
 }
+
+const fmtDate = (d?: string | null) =>
+  d ? new Date(d).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" }) : "";
 
 export default function PrintReportCard() {
   const { learnerId, termId } = useParams<{ learnerId: string; termId: string }>();
@@ -29,6 +33,7 @@ export default function PrintReportCard() {
   const [report, setReport] = useState<Anything | null>(null);
   const [subjects, setSubjects] = useState<Anything[]>([]);
   const [marks, setMarks] = useState<Anything[]>([]);
+  const [bands, setBands] = useState<GradeBand[]>([]);
 
   useEffect(() => {
     if (!learnerId || !termId) return;
@@ -37,12 +42,13 @@ export default function PrintReportCard() {
       const { data: ln } = await supabase.from("learners").select("*").eq("id", learnerId).maybeSingle();
       setLearner(ln);
 
-      const [{ data: tm }, { data: rc }, { data: si }] = await Promise.all([
+      const [{ data: tm }, { data: rc }, { data: si }, { data: gs }] = await Promise.all([
         supabase.from("terms").select("*").eq("id", termId).maybeSingle(),
         supabase.from("report_cards").select("*").eq("learner_id", learnerId).eq("term_id", termId).maybeSingle(),
         supabase.from("school_info").select("*").eq("is_active", true).order("created_at", { ascending: false }).limit(1).maybeSingle(),
+        supabase.from("grading_scales").select("grade,points,min_mark,max_mark,remark").order("sort_order"),
       ]);
-      setTerm(tm); setReport(rc); setSchool(si);
+      setTerm(tm); setReport(rc); setSchool(si); setBands((gs ?? []) as GradeBand[]);
 
       let cls: Anything | null = null;
       if (ln?.class_id) {
@@ -76,6 +82,32 @@ export default function PrintReportCard() {
     })();
   }, [learnerId, termId]);
 
+  // Map subjects (in their sort order) -> marks
+  const orderedSubjects = useMemo(() => subjects, [subjects]);
+  const marksBySubject = useMemo(() => {
+    const map = new Map<string, Anything>();
+    marks.forEach(m => map.set(m.subject_id, m));
+    return map;
+  }, [marks]);
+
+  // Compute summary rows for each phase (BOT/MID/EOT)
+  const summary = (phase: "bot" | "mid" | "eot") => {
+    const vals = orderedSubjects.map(s => {
+      const m = marksBySubject.get(s.id);
+      const v = m?.[phase];
+      return typeof v === "number" ? v : (v != null ? Number(v) : null);
+    });
+    const present = vals.filter((v): v is number => v != null && !isNaN(v));
+    const total = present.reduce((a, b) => a + b, 0);
+    const avg = present.length ? Math.round((total / present.length) * 100) / 100 : 0;
+    const aggregate = vals.reduce((sum, v) => {
+      if (v == null) return sum;
+      const b = gradeFor(v, bands);
+      return sum + (b?.points ?? 0);
+    }, 0);
+    return { total, avg, aggregate };
+  };
+
   if (loading) return <div className="flex items-center justify-center p-12"><Loader2 className="h-6 w-6 animate-spin" /></div>;
   if (!learner || !term || !report) {
     return <div className="p-8 text-center">
@@ -83,7 +115,75 @@ export default function PrintReportCard() {
     </div>;
   }
 
-  const fmtDate = (d?: string | null) => d ? new Date(d).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" }) : "—";
+  const botSum = summary("bot");
+  const midSum = summary("mid");
+  // EOT summary uses the canonical report_cards snapshot
+  const eotTotal = report.total_marks ?? 0;
+  const eotAvg = report.average ?? 0;
+  const eotAggregate = report.aggregate ?? 0;
+
+  // Display-friendly subject codes for BOT/MID column headers (first 3 letters or known mappings)
+  const codeFor = (name: string): string => {
+    const n = name.toUpperCase();
+    if (n.includes("ENGLISH")) return "ENG";
+    if (n.includes("MATH")) return "MTC";
+    if (n.includes("SCIEN")) return "SCI";
+    if (n.includes("SOCIAL")) return "SST";
+    if (n.includes("RELIG")) return "R.E";
+    if (n.includes("COMPUT") || n.includes("ICT")) return "ICT";
+    return name.slice(0, 4).toUpperCase();
+  };
+
+  const renderPhaseTable = (label: string, phase: "bot" | "mid", sum: { total: number; avg: number; aggregate: number }) => (
+    <>
+      <div className="rc-section-label">{label}</div>
+      <table className="rc-phase">
+        <thead>
+          <tr>
+            <th className="rc-phase-rowlabel">SUBJECTS</th>
+            {orderedSubjects.map(s => (
+              <th key={s.id}>{codeFor(s.name)}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td className="rc-phase-rowlabel">MARKS</td>
+            {orderedSubjects.map(s => {
+              const m = marksBySubject.get(s.id);
+              const v = m?.[phase];
+              return <td key={s.id}>{v != null && v !== "" ? v : ""}</td>;
+            })}
+          </tr>
+          <tr>
+            <td className="rc-phase-rowlabel">GRADE</td>
+            {orderedSubjects.map(s => {
+              const m = marksBySubject.get(s.id);
+              const v = m?.[phase];
+              const g = v != null ? gradeFor(Number(v), bands) : null;
+              return <td key={s.id}>{g?.grade ?? ""}</td>;
+            })}
+          </tr>
+        </tbody>
+      </table>
+      <table className="rc-phase-footer">
+        <tbody>
+          <tr>
+            <td className="rc-pf-label">TOTAL MARKS</td>
+            <td className="rc-pf-val">{sum.total || ""}</td>
+            <td className="rc-pf-label">AVERAGE</td>
+            <td className="rc-pf-val">{sum.avg || ""}</td>
+            <td className="rc-pf-label">POSITION — OUT OF</td>
+            <td className="rc-pf-val">—</td>
+            <td className="rc-pf-label">AGGREGATES</td>
+            <td className="rc-pf-val">{sum.aggregate || ""}</td>
+            <td className="rc-pf-label">DIVISION</td>
+            <td className="rc-pf-val">—</td>
+          </tr>
+        </tbody>
+      </table>
+    </>
+  );
 
   return (
     <div className="print-root">
@@ -94,116 +194,170 @@ export default function PrintReportCard() {
       </div>
 
       <div className="report-page">
-        {/* Header */}
-        <header className="rc-header">
-          {logoUrl && <img src={logoUrl} alt="logo" className="rc-logo" />}
-          <div className="rc-school">
-            <h1>{school?.name ?? "School Name"}</h1>
-            <div className="rc-meta">
-              {school?.po_box && <span>P.O. Box {school.po_box}</span>}
-              {school?.location && <span>{school.location}</span>}
-              {school?.tel && <span>Tel: {school.tel}</span>}
-              {school?.email && <span>Email: {school.email}</span>}
-            </div>
-            {school?.motto && <div className="rc-motto">"{school.motto}"</div>}
-          </div>
-          {photoUrl ? <img src={photoUrl} alt="learner" className="rc-photo" /> : <div className="rc-photo-placeholder">PHOTO</div>}
-        </header>
+        {/* Decorative corners */}
+        <span className="rc-corner tl" />
+        <span className="rc-corner tr" />
+        <span className="rc-corner bl" />
+        <span className="rc-corner br" />
 
-        <h2 className="rc-title">TERMINAL REPORT — {term.name?.toUpperCase()} {term.year}</h2>
-
-        {/* Learner block */}
-        <table className="rc-info">
+        {/* HEADER: logo | school | photo */}
+        <table className="rc-head" cellSpacing={0} cellPadding={0}>
           <tbody>
             <tr>
-              <td><strong>Name:</strong> {learner.full_name}</td>
-              <td><strong>Class:</strong> {klass?.name ?? "—"}{stream ? ` ${stream.name}` : ""}</td>
-              <td><strong>Section:</strong> {learner.section ?? "—"}</td>
-            </tr>
-            <tr>
-              <td><strong>Index No:</strong> {learner.index_no ?? "—"}</td>
-              <td><strong>House:</strong> {learner.house ?? "—"}</td>
-              <td><strong>Age:</strong> {learner.age ?? "—"}</td>
-            </tr>
-            <tr>
-              <td><strong>Position:</strong> {report.position} of {report.class_size}</td>
-              <td><strong>Pay Code:</strong> {learner.pay_code ?? "—"}</td>
-              <td><strong>Division:</strong> {report.division}</td>
+              <td className="rc-head-logo-cell">
+                <div className="rc-box rc-logo-box">
+                  {logoUrl
+                    ? <img src={logoUrl} alt="logo" />
+                    : <span>SCHOOL<br />LOGO</span>}
+                </div>
+              </td>
+              <td className="rc-head-school-cell">
+                <div className="rc-school-name">{(school?.name ?? "SCHOOL NAME").toUpperCase()}</div>
+                {school?.location && <div className="rc-school-line">Location: {school.location}</div>}
+                {school?.po_box && <div className="rc-school-line">P.O.BOX {school.po_box}</div>}
+                {school?.tel && <div className="rc-school-line">TEL: {school.tel}</div>}
+                {school?.email && <div className="rc-school-line">Email: {school.email}</div>}
+                {school?.website && <div className="rc-school-line">Website: {school.website}</div>}
+              </td>
+              <td className="rc-head-photo-cell">
+                <div className="rc-box rc-photo-box">
+                  {photoUrl
+                    ? <img src={photoUrl} alt="learner" />
+                    : <span>STUDENT<br />PHOTO</span>}
+                </div>
+              </td>
             </tr>
           </tbody>
         </table>
 
-        {/* Marks table */}
-        <table className="rc-marks">
+        {/* TITLE */}
+        <div className="rc-title">
+          LEARNER&rsquo;S ASSESSMENT REPORT CARD TERM &ndash; {term.name?.toUpperCase()} {term.year}
+        </div>
+
+        {/* STUDENT DETAILS */}
+        <table className="rc-student" cellSpacing={0} cellPadding={0}>
+          <tbody>
+            <tr>
+              <td><span className="rc-lbl">NAME:</span> <span className="rc-fill">{learner.full_name ?? ""}</span></td>
+              <td><span className="rc-lbl">STREAM:</span> <span className="rc-fill">{stream?.name ?? ""}</span></td>
+              <td><span className="rc-lbl">HOUSE:</span> <span className="rc-fill">{learner.house ?? ""}</span></td>
+            </tr>
+            <tr>
+              <td><span className="rc-lbl">SECTION:</span> <span className="rc-fill">{learner.section ?? ""}</span></td>
+              <td><span className="rc-lbl">AGE:</span> <span className="rc-fill">{learner.age ?? ""}</span></td>
+              <td><span className="rc-lbl">LIN NO./INDEX.NO.</span> <span className="rc-fill">{learner.index_no ?? ""}</span></td>
+            </tr>
+            <tr>
+              <td><span className="rc-lbl">CLASS:</span> <span className="rc-fill">{klass?.name ?? ""}</span></td>
+              <td><span className="rc-lbl">STREAM:</span> <span className="rc-fill">{stream?.name ?? ""}</span></td>
+              <td><span className="rc-lbl">PAY CODE:</span> <span className="rc-fill">{learner.pay_code ?? ""}</span></td>
+            </tr>
+          </tbody>
+        </table>
+
+        {/* PHASE TABLES */}
+        {renderPhaseTable("BEGINNING OF TERM EXAMS", "bot", botSum)}
+        {renderPhaseTable("MID-TERM EXAMS", "mid", midSum)}
+
+        {/* END OF TERM */}
+        <div className="rc-section-label">END OF TERM EXAMS</div>
+        <table className="rc-eot">
           <thead>
             <tr>
-              <th>Subject</th>
-              <th>BOT</th>
-              <th>MID</th>
-              <th>EOT</th>
-              <th>Total</th>
-              <th>Grade</th>
-              <th>Pts</th>
-              <th>Remark</th>
-              <th>Teacher</th>
+              <th className="rc-eot-subject">SUBJECTS</th>
+              <th>FULL MARKS</th>
+              <th>MARKS GOT</th>
+              <th>GRADE</th>
+              <th>REMARKS</th>
+              <th>INITIALS</th>
             </tr>
           </thead>
           <tbody>
-            {subjects.map(s => {
-              const m = marks.find(mm => mm.subject_id === s.id);
+            {orderedSubjects.map(s => {
+              const m = marksBySubject.get(s.id);
               return (
                 <tr key={s.id}>
-                  <td className="rc-subject">{s.name}</td>
-                  <td>{m?.bot ?? "—"}</td>
-                  <td>{m?.mid ?? "—"}</td>
-                  <td>{m?.eot ?? "—"}</td>
-                  <td><strong>{m?.total ?? "—"}</strong></td>
-                  <td><strong>{m?.grade ?? "—"}</strong></td>
-                  <td>{m?.points ?? "—"}</td>
-                  <td>{m?.remark ?? "—"}</td>
-                  <td>{m?.teacher_initials ?? "—"}</td>
+                  <td className="rc-eot-subject">{s.name?.toUpperCase()}</td>
+                  <td>{s.max_marks ?? 100}</td>
+                  <td>{m?.eot ?? ""}</td>
+                  <td>{m?.grade ?? ""}</td>
+                  <td>{m?.remark ?? ""}</td>
+                  <td>{m?.teacher_initials ?? ""}</td>
                 </tr>
               );
             })}
           </tbody>
-          <tfoot>
+        </table>
+        <table className="rc-phase-footer">
+          <tbody>
             <tr>
-              <td colSpan={4} className="rc-total-label">TOTAL</td>
-              <td><strong>{report.total_marks}</strong></td>
-              <td colSpan={2}><strong>Aggregate: {report.aggregate}</strong></td>
-              <td colSpan={2}><strong>Average: {report.average}</strong></td>
+              <td className="rc-pf-label">TOTAL MARKS</td>
+              <td className="rc-pf-val">{eotTotal || ""}</td>
+              <td className="rc-pf-label">AVERAGE</td>
+              <td className="rc-pf-val">{eotAvg || ""}</td>
+              <td className="rc-pf-label">POSITION — OUT OF</td>
+              <td className="rc-pf-val">{report.position ? `${report.position} / ${report.class_size}` : ""}</td>
+              <td className="rc-pf-label">AGGREGATES</td>
+              <td className="rc-pf-val">{eotAggregate || ""}</td>
+              <td className="rc-pf-label">DIVISION</td>
+              <td className="rc-pf-val">{report.division ?? ""}</td>
             </tr>
-          </tfoot>
+          </tbody>
         </table>
 
-        {/* Comments */}
-        <div className="rc-comments">
-          <div className="rc-comment-block">
-            <div className="rc-comment-label">Class Teacher's Comment</div>
-            <div className="rc-comment-text">{report.class_teacher_comment || "—"}</div>
-            <div className="rc-sign-line">
-              {classSigUrl && <img src={classSigUrl} alt="signature" className="rc-sign" />}
-              <div className="rc-sign-name">{classTeacher?.full_name ?? ""}</div>
-              <div className="rc-sign-role">Class Teacher</div>
-            </div>
-          </div>
-          <div className="rc-comment-block">
-            <div className="rc-comment-label">Head Teacher's Comment</div>
-            <div className="rc-comment-text">{report.head_teacher_comment || "—"}</div>
-            <div className="rc-sign-line">
-              {headSigUrl && <img src={headSigUrl} alt="signature" className="rc-sign" />}
-              <div className="rc-sign-name">{school?.head_teacher_name ?? ""}</div>
-              <div className="rc-sign-role">Head Teacher</div>
-            </div>
-          </div>
-        </div>
+        {/* BOTTOM SECTION */}
+        <table className="rc-bottom" cellSpacing={0} cellPadding={0}>
+          <tbody>
+            <tr>
+              <td className="rc-b-label">Learner&rsquo;s Conduct &amp; Behavior</td>
+              <td className="rc-b-fill" colSpan={3}>&nbsp;</td>
+            </tr>
+            <tr>
+              <td className="rc-b-label">Co-curricular activities</td>
+              <td className="rc-b-fill" colSpan={3}>&nbsp;</td>
+            </tr>
+            <tr>
+              <td className="rc-b-label">Class Teacher&rsquo;s comment</td>
+              <td className="rc-b-fill">{report.class_teacher_comment ?? ""}</td>
+              <td className="rc-b-sign-label">Signature</td>
+              <td className="rc-b-sign-cell">
+                {classSigUrl && <img src={classSigUrl} alt="class signature" className="rc-sig-img" />}
+                <div className="rc-sig-name">{classTeacher?.full_name ?? ""}</div>
+              </td>
+            </tr>
+            <tr>
+              <td className="rc-b-label">Head Teacher&rsquo;s comment</td>
+              <td className="rc-b-fill">{report.head_teacher_comment ?? ""}</td>
+              <td className="rc-b-sign-label">Signature</td>
+              <td className="rc-b-sign-cell">
+                {headSigUrl && <img src={headSigUrl} alt="head signature" className="rc-sig-img" />}
+                <div className="rc-sig-name">{school?.head_teacher_name ?? ""}</div>
+              </td>
+            </tr>
+            <tr>
+              <td className="rc-b-label">Next begins on</td>
+              <td className="rc-b-fill">{fmtDate(term.next_begins_on)}</td>
+              <td className="rc-b-label">Ends on</td>
+              <td className="rc-b-fill">{fmtDate(term.ends_on ?? term.end_date)}</td>
+            </tr>
+          </tbody>
+        </table>
 
-        {/* Footer dates */}
-        <div className="rc-footer">
-          <div><strong>Term Ends:</strong> {fmtDate(term.ends_on ?? term.end_date)}</div>
-          <div><strong>Next Term Begins:</strong> {fmtDate(term.next_begins_on)}</div>
-          <div><strong>Generated:</strong> {fmtDate(report.generated_at)}</div>
-        </div>
+        {/* GRADING SYSTEM */}
+        <div className="rc-grading-title">SCHOOL GRADING SYSTEM</div>
+        <table className="rc-grading">
+          <tbody>
+            <tr>
+              <td className="rc-g-label">GRADE</td>
+              {bands.map(b => <td key={b.grade}>{b.grade}</td>)}
+            </tr>
+            <tr>
+              <td className="rc-g-label">MARKS</td>
+              {bands.map(b => <td key={b.grade}>{b.min_mark}-{b.max_mark}</td>)}
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
   );
