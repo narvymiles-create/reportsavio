@@ -55,6 +55,66 @@ export type Database = {
           },
         ]
       }
+      learners: {
+        Row: {
+          age: number | null
+          class_id: string | null
+          created_at: string
+          full_name: string
+          house: string | null
+          id: string
+          index_no: string | null
+          pay_code: string | null
+          photo_path: string | null
+          section: string | null
+          stream_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          age?: number | null
+          class_id?: string | null
+          created_at?: string
+          full_name: string
+          house?: string | null
+          id?: string
+          index_no?: string | null
+          pay_code?: string | null
+          photo_path?: string | null
+          section?: string | null
+          stream_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          age?: number | null
+          class_id?: string | null
+          created_at?: string
+          full_name?: string
+          house?: string | null
+          id?: string
+          index_no?: string | null
+          pay_code?: string | null
+          photo_path?: string | null
+          section?: string | null
+          stream_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "learners_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "learners_stream_id_fkey"
+            columns: ["stream_id"]
+            isOneToOne: false
+            referencedRelation: "streams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -237,6 +297,45 @@ export type Database = {
           role?: Database["public"]["Enums"]["teacher_role"]
           signature_path?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      terms: {
+        Row: {
+          created_at: string
+          end_date: string | null
+          ends_on: string | null
+          id: string
+          is_current: boolean
+          name: string
+          next_begins_on: string | null
+          start_date: string | null
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          created_at?: string
+          end_date?: string | null
+          ends_on?: string | null
+          id?: string
+          is_current?: boolean
+          name: string
+          next_begins_on?: string | null
+          start_date?: string | null
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          created_at?: string
+          end_date?: string | null
+          ends_on?: string | null
+          id?: string
+          is_current?: boolean
+          name?: string
+          next_begins_on?: string | null
+          start_date?: string | null
+          updated_at?: string
+          year?: number
         }
         Relationships: []
       }
