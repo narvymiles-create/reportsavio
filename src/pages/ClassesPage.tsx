@@ -11,6 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { Loader2, Plus, Pencil, Trash2, X } from "lucide-react";
 
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
 type Teacher = { id: string; full_name: string };
 type Stream = { id: string; class_id: string; name: string };
 type ClassRow = {
@@ -20,6 +22,11 @@ type ClassRow = {
   sort_order: number;
   class_teacher_id: string | null;
 };
+
+const LEVEL_OPTIONS = [
+  { value: "Lower", label: "Lower (P1–P3)" },
+  { value: "Upper", label: "Upper (P4–P7)" },
+];
 
 const classSchema = z.object({
   name: z.string().trim().min(1).max(50),
