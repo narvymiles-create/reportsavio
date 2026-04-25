@@ -265,7 +265,22 @@ export default function PrintReportCard() {
                 ? <td><span className="rc-lbl">SECTION:</span> <span className="rc-fill">{learner.section ?? ""}</span></td>
                 : <td />}
               <td><span className="rc-lbl">AGE:</span> <span className="rc-fill">{learner.age ?? ""}</span></td>
-              <td><span className="rc-lbl">LIN NO./INDEX.NO.</span> <span className="rc-fill">{learner.index_no ?? ""}</span></td>
+              <td><span className="rc-lbl">SEX:</span> <span className="rc-fill">{learner.sex ?? ""}</span></td>
+            </tr>
+            <tr>
+              <td>
+                <span className="rc-lbl">
+                  {learner.active_reg_type === "LIN" ? "LIN NO.:" :
+                   learner.active_reg_type === "REG" ? "REG NO.:" : "INDEX NO.:"}
+                </span>{" "}
+                <span className="rc-fill">
+                  {learner.active_reg_type === "LIN" ? (learner.lin_no ?? "") :
+                   learner.active_reg_type === "REG" ? (learner.reg_no ?? "") :
+                   (learner.index_no ?? "")}
+                </span>
+              </td>
+              <td><span className="rc-lbl">DOB:</span> <span className="rc-fill">{learner.dob ? new Date(learner.dob).toLocaleDateString() : ""}</span></td>
+              <td />
             </tr>
             <tr>
               <td><span className="rc-lbl">CLASS:</span> <span className="rc-fill">{klass?.name ?? ""}</span></td>
