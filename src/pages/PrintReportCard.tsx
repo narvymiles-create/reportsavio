@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Loader2, Printer } from "lucide-react";
 import { gradeFor, type GradeBand } from "@/lib/grading";
+import { useLearnerFieldSettings } from "@/hooks/useLearnerFieldSettings";
 import "./PrintReportCard.css";
 
 type Anything = Record<string, any>;
@@ -34,6 +35,7 @@ export default function PrintReportCard() {
   const [subjects, setSubjects] = useState<Anything[]>([]);
   const [marks, setMarks] = useState<Anything[]>([]);
   const [bands, setBands] = useState<GradeBand[]>([]);
+  const { flags } = useLearnerFieldSettings();
 
   useEffect(() => {
     if (!learnerId || !termId) return;
@@ -240,18 +242,28 @@ export default function PrintReportCard() {
           <tbody>
             <tr>
               <td><span className="rc-lbl">NAME:</span> <span className="rc-fill">{learner.full_name ?? ""}</span></td>
-              <td><span className="rc-lbl">STREAM:</span> <span className="rc-fill">{stream?.name ?? ""}</span></td>
-              <td><span className="rc-lbl">HOUSE:</span> <span className="rc-fill">{learner.house ?? ""}</span></td>
+              {flags.stream
+                ? <td><span className="rc-lbl">STREAM:</span> <span className="rc-fill">{stream?.name ?? ""}</span></td>
+                : <td />}
+              {flags.house
+                ? <td><span className="rc-lbl">HOUSE:</span> <span className="rc-fill">{learner.house ?? ""}</span></td>
+                : <td />}
             </tr>
             <tr>
-              <td><span className="rc-lbl">SECTION:</span> <span className="rc-fill">{learner.section ?? ""}</span></td>
+              {flags.section
+                ? <td><span className="rc-lbl">SECTION:</span> <span className="rc-fill">{learner.section ?? ""}</span></td>
+                : <td />}
               <td><span className="rc-lbl">AGE:</span> <span className="rc-fill">{learner.age ?? ""}</span></td>
               <td><span className="rc-lbl">LIN NO./INDEX.NO.</span> <span className="rc-fill">{learner.index_no ?? ""}</span></td>
             </tr>
             <tr>
               <td><span className="rc-lbl">CLASS:</span> <span className="rc-fill">{klass?.name ?? ""}</span></td>
-              <td><span className="rc-lbl">STREAM:</span> <span className="rc-fill">{stream?.name ?? ""}</span></td>
-              <td><span className="rc-lbl">PAY CODE:</span> <span className="rc-fill">{learner.pay_code ?? ""}</span></td>
+              {flags.stream
+                ? <td><span className="rc-lbl">STREAM:</span> <span className="rc-fill">{stream?.name ?? ""}</span></td>
+                : <td />}
+              {flags.pay_code
+                ? <td><span className="rc-lbl">PAY CODE:</span> <span className="rc-fill">{learner.pay_code ?? ""}</span></td>
+                : <td />}
             </tr>
           </tbody>
         </table>
