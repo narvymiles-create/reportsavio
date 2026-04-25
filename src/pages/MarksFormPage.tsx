@@ -506,6 +506,43 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
         )}
       </div>
 
+      {/* Import CSV dialog (no-print) */}
+      <Dialog open={importOpen} onOpenChange={setImportOpen}>
+        <DialogContent className="no-print">
+          <DialogHeader>
+            <DialogTitle>Import Marks (CSV)</DialogTitle>
+            <DialogDescription>
+              Upload a CSV file with the columns: <strong>NAMES</strong>, then one column per subject code.
+              Student names must match system records and subject headers must match subject codes.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="rounded-md border bg-muted/40 p-3 text-xs font-mono">
+              NAMES,{subjects.map(s => (s.code === "OTHER" && s.code_label) ? s.code_label : s.code).join(",")}<br />
+              Nalule,{subjects.map(() => "").join(",")}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" onClick={downloadTemplate}>
+                <Download className="mr-2 h-4 w-4" /> Download Template
+              </Button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".csv,text/csv"
+                className="hidden"
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) handleImportFile(f); e.currentTarget.value = ""; }}
+              />
+              <Button onClick={() => fileInputRef.current?.click()}>
+                <Upload className="mr-2 h-4 w-4" /> Choose CSV File
+              </Button>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setImportOpen(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Printable area */}
       <div className="marks-form">
         <div className="marks-form__header">
