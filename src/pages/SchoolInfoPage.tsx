@@ -245,42 +245,74 @@ export default function SchoolInfoPage() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2"><Stamp className="h-4 w-4" /> School stamp</CardTitle>
-          <CardDescription>
-            PNG/JPG, max 4 MB. White background is removed automatically. The position, size, and opacity you save here apply to all report cards.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-4 flex-wrap">
-            <div className="h-24 w-24 rounded-lg border bg-muted flex items-center justify-center overflow-hidden" style={{ background: "repeating-conic-gradient(#f0f0f0 0% 25%, #ffffff 0% 50%) 0 0/16px 16px" }}>
-              {stampUrl ? (
-                <img src={stampUrl} alt="School stamp" className="h-full w-full object-contain" style={{ opacity: info?.stamp_opacity ?? 0.6 }} />
-              ) : (
-                <Stamp className="h-8 w-8 text-muted-foreground" />
-              )}
-            </div>
-            <div className="flex flex-col gap-2">
-              <input ref={stampRef} type="file" accept="image/png,image/jpeg" className="hidden" onChange={handleStamp} />
-              <div className="flex gap-2 flex-wrap">
-                <Button type="button" variant="outline" onClick={() => stampRef.current?.click()} disabled={uploadingStamp || !info}>
-                  {uploadingStamp ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
-                  {stampUrl ? "Replace stamp" : "Upload stamp"}
-                </Button>
-                <Button type="button" onClick={() => setStampDialog(true)} disabled={!stampUrl}>
-                  <Settings2 className="h-4 w-4 mr-2" /> Position & settings
-                </Button>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2"><Stamp className="h-4 w-4" /> School stamp</CardTitle>
+            <CardDescription>
+              PNG/JPG, max 4 MB. White background is removed automatically. The position, size, and opacity you save here apply to all report cards.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-4 flex-wrap">
+              <div className="h-24 w-24 rounded-lg border bg-muted flex items-center justify-center overflow-hidden" style={{ background: "repeating-conic-gradient(#f0f0f0 0% 25%, #ffffff 0% 50%) 0 0/16px 16px" }}>
+                {stampUrl ? (
+                  <img src={stampUrl} alt="School stamp" className="h-full w-full object-contain" style={{ opacity: info?.stamp_opacity ?? 0.6 }} />
+                ) : (
+                  <Stamp className="h-8 w-8 text-muted-foreground" />
+                )}
               </div>
-              {info && stampUrl && (
-                <p className="text-xs text-muted-foreground">
-                  Position: {info.stamp_position_type ?? "custom"} · Size: {Math.round((info.stamp_size ?? 1) * 100)}% · Opacity: {Math.round((info.stamp_opacity ?? 0.6) * 100)}%
-                </p>
-              )}
+              <div className="flex flex-col gap-2">
+                <input ref={stampRef} type="file" accept="image/png,image/jpeg" className="hidden" onChange={handleStamp} />
+                <div className="flex gap-2 flex-wrap">
+                  <Button type="button" variant="outline" onClick={() => stampRef.current?.click()} disabled={uploadingStamp || !info}>
+                    {uploadingStamp ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
+                    {stampUrl ? "Replace stamp" : "Upload stamp"}
+                  </Button>
+                  {/* Dialog trigger: only on small screens; on lg+ the panel is shown inline */}
+                  <Button type="button" className="lg:hidden" onClick={() => setStampDialog(true)} disabled={!stampUrl}>
+                    <Settings2 className="h-4 w-4 mr-2" /> Position & settings
+                  </Button>
+                </div>
+                {info && stampUrl && (
+                  <p className="text-xs text-muted-foreground">
+                    Position: {info.stamp_position_type ?? "custom"} · Size: {Math.round((info.stamp_size ?? 1) * 100)}% · Opacity: {Math.round((info.stamp_opacity ?? 0.6) * 100)}%
+                  </p>
+                )}
+              </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+
+        {/* Inline panel on large screens */}
+        {info && (
+          <Card className="hidden lg:block">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2"><Settings2 className="h-4 w-4" /> Stamp position & settings</CardTitle>
+              <CardDescription>Drag the stamp on the preview, or use a preset. Saves to all report cards.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {/* Scrolls in both axes if it ever overflows */}
+              <div className="max-h-[80vh] overflow-auto pr-1">
+                <div className="min-w-[320px]">
+                  <StampPositionPanel
+                    schoolId={info.id}
+                    stampUrl={stampUrl}
+                    initial={{
+                      stamp_x: info.stamp_x,
+                      stamp_y: info.stamp_y,
+                      stamp_position_type: info.stamp_position_type,
+                      stamp_size: info.stamp_size,
+                      stamp_opacity: info.stamp_opacity,
+                    }}
+                    onSaved={(s) => setInfo({ ...info, ...s })}
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
 
       <Card>
         <CardHeader>
