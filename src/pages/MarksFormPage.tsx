@@ -118,30 +118,47 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
     }));
   };
 
+  // Core subjects drive AGG and DIV exclusively
+  const coreSubjects = useMemo(() => subjects.filter(s => s.is_core), [subjects]);
+  const coreSubjectIds = useMemo(() => new Set(coreSubjects.map(s => s.id)), [coreSubjects]);
+  const coreCountValid = coreSubjects.length === 4;
+
   // Per-row computed values (live)
   type RowCalc = { total: number; ave: number; agg: number; div: string; subjectGrades: Record<string, string | null> };
   const rowCalcs = useMemo(() => {
     const out = new Map<string, RowCalc>();
     for (const l of filteredLearners) {
       const subjectGrades: Record<string, string | null> = {};
-      let total = 0; let count = 0; let agg = 0;
+      let total = 0; let count = 0; let agg = 0; let coreEntered = 0;
       for (const s of subjects) {
         const m = marks[`${l.id}|${s.id}`];
         const v = m?.[exam] ?? null;
         if (v != null && !isNaN(v)) {
           total += v; count += 1;
           const band = gradeFor(v, bands);
-          subjectGrades[s.id] = band?.grade ?? null;
-          if (band?.points != null) agg += band.points;
+          // Only core subjects get a displayed grade and contribute to AGG
+          if (s.is_core) {
+            subjectGrades[s.id] = band?.grade ?? null;
+            if (band?.points != null) agg += band.points;
+            coreEntered += 1;
+          } else {
+            subjectGrades[s.id] = null;
+          }
         } else {
           subjectGrades[s.id] = null;
         }
       }
       const ave = count ? Math.round((total / count) * 100) / 100 : 0;
-      out.set(l.id, { total, ave, agg, div: count ? divisionFor(agg, divRules) : "—", subjectGrades });
+      const canAgg = coreCountValid && coreEntered === 4;
+      out.set(l.id, {
+        total, ave,
+        agg: canAgg ? agg : 0,
+        div: canAgg ? divisionFor(agg, divRules) : "—",
+        subjectGrades,
+      });
     }
     return out;
-  }, [filteredLearners, subjects, marks, bands, divRules, exam]);
+  }, [filteredLearners, subjects, marks, bands, divRules, exam, coreCountValid]);
 
   // Position ranking by total desc (ties share)
   const positions = useMemo(() => {
