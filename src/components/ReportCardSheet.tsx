@@ -31,6 +31,7 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
   const [loading, setLoading] = useState(true);
   const [school, setSchool] = useState<Anything | null>(null);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [stampUrl, setStampUrl] = useState<string | null>(null);
   const [headSigUrl, setHeadSigUrl] = useState<string | null>(null);
   const [classSigUrl, setClassSigUrl] = useState<string | null>(null);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
