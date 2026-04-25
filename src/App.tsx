@@ -9,6 +9,9 @@ import { AppLayout } from "@/components/AppLayout";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import SchoolInfoPage from "./pages/SchoolInfoPage";
+import TeachersPage from "./pages/TeachersPage";
+import ClassesPage from "./pages/ClassesPage";
+import SubjectsPage from "./pages/SubjectsPage";
 import { ComingSoon } from "@/components/ComingSoon";
 import NotFound from "./pages/NotFound.tsx";
 
@@ -31,9 +34,9 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/" element={<Protected><Dashboard /></Protected>} />
             <Route path="/school" element={<Protected><SchoolInfoPage /></Protected>} />
-            <Route path="/classes" element={<Protected><ComingSoon title="Classes & Streams" description="Create classes (P1–P7) and streams, assign class teachers." /></Protected>} />
-            <Route path="/subjects" element={<Protected><ComingSoon title="Subjects" description="Add subjects per class with max marks and subject teachers." /></Protected>} />
-            <Route path="/teachers" element={<Protected><ComingSoon title="Teachers" description="Manage teachers and view all their assignments." /></Protected>} />
+            <Route path="/classes" element={<Protected><ClassesPage /></Protected>} />
+            <Route path="/subjects" element={<Protected><SubjectsPage /></Protected>} />
+            <Route path="/teachers" element={<Protected><TeachersPage /></Protected>} />
             <Route path="/terms" element={<Protected><ComingSoon title="Academic Terms" description="Create terms with year, start/end, next-begins dates." /></Protected>} />
             <Route path="/learners" element={<Protected><ComingSoon title="Learners" description="Add learners, upload photos. CSV import in v2." /></Protected>} />
             <Route path="/marks" element={<Protected><ComingSoon title="Marks Entry" description="Enter marks per learner per subject for all 3 stages." /></Protected>} />
