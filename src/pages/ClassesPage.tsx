@@ -30,7 +30,7 @@ const LEVEL_OPTIONS = [
 
 const classSchema = z.object({
   name: z.string().trim().min(1).max(50),
-  level: z.string().trim().max(20).optional().or(z.literal("")),
+  level: z.enum(["Lower", "Upper"]).optional().or(z.literal("")),
   sort_order: z.coerce.number().int().min(0).max(999),
   class_teacher_id: z.string().uuid().nullable().optional(),
 });
