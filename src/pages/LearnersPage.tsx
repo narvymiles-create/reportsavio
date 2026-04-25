@@ -215,40 +215,54 @@ export default function LearnersPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="stream_id">Stream</Label>
-                  <Select name="stream_id" defaultValue={editing?.stream_id ?? "none"}>
-                    <SelectTrigger id="stream_id"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Unassigned</SelectItem>
-                      {streamsForForm.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
+                {flags.stream && (
+                  <div className="space-y-1.5">
+                    <Label htmlFor="stream_id">Stream</Label>
+                    <Select name="stream_id" defaultValue={editing?.stream_id ?? "none"}>
+                      <SelectTrigger id="stream_id"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Unassigned</SelectItem>
+                        {streamsForForm.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
               <div className="grid grid-cols-3 gap-3">
-                <div className="space-y-1.5">
-                  <Label htmlFor="section">Section</Label>
-                  <Input id="section" name="section" defaultValue={editing?.section ?? ""} maxLength={50} />
-                </div>
+                {flags.section && (
+                  <div className="space-y-1.5">
+                    <Label htmlFor="section">Section</Label>
+                    <Input id="section" name="section" defaultValue={editing?.section ?? ""} maxLength={50} />
+                  </div>
+                )}
                 <div className="space-y-1.5">
                   <Label htmlFor="age">Age</Label>
                   <Input id="age" name="age" type="number" min={3} max={30} defaultValue={editing?.age ?? ""} />
                 </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="house">House</Label>
-                  <Input id="house" name="house" defaultValue={editing?.house ?? ""} maxLength={80} />
-                </div>
+                {flags.house && (
+                  <div className="space-y-1.5">
+                    <Label htmlFor="house">House</Label>
+                    <Select name="house" defaultValue={editing?.house ?? "none"}>
+                      <SelectTrigger id="house"><SelectValue placeholder="Select house" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Unassigned</SelectItem>
+                        {houses.map((h) => <SelectItem key={h.id} value={h.name}>{h.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <Label htmlFor="index_no">Index / LIN no.</Label>
                   <Input id="index_no" name="index_no" defaultValue={editing?.index_no ?? ""} maxLength={50} />
                 </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="pay_code">Pay code</Label>
-                  <Input id="pay_code" name="pay_code" defaultValue={editing?.pay_code ?? ""} maxLength={50} />
-                </div>
+                {flags.pay_code && (
+                  <div className="space-y-1.5">
+                    <Label htmlFor="pay_code">Pay code</Label>
+                    <Input id="pay_code" name="pay_code" defaultValue={editing?.pay_code ?? ""} maxLength={50} />
+                  </div>
+                )}
               </div>
               <DialogFooter>
                 <Button type="submit" disabled={submitting}>
