@@ -293,6 +293,8 @@ export type Database = {
         Row: {
           created_at: string
           email: string | null
+          head_teacher_name: string | null
+          head_teacher_signature_path: string | null
           id: string
           is_active: boolean
           location: string
@@ -307,6 +309,8 @@ export type Database = {
         Insert: {
           created_at?: string
           email?: string | null
+          head_teacher_name?: string | null
+          head_teacher_signature_path?: string | null
           id?: string
           is_active?: boolean
           location: string
@@ -321,6 +325,8 @@ export type Database = {
         Update: {
           created_at?: string
           email?: string | null
+          head_teacher_name?: string | null
+          head_teacher_signature_path?: string | null
           id?: string
           is_active?: boolean
           location?: string
