@@ -380,6 +380,25 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
           </tr>
         </tbody>
       </table>
+
+      {stampUrl && (
+        <img
+          src={stampUrl}
+          alt="school stamp"
+          className="rc-stamp"
+          style={{
+            position: "absolute",
+            left: `${school?.stamp_x ?? 75}%`,
+            top: `${school?.stamp_y ?? 78}%`,
+            width: `${28 * (school?.stamp_size ?? 1)}mm`,
+            height: `${28 * (school?.stamp_size ?? 1)}mm`,
+            objectFit: "contain",
+            opacity: school?.stamp_opacity ?? 0.6,
+            transform: "translate(-50%, -50%)",
+            pointerEvents: "none",
+          }}
+        />
+      )}
     </div>
   );
 }
