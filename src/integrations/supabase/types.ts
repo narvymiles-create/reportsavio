@@ -55,6 +55,105 @@ export type Database = {
           },
         ]
       }
+      comment_templates: {
+        Row: {
+          audience: Database["public"]["Enums"]["comment_audience"]
+          created_at: string
+          id: string
+          max_average: number
+          min_average: number
+          text: string
+          updated_at: string
+        }
+        Insert: {
+          audience: Database["public"]["Enums"]["comment_audience"]
+          created_at?: string
+          id?: string
+          max_average: number
+          min_average: number
+          text: string
+          updated_at?: string
+        }
+        Update: {
+          audience?: Database["public"]["Enums"]["comment_audience"]
+          created_at?: string
+          id?: string
+          max_average?: number
+          min_average?: number
+          text?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      division_rules: {
+        Row: {
+          created_at: string
+          description: string | null
+          division: string
+          id: string
+          max_aggregate: number
+          min_aggregate: number
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          division: string
+          id?: string
+          max_aggregate: number
+          min_aggregate: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          division?: string
+          id?: string
+          max_aggregate?: number
+          min_aggregate?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      grading_scales: {
+        Row: {
+          created_at: string
+          grade: string
+          id: string
+          max_mark: number
+          min_mark: number
+          points: number
+          remark: string | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          grade: string
+          id?: string
+          max_mark: number
+          min_mark: number
+          points: number
+          remark?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          grade?: string
+          id?: string
+          max_mark?: number
+          min_mark?: number
+          points?: number
+          remark?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       learners: {
         Row: {
           age: number | null
@@ -375,6 +474,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "teacher"
+      comment_audience: "class_teacher" | "head_teacher"
       subject_code: "ENG" | "MTC" | "SCI" | "SST" | "RE" | "ICT" | "OTHER"
       teacher_role: "class_teacher" | "head_teacher" | "subject_teacher"
     }
@@ -505,6 +605,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "teacher"],
+      comment_audience: ["class_teacher", "head_teacher"],
       subject_code: ["ENG", "MTC", "SCI", "SST", "RE", "ICT", "OTHER"],
       teacher_role: ["class_teacher", "head_teacher", "subject_teacher"],
     },
