@@ -183,44 +183,59 @@ export type Database = {
       }
       learners: {
         Row: {
+          active_reg_type: string | null
           age: number | null
           class_id: string | null
           created_at: string
+          dob: string | null
           full_name: string
           house: string | null
           id: string
           index_no: string | null
+          lin_no: string | null
           pay_code: string | null
           photo_path: string | null
+          reg_no: string | null
           section: string | null
+          sex: string | null
           stream_id: string | null
           updated_at: string
         }
         Insert: {
+          active_reg_type?: string | null
           age?: number | null
           class_id?: string | null
           created_at?: string
+          dob?: string | null
           full_name: string
           house?: string | null
           id?: string
           index_no?: string | null
+          lin_no?: string | null
           pay_code?: string | null
           photo_path?: string | null
+          reg_no?: string | null
           section?: string | null
+          sex?: string | null
           stream_id?: string | null
           updated_at?: string
         }
         Update: {
+          active_reg_type?: string | null
           age?: number | null
           class_id?: string | null
           created_at?: string
+          dob?: string | null
           full_name?: string
           house?: string | null
           id?: string
           index_no?: string | null
+          lin_no?: string | null
           pay_code?: string | null
           photo_path?: string | null
+          reg_no?: string | null
           section?: string | null
+          sex?: string | null
           stream_id?: string | null
           updated_at?: string
         }
