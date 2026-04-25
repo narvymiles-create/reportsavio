@@ -13,7 +13,7 @@ export type ExamColumn = "bot" | "mid" | "eot";
 type Term = { id: string; name: string; year: number; is_current: boolean };
 type Cls = { id: string; name: string };
 type Stream = { id: string; class_id: string; name: string };
-type Subject = { id: string; name: string; code: string; code_label: string | null; class_id: string; max_marks: number; sort_order: number; subject_teacher_id: string | null };
+type Subject = { id: string; name: string; code: string; code_label: string | null; class_id: string; max_marks: number; sort_order: number; subject_teacher_id: string | null; is_core: boolean };
 type Learner = { id: string; full_name: string; class_id: string | null; stream_id: string | null; index_no: string | null };
 type Teacher = { id: string; initials: string | null };
 
@@ -118,30 +118,47 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
     }));
   };
 
+  // Core subjects drive AGG and DIV exclusively
+  const coreSubjects = useMemo(() => subjects.filter(s => s.is_core), [subjects]);
+  const coreSubjectIds = useMemo(() => new Set(coreSubjects.map(s => s.id)), [coreSubjects]);
+  const coreCountValid = coreSubjects.length === 4;
+
   // Per-row computed values (live)
   type RowCalc = { total: number; ave: number; agg: number; div: string; subjectGrades: Record<string, string | null> };
   const rowCalcs = useMemo(() => {
     const out = new Map<string, RowCalc>();
     for (const l of filteredLearners) {
       const subjectGrades: Record<string, string | null> = {};
-      let total = 0; let count = 0; let agg = 0;
+      let total = 0; let count = 0; let agg = 0; let coreEntered = 0;
       for (const s of subjects) {
         const m = marks[`${l.id}|${s.id}`];
         const v = m?.[exam] ?? null;
         if (v != null && !isNaN(v)) {
           total += v; count += 1;
           const band = gradeFor(v, bands);
-          subjectGrades[s.id] = band?.grade ?? null;
-          if (band?.points != null) agg += band.points;
+          // Only core subjects get a displayed grade and contribute to AGG
+          if (s.is_core) {
+            subjectGrades[s.id] = band?.grade ?? null;
+            if (band?.points != null) agg += band.points;
+            coreEntered += 1;
+          } else {
+            subjectGrades[s.id] = null;
+          }
         } else {
           subjectGrades[s.id] = null;
         }
       }
       const ave = count ? Math.round((total / count) * 100) / 100 : 0;
-      out.set(l.id, { total, ave, agg, div: count ? divisionFor(agg, divRules) : "—", subjectGrades });
+      const canAgg = coreCountValid && coreEntered === 4;
+      out.set(l.id, {
+        total, ave,
+        agg: canAgg ? agg : 0,
+        div: canAgg ? divisionFor(agg, divRules) : "—",
+        subjectGrades,
+      });
     }
     return out;
-  }, [filteredLearners, subjects, marks, bands, divRules, exam]);
+  }, [filteredLearners, subjects, marks, bands, divRules, exam, coreCountValid]);
 
   // Position ranking by total desc (ties share)
   const positions = useMemo(() => {
@@ -267,6 +284,17 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
             </Button>
           </div>
         </div>
+
+        {classId && !coreCountValid && (
+          <div className="rounded-md border border-destructive bg-destructive/10 text-destructive text-sm p-3">
+            Exactly 4 core subjects are required to calculate aggregates. This class currently has {coreSubjects.length}. Mark exactly 4 subjects as <strong>Core</strong> in the Subjects page — AGG and DIV are disabled until then.
+          </div>
+        )}
+        {classId && coreCountValid && (
+          <div className="text-xs text-muted-foreground">
+            Aggregates calculated using: {coreSubjects.map(s => (s.code === "OTHER" && s.code_label) ? s.code_label : s.code).join(", ")}
+          </div>
+        )}
       </div>
 
       {/* Printable area */}

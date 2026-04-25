@@ -93,20 +93,29 @@ export default function PrintReportCard() {
   }, [marks]);
 
   // Compute summary rows for each phase (BOT/MID/EOT)
+  // AGG uses ONLY core subjects (and only when exactly 4 core subjects exist)
+  const coreSubjectIds = useMemo(
+    () => new Set(orderedSubjects.filter((s: any) => s.is_core).map((s: any) => s.id)),
+    [orderedSubjects]
+  );
+  const coreCountValid = coreSubjectIds.size === 4;
+
   const summary = (phase: "bot" | "mid" | "eot") => {
     const vals = orderedSubjects.map(s => {
       const m = marksBySubject.get(s.id);
       const v = m?.[phase];
-      return typeof v === "number" ? v : (v != null ? Number(v) : null);
+      return { id: s.id, v: typeof v === "number" ? v : (v != null ? Number(v) : null) };
     });
-    const present = vals.filter((v): v is number => v != null && !isNaN(v));
+    const present = vals.map(x => x.v).filter((v): v is number => v != null && !isNaN(v));
     const total = present.reduce((a, b) => a + b, 0);
     const avg = present.length ? Math.round((total / present.length) * 100) / 100 : 0;
-    const aggregate = vals.reduce((sum, v) => {
-      if (v == null) return sum;
-      const b = gradeFor(v, bands);
-      return sum + (b?.points ?? 0);
-    }, 0);
+    const aggregate = coreCountValid
+      ? vals.reduce((sum, x) => {
+          if (x.v == null || !coreSubjectIds.has(x.id)) return sum;
+          const b = gradeFor(x.v, bands);
+          return sum + (b?.points ?? 0);
+        }, 0)
+      : 0;
     return { total, avg, aggregate };
   };
 
@@ -162,6 +171,8 @@ export default function PrintReportCard() {
             {orderedSubjects.map(s => {
               const m = marksBySubject.get(s.id);
               const v = m?.[phase];
+              // Only core subjects show a grade — non-core (e.g. RE, ICT) are excluded
+              if (!coreSubjectIds.has(s.id)) return <td key={s.id}></td>;
               const g = v != null ? gradeFor(Number(v), bands) : null;
               return <td key={s.id}>{g?.grade ?? ""}</td>;
             })}
@@ -288,13 +299,14 @@ export default function PrintReportCard() {
           <tbody>
             {orderedSubjects.map(s => {
               const m = marksBySubject.get(s.id);
+              const isCore = coreSubjectIds.has(s.id);
               return (
                 <tr key={s.id}>
                   <td className="rc-eot-subject">{s.name?.toUpperCase()}</td>
                   <td>{s.max_marks ?? 100}</td>
                   <td>{m?.eot ?? ""}</td>
-                  <td>{m?.grade ?? ""}</td>
-                  <td>{m?.remark ?? ""}</td>
+                  <td>{isCore ? (m?.grade ?? "") : ""}</td>
+                  <td>{isCore ? (m?.remark ?? "") : ""}</td>
                   <td>{m?.teacher_initials ?? ""}</td>
                 </tr>
               );
