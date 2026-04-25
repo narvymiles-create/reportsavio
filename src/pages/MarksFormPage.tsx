@@ -282,19 +282,19 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
             <Button variant="outline" onClick={handlePrint} disabled={!classId || filteredLearners.length === 0}>
               <Printer className="mr-2 h-4 w-4" /> Download Form (PDF)
             </Button>
+          </div>
         </div>
 
         {classId && !coreCountValid && (
-          <div className="no-print rounded-md border border-destructive bg-destructive/10 text-destructive text-sm p-3">
+          <div className="rounded-md border border-destructive bg-destructive/10 text-destructive text-sm p-3">
             Exactly 4 core subjects are required to calculate aggregates. This class currently has {coreSubjects.length}. Mark exactly 4 subjects as <strong>Core</strong> in the Subjects page — AGG and DIV are disabled until then.
           </div>
         )}
         {classId && coreCountValid && (
-          <div className="no-print text-xs text-muted-foreground">
+          <div className="text-xs text-muted-foreground">
             Aggregates calculated using: {coreSubjects.map(s => (s.code === "OTHER" && s.code_label) ? s.code_label : s.code).join(", ")}
           </div>
         )}
-        </div>
       </div>
 
       {/* Printable area */}
