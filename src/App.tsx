@@ -39,8 +39,8 @@ const App = () => (
             <Route path="/classes" element={<Protected><ClassesPage /></Protected>} />
             <Route path="/subjects" element={<Protected><SubjectsPage /></Protected>} />
             <Route path="/teachers" element={<Protected><TeachersPage /></Protected>} />
-            <Route path="/terms" element={<Protected><ComingSoon title="Academic Terms" description="Create terms with year, start/end, next-begins dates." /></Protected>} />
-            <Route path="/learners" element={<Protected><ComingSoon title="Learners" description="Add learners, upload photos. CSV import in v2." /></Protected>} />
+            <Route path="/terms" element={<Protected><TermsPage /></Protected>} />
+            <Route path="/learners" element={<Protected><LearnersPage /></Protected>} />
             <Route path="/marks" element={<Protected><ComingSoon title="Marks Entry" description="Enter marks per learner per subject for all 3 stages." /></Protected>} />
             <Route path="/grading" element={<Protected><ComingSoon title="Grading System" description="Configure grade bands, points, and division rules." /></Protected>} />
             <Route path="/comments" element={<Protected><ComingSoon title="Comment Templates" description="Auto-comments based on average. Multiple per range, picked randomly." /></Protected>} />
