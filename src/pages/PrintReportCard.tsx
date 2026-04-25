@@ -299,13 +299,14 @@ export default function PrintReportCard() {
           <tbody>
             {orderedSubjects.map(s => {
               const m = marksBySubject.get(s.id);
+              const isCore = coreSubjectIds.has(s.id);
               return (
                 <tr key={s.id}>
                   <td className="rc-eot-subject">{s.name?.toUpperCase()}</td>
                   <td>{s.max_marks ?? 100}</td>
                   <td>{m?.eot ?? ""}</td>
-                  <td>{m?.grade ?? ""}</td>
-                  <td>{m?.remark ?? ""}</td>
+                  <td>{isCore ? (m?.grade ?? "") : ""}</td>
+                  <td>{isCore ? (m?.remark ?? "") : ""}</td>
                   <td>{m?.teacher_initials ?? ""}</td>
                 </tr>
               );
