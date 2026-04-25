@@ -107,6 +107,7 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
       const map: Record<string, MarkRow> = {};
       (data ?? []).forEach((m: any) => { map[`${m.learner_id}|${m.subject_id}`] = m; });
       setMarks(map);
+      setBaseline(JSON.parse(JSON.stringify(map)));
     })();
   }, [termId, subjects]);
 
