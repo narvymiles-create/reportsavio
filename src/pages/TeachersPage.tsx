@@ -110,7 +110,7 @@ export default function TeachersPage() {
     if (editing) {
       ({ error } = await supabase.from("teachers").update(payload).eq("id", editing.id));
     } else {
-      ({ error } = await supabase.from("teachers").insert(payload));
+      ({ error } = await supabase.from("teachers").insert([payload]));
     }
     setSubmitting(false);
     if (error) {
