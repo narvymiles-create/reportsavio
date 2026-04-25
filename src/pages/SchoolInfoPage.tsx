@@ -247,6 +247,43 @@ export default function SchoolInfoPage() {
 
       <Card>
         <CardHeader>
+          <CardTitle className="flex items-center gap-2"><Stamp className="h-4 w-4" /> School stamp</CardTitle>
+          <CardDescription>
+            PNG/JPG, max 4 MB. White background is removed automatically. The position, size, and opacity you save here apply to all report cards.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-4 flex-wrap">
+            <div className="h-24 w-24 rounded-lg border bg-muted flex items-center justify-center overflow-hidden" style={{ background: "repeating-conic-gradient(#f0f0f0 0% 25%, #ffffff 0% 50%) 0 0/16px 16px" }}>
+              {stampUrl ? (
+                <img src={stampUrl} alt="School stamp" className="h-full w-full object-contain" style={{ opacity: info?.stamp_opacity ?? 0.6 }} />
+              ) : (
+                <Stamp className="h-8 w-8 text-muted-foreground" />
+              )}
+            </div>
+            <div className="flex flex-col gap-2">
+              <input ref={stampRef} type="file" accept="image/png,image/jpeg" className="hidden" onChange={handleStamp} />
+              <div className="flex gap-2 flex-wrap">
+                <Button type="button" variant="outline" onClick={() => stampRef.current?.click()} disabled={uploadingStamp || !info}>
+                  {uploadingStamp ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
+                  {stampUrl ? "Replace stamp" : "Upload stamp"}
+                </Button>
+                <Button type="button" onClick={() => setStampDialog(true)} disabled={!stampUrl}>
+                  <Settings2 className="h-4 w-4 mr-2" /> Position & settings
+                </Button>
+              </div>
+              {info && stampUrl && (
+                <p className="text-xs text-muted-foreground">
+                  Position: {info.stamp_position_type ?? "custom"} · Size: {Math.round((info.stamp_size ?? 1) * 100)}% · Opacity: {Math.round((info.stamp_opacity ?? 0.6) * 100)}%
+                </p>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle>Details</CardTitle>
         </CardHeader>
         <CardContent>
