@@ -12,6 +12,8 @@ import SchoolInfoPage from "./pages/SchoolInfoPage";
 import TeachersPage from "./pages/TeachersPage";
 import ClassesPage from "./pages/ClassesPage";
 import SubjectsPage from "./pages/SubjectsPage";
+import TermsPage from "./pages/TermsPage";
+import LearnersPage from "./pages/LearnersPage";
 import { ComingSoon } from "@/components/ComingSoon";
 import NotFound from "./pages/NotFound.tsx";
 
