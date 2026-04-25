@@ -121,7 +121,7 @@ export default function LearnersPage() {
       stream_id: sid && sid !== "none" ? sid : null,
       section: fd.get("section"),
       age: ageRaw === "" ? null : ageRaw,
-      house: fd.get("house"),
+      house: (fd.get("house") === "none" ? "" : fd.get("house")),
       index_no: fd.get("index_no"),
       pay_code: fd.get("pay_code"),
     });
