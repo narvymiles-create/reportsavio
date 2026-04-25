@@ -14,6 +14,47 @@ export type Database = {
   }
   public: {
     Tables: {
+      classes: {
+        Row: {
+          class_signature_path: string | null
+          class_teacher_id: string | null
+          created_at: string
+          id: string
+          level: string | null
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          class_signature_path?: string | null
+          class_teacher_id?: string | null
+          created_at?: string
+          id?: string
+          level?: string | null
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          class_signature_path?: string | null
+          class_teacher_id?: string | null
+          created_at?: string
+          id?: string
+          level?: string | null
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "classes_class_teacher_id_fkey"
+            columns: ["class_teacher_id"]
+            isOneToOne: false
+            referencedRelation: "teachers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -83,6 +124,122 @@ export type Database = {
         }
         Relationships: []
       }
+      streams: {
+        Row: {
+          class_id: string
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          class_id: string
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          class_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "streams_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subjects: {
+        Row: {
+          class_id: string
+          code: Database["public"]["Enums"]["subject_code"]
+          created_at: string
+          id: string
+          max_marks: number
+          name: string
+          sort_order: number
+          subject_teacher_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          class_id: string
+          code: Database["public"]["Enums"]["subject_code"]
+          created_at?: string
+          id?: string
+          max_marks?: number
+          name: string
+          sort_order?: number
+          subject_teacher_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          class_id?: string
+          code?: Database["public"]["Enums"]["subject_code"]
+          created_at?: string
+          id?: string
+          max_marks?: number
+          name?: string
+          sort_order?: number
+          subject_teacher_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subjects_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subjects_subject_teacher_id_fkey"
+            columns: ["subject_teacher_id"]
+            isOneToOne: false
+            referencedRelation: "teachers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teachers: {
+        Row: {
+          created_at: string
+          email: string | null
+          full_name: string
+          id: string
+          initials: string | null
+          phone: string | null
+          role: Database["public"]["Enums"]["teacher_role"]
+          signature_path: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          full_name: string
+          id?: string
+          initials?: string | null
+          phone?: string | null
+          role?: Database["public"]["Enums"]["teacher_role"]
+          signature_path?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          full_name?: string
+          id?: string
+          initials?: string | null
+          phone?: string | null
+          role?: Database["public"]["Enums"]["teacher_role"]
+          signature_path?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -119,6 +276,8 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "teacher"
+      subject_code: "ENG" | "MTC" | "SCI" | "SST" | "RE" | "ICT" | "OTHER"
+      teacher_role: "class_teacher" | "head_teacher" | "subject_teacher"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -247,6 +406,8 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "teacher"],
+      subject_code: ["ENG", "MTC", "SCI", "SST", "RE", "ICT", "OTHER"],
+      teacher_role: ["class_teacher", "head_teacher", "subject_teacher"],
     },
   },
 } as const
