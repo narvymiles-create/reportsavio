@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -82,6 +82,14 @@ export default function Auth() {
                     {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                     Sign in
                   </Button>
+                  <div className="text-center text-sm">
+                    <Link
+                      to="/forgot-password"
+                      className="text-muted-foreground hover:text-foreground underline-offset-4 hover:underline"
+                    >
+                      Forgot your password?
+                    </Link>
+                  </div>
                 </form>
               </TabsContent>
               <TabsContent value="signup">

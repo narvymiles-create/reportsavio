@@ -7,6 +7,8 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { RequireAdmin } from "@/components/RequireAdmin";
 import { AppLayout } from "@/components/AppLayout";
 import Auth from "./pages/Auth";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import Dashboard from "./pages/Dashboard";
 import SchoolInfoPage from "./pages/SchoolInfoPage";
 import TeachersPage from "./pages/TeachersPage";
@@ -42,6 +44,8 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/auth" element={<Auth />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/" element={<Protected><Dashboard /></Protected>} />
             <Route path="/school" element={<Protected><SchoolInfoPage /></Protected>} />
             <Route path="/classes" element={<Protected><ClassesPage /></Protected>} />
