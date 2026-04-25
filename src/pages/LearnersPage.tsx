@@ -318,8 +318,8 @@ export default function LearnersPage() {
                   <TableHead>Class / Stream</TableHead>
                   <TableHead>Age</TableHead>
                   <TableHead>Index No.</TableHead>
-                  <TableHead>Pay code</TableHead>
-                  <TableHead>House</TableHead>
+                  {flags.pay_code && <TableHead>Pay code</TableHead>}
+                  {flags.house && <TableHead>House</TableHead>}
                   <TableHead className="w-32" />
                 </TableRow>
               </TableHeader>
@@ -338,8 +338,8 @@ export default function LearnersPage() {
                     <TableCell className="text-sm">{className(l.class_id)} / {streamName(l.stream_id)}</TableCell>
                     <TableCell>{l.age ?? "—"}</TableCell>
                     <TableCell className="text-sm">{l.index_no ?? "—"}</TableCell>
-                    <TableCell className="text-sm">{l.pay_code ?? "—"}</TableCell>
-                    <TableCell className="text-sm">{l.house ?? "—"}</TableCell>
+                    {flags.pay_code && <TableCell className="text-sm">{l.pay_code ?? "—"}</TableCell>}
+                    {flags.house && <TableCell className="text-sm">{l.house ?? "—"}</TableCell>}
                     <TableCell>
                       <div className="flex gap-1">
                         <Button size="icon" variant="ghost" onClick={() => { setEditing(l); setOpen(true); }}>
