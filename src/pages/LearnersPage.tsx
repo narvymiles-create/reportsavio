@@ -12,6 +12,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "@/hooks/use-toast";
 import { Loader2, Plus, Pencil, Trash2, Upload, User } from "lucide-react";
 
+import { useLearnerFieldSettings } from "@/hooks/useLearnerFieldSettings";
+
+type House = { id: string; name: string };
 type ClassRow = { id: string; name: string };
 type Stream = { id: string; class_id: string; name: string };
 type Learner = {
@@ -43,6 +46,8 @@ export default function LearnersPage() {
   const [learners, setLearners] = useState<Learner[]>([]);
   const [classes, setClasses] = useState<ClassRow[]>([]);
   const [streams, setStreams] = useState<Stream[]>([]);
+  const [houses, setHouses] = useState<House[]>([]);
+  const { flags } = useLearnerFieldSettings();
   const [photoUrls, setPhotoUrls] = useState<Record<string, string>>({});
   const [filterClass, setFilterClass] = useState<string>("all");
   const [filterStream, setFilterStream] = useState<string>("all");
@@ -56,15 +61,17 @@ export default function LearnersPage() {
 
   const load = async () => {
     setLoading(true);
-    const [l, c, s] = await Promise.all([
+    const [l, c, s, h] = await Promise.all([
       supabase.from("learners").select("*").order("full_name"),
       supabase.from("classes").select("id, name").order("sort_order"),
       supabase.from("streams").select("id, class_id, name").order("name"),
+      supabase.from("houses" as any).select("id, name").order("sort_order").order("name"),
     ]);
     const ls = (l.data ?? []) as Learner[];
     setLearners(ls);
     setClasses((c.data ?? []) as ClassRow[]);
     setStreams((s.data ?? []) as Stream[]);
+    setHouses(((h as any).data ?? []) as House[]);
     // Sign photo URLs in batch
     const withPhotos = ls.filter((x) => x.photo_path);
     if (withPhotos.length) {
