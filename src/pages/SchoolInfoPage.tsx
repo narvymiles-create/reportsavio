@@ -325,6 +325,23 @@ export default function SchoolInfoPage() {
           </form>
         </CardContent>
       </Card>
+
+      {info && (
+        <StampPositionDialog
+          open={stampDialog}
+          onOpenChange={setStampDialog}
+          schoolId={info.id}
+          stampUrl={stampUrl}
+          initial={{
+            stamp_x: info.stamp_x,
+            stamp_y: info.stamp_y,
+            stamp_position_type: info.stamp_position_type,
+            stamp_size: info.stamp_size,
+            stamp_opacity: info.stamp_opacity,
+          }}
+          onSaved={(s) => setInfo({ ...info, ...s })}
+        />
+      )}
     </div>
   );
 }
