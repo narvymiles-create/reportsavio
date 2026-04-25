@@ -682,6 +682,40 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
                 </tbody>
               </table>
             </div>
+
+            {/* Subject Performance Summary (auto-generated, real-time) */}
+            <div className="marks-form__summary-wrap">
+              <div className="marks-form__summary-title">SUBJECT PERFORMANCE SUMMARY (AUTO GENERATED){cls?.name ? ` — ${cls.name}` : ""}</div>
+              <table className="marks-form__summary">
+                <thead>
+                  <tr>
+                    <th>RANK</th>
+                    <th style={{ textAlign: "left" }}>GRADE SUBJECT</th>
+                    {GRADE_COLS.map(g => <th key={g}>{g}</th>)}
+                    <th>FIRST GRADE CONTRIBUTION</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {subjectPerformance.length === 0 ? (
+                    <tr><td colSpan={11} style={{ textAlign: "center" }}>No subjects.</td></tr>
+                  ) : subjectPerformance.map(r => (
+                    <tr key={r.subjectId}>
+                      <td>{r.rank}</td>
+                      <td style={{ textAlign: "left" }}>{r.label}</td>
+                      {GRADE_COLS.map(g => <td key={g}>{r.counts[g] || 0}</td>)}
+                      <td><strong>{r.firstGrade}</strong></td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <td colSpan={11} style={{ textAlign: "center", fontWeight: 600 }}>
+                      TOTAL NUMBER OF LEARNERS = {filteredLearners.length}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
           </>
         )}
       </div>
