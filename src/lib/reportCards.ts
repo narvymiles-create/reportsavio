@@ -44,6 +44,9 @@ export async function generateClassReports(termId: string, classId: string): Pro
   const learners = (learnersRes.data ?? []) as { id: string; full_name: string }[];
   const subjectIds = new Set((subjectsRes.data ?? []).map((s: any) => s.id));
   const coreSubjectIds = new Set((subjectsRes.data ?? []).filter((s: any) => s.is_core).map((s: any) => s.id));
+  if (coreSubjectIds.size !== 4) {
+    throw new Error(`Exactly 4 core subjects are required to calculate aggregates. This class has ${coreSubjectIds.size}.`);
+  }
   const marksByLearner = new Map<string, { subject_id: string; total: number | null; points: number | null }[]>();
   for (const m of (marksRes.data ?? []) as any[]) {
     if (!subjectIds.has(m.subject_id)) continue;
