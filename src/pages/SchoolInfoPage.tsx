@@ -31,15 +31,25 @@ type SchoolInfo = {
   website: string | null;
   motto: string | null;
   logo_path: string | null;
+  stamp_path: string | null;
+  stamp_x: number;
+  stamp_y: number;
+  stamp_position_type: string | null;
+  stamp_size: number;
+  stamp_opacity: number;
 };
 
 export default function SchoolInfoPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadingStamp, setUploadingStamp] = useState(false);
   const [info, setInfo] = useState<SchoolInfo | null>(null);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [stampUrl, setStampUrl] = useState<string | null>(null);
+  const [stampDialog, setStampDialog] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const stampRef = useRef<HTMLInputElement>(null);
 
   const load = async () => {
     setLoading(true);
