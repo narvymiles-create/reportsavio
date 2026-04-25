@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
 import { Loader2, Upload, Image as ImageIcon, Stamp, Settings2 } from "lucide-react";
 import { StampPositionDialog } from "@/components/StampPositionDialog";
-import { removeBackground } from "@/lib/signatureProcessing";
+import { processSignatureFile } from "@/lib/signatureProcessing";
 
 const schema = z.object({
   name: z.string().trim().min(1).max(200),
