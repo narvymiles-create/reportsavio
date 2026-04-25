@@ -14,6 +14,8 @@ import ClassesPage from "./pages/ClassesPage";
 import SubjectsPage from "./pages/SubjectsPage";
 import TermsPage from "./pages/TermsPage";
 import LearnersPage from "./pages/LearnersPage";
+import GradingPage from "./pages/GradingPage";
+import CommentsPage from "./pages/CommentsPage";
 import { ComingSoon } from "@/components/ComingSoon";
 import NotFound from "./pages/NotFound.tsx";
 
@@ -42,8 +44,8 @@ const App = () => (
             <Route path="/terms" element={<Protected><TermsPage /></Protected>} />
             <Route path="/learners" element={<Protected><LearnersPage /></Protected>} />
             <Route path="/marks" element={<Protected><ComingSoon title="Marks Entry" description="Enter marks per learner per subject for all 3 stages." /></Protected>} />
-            <Route path="/grading" element={<Protected><ComingSoon title="Grading System" description="Configure grade bands, points, and division rules." /></Protected>} />
-            <Route path="/comments" element={<Protected><ComingSoon title="Comment Templates" description="Auto-comments based on average. Multiple per range, picked randomly." /></Protected>} />
+            <Route path="/grading" element={<Protected><GradingPage /></Protected>} />
+            <Route path="/comments" element={<Protected><CommentsPage /></Protected>} />
             <Route path="/signatures" element={<Protected><ComingSoon title="Signatures" description="Upload per-class teacher signatures and the head teacher signature." /></Protected>} />
             <Route path="/report-cards" element={<Protected><ComingSoon title="Report Cards" description="Generate, view, download, and re-generate report card PDFs." /></Protected>} />
             <Route path="*" element={<NotFound />} />
