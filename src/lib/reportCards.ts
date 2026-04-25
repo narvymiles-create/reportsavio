@@ -23,7 +23,7 @@ function pickComment(tpls: Tpl[], audience: Audience, average: number, name: str
   const matches = tpls.filter(t => t.audience === audience && average >= t.min_average && average <= t.max_average);
   if (matches.length === 0) return "";
   const t = matches[Math.floor(Math.random() * matches.length)];
-  return t.text.replaceAll("{name}", name);
+  return t.text.split("{name}").join(name);
 }
 
 /** Compute & upsert report cards for every learner in a class for a given term.
