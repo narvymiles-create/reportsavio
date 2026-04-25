@@ -9,8 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "@/hooks/use-toast";
-import { Loader2, Plus, Pencil, Trash2 } from "lucide-react";
+import { Loader2, Plus, Pencil, Trash2, ClipboardList } from "lucide-react";
 
 type TeacherRole = "class_teacher" | "head_teacher" | "subject_teacher";
 type Teacher = {
@@ -22,6 +23,9 @@ type Teacher = {
   phone: string | null;
 };
 
+type ClassRow = { id: string; name: string; class_teacher_id: string | null };
+type SubjectRow = { id: string; name: string; code: string; code_label: string | null; class_id: string; subject_teacher_id: string | null };
+
 type Assignment = {
   classes: { id: string; name: string }[];
   subjects: { id: string; name: string; class_name: string }[];
@@ -30,7 +34,7 @@ type Assignment = {
 const schema = z.object({
   full_name: z.string().trim().min(1).max(150),
   role: z.enum(["class_teacher", "head_teacher", "subject_teacher"]),
-  initials: z.string().trim().max(10).optional().or(z.literal("")),
+  initials: z.string().trim().max(20).optional().or(z.literal("")),
   email: z.string().trim().email().max(200).optional().or(z.literal("")),
   phone: z.string().trim().max(50).optional().or(z.literal("")),
 });
@@ -41,22 +45,51 @@ const ROLE_LABEL: Record<TeacherRole, string> = {
   subject_teacher: "Subject teacher",
 };
 
+function autoInitials(name: string): string {
+  return name
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((p) => p[0]?.toUpperCase() ?? "")
+    .filter(Boolean)
+    .join(".");
+}
+
 export default function TeachersPage() {
   const [loading, setLoading] = useState(true);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
+  const [classes, setClasses] = useState<ClassRow[]>([]);
+  const [subjects, setSubjects] = useState<SubjectRow[]>([]);
   const [assignments, setAssignments] = useState<Record<string, Assignment>>({});
+
+  // Add/Edit teacher dialog
   const [editing, setEditing] = useState<Teacher | null>(null);
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  // Controlled name → auto initials (editable)
+  const [formName, setFormName] = useState("");
+  const [formInitials, setFormInitials] = useState("");
+  const [initialsTouched, setInitialsTouched] = useState(false);
+
+  // Edit Assignment dialog
+  const [assignOpen, setAssignOpen] = useState(false);
+  const [assignTeacher, setAssignTeacher] = useState<Teacher | null>(null);
+  const [assignClassId, setAssignClassId] = useState<string>("none");
+  const [assignSubjects, setAssignSubjects] = useState<Set<string>>(new Set());
+  const [assignSaving, setAssignSaving] = useState(false);
 
   const load = async () => {
     setLoading(true);
     const [{ data: t }, { data: cls }, { data: subs }] = await Promise.all([
       supabase.from("teachers").select("*").order("full_name"),
-      supabase.from("classes").select("id, name, class_teacher_id"),
-      supabase.from("subjects").select("id, name, subject_teacher_id, classes(name)"),
+      supabase.from("classes").select("id, name, class_teacher_id").order("sort_order").order("name"),
+      supabase.from("subjects").select("id, name, code, code_label, class_id, subject_teacher_id, classes(name)"),
     ]);
     setTeachers((t ?? []) as Teacher[]);
+    setClasses((cls ?? []) as ClassRow[]);
+    setSubjects((subs ?? []) as any);
+
     const map: Record<string, Assignment> = {};
     (t ?? []).forEach((tt: any) => (map[tt.id] = { classes: [], subjects: [] }));
     (cls ?? []).forEach((c: any) => {
@@ -81,13 +114,26 @@ export default function TeachersPage() {
     load();
   }, []);
 
+  const openTeacherDialog = (t: Teacher | null) => {
+    setEditing(t);
+    setFormName(t?.full_name ?? "");
+    setFormInitials(t?.initials ?? (t ? autoInitials(t.full_name) : ""));
+    setInitialsTouched(!!t?.initials);
+    setOpen(true);
+  };
+
+  const onNameChange = (v: string) => {
+    setFormName(v);
+    if (!initialsTouched) setFormInitials(autoInitials(v));
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
     const parsed = schema.safeParse({
-      full_name: fd.get("full_name"),
+      full_name: formName,
       role: fd.get("role"),
-      initials: fd.get("initials"),
+      initials: formInitials,
       email: fd.get("email"),
       phone: fd.get("phone"),
     });
@@ -101,7 +147,7 @@ export default function TeachersPage() {
     }
     const payload = {
       ...parsed.data,
-      initials: parsed.data.initials || null,
+      initials: parsed.data.initials || autoInitials(parsed.data.full_name) || null,
       email: parsed.data.email || null,
       phone: parsed.data.phone || null,
     };
@@ -134,12 +180,87 @@ export default function TeachersPage() {
     }
   };
 
+  // ---------- Edit Assignment ----------
+  const openAssign = (t: Teacher) => {
+    setAssignTeacher(t);
+    const currentClass = classes.find((c) => c.class_teacher_id === t.id);
+    setAssignClassId(currentClass?.id ?? "none");
+    setAssignSubjects(new Set(subjects.filter((s) => s.subject_teacher_id === t.id).map((s) => s.id)));
+    setAssignOpen(true);
+  };
+
+  const toggleSubject = (id: string) => {
+    setAssignSubjects((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const saveAssignment = async () => {
+    if (!assignTeacher) return;
+    setAssignSaving(true);
+    try {
+      // Class teacher reassignment: clear previous class first, then set new
+      const previousClass = classes.find((c) => c.class_teacher_id === assignTeacher.id);
+      const newClassId = assignClassId === "none" ? null : assignClassId;
+
+      // If newClassId is taken by another teacher, warn but allow reassignment (clear theirs)
+      if (newClassId) {
+        const conflict = classes.find((c) => c.id === newClassId && c.class_teacher_id && c.class_teacher_id !== assignTeacher.id);
+        if (conflict) {
+          if (!confirm(`This class is already assigned to another teacher. Reassign to ${assignTeacher.full_name}?`)) {
+            setAssignSaving(false);
+            return;
+          }
+          // Clear the conflicting class first
+          await supabase.from("classes").update({ class_teacher_id: null }).eq("id", newClassId);
+        }
+      }
+
+      // Clear previous if changing
+      if (previousClass && previousClass.id !== newClassId) {
+        await supabase.from("classes").update({ class_teacher_id: null }).eq("id", previousClass.id);
+      }
+      if (newClassId) {
+        const { error } = await supabase.from("classes").update({ class_teacher_id: assignTeacher.id }).eq("id", newClassId);
+        if (error) throw error;
+      }
+
+      // Subjects: assign selected, unassign deselected
+      const currentSubjectIds = subjects.filter((s) => s.subject_teacher_id === assignTeacher.id).map((s) => s.id);
+      const toAssign = [...assignSubjects].filter((id) => !currentSubjectIds.includes(id));
+      const toUnassign = currentSubjectIds.filter((id) => !assignSubjects.has(id));
+
+      if (toAssign.length) {
+        const { error } = await supabase.from("subjects").update({ subject_teacher_id: assignTeacher.id }).in("id", toAssign);
+        if (error) throw error;
+      }
+      if (toUnassign.length) {
+        const { error } = await supabase.from("subjects").update({ subject_teacher_id: null }).in("id", toUnassign);
+        if (error) throw error;
+      }
+
+      toast({ title: "Assignment updated" });
+      setAssignOpen(false);
+      setAssignTeacher(null);
+      load();
+    } catch (e: any) {
+      toast({ title: "Save failed", description: e.message ?? String(e), variant: "destructive" });
+    } finally {
+      setAssignSaving(false);
+    }
+  };
+
+  const subjectDisplayCode = (s: SubjectRow) => (s.code === "OTHER" && s.code_label ? s.code_label : s.code);
+  const className = (id: string) => classes.find((c) => c.id === id)?.name ?? "";
+
   return (
     <div className="space-y-6">
       <div className="flex items-end justify-between gap-2 flex-wrap">
         <div>
           <h1 className="text-3xl font-bold">Teachers</h1>
-          <p className="text-muted-foreground">Manage teachers and view all their assignments.</p>
+          <p className="text-muted-foreground">Manage teachers, auto-generate initials, and edit assignments.</p>
         </div>
         <Dialog
           open={open}
@@ -149,7 +270,7 @@ export default function TeachersPage() {
           }}
         >
           <DialogTrigger asChild>
-            <Button>
+            <Button onClick={() => openTeacherDialog(null)}>
               <Plus className="h-4 w-4 mr-1" /> Add teacher
             </Button>
           </DialogTrigger>
@@ -160,7 +281,7 @@ export default function TeachersPage() {
             <form onSubmit={handleSubmit} className="space-y-3">
               <div className="space-y-1.5">
                 <Label htmlFor="full_name">Full name *</Label>
-                <Input id="full_name" name="full_name" defaultValue={editing?.full_name ?? ""} required maxLength={150} />
+                <Input id="full_name" name="full_name" value={formName} onChange={(e) => onNameChange(e.target.value)} required maxLength={150} placeholder="e.g. Mary Ann Smith" />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
@@ -175,8 +296,15 @@ export default function TeachersPage() {
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="initials">Initials</Label>
-                  <Input id="initials" name="initials" defaultValue={editing?.initials ?? ""} maxLength={10} placeholder="e.g. J.K." />
+                  <Label htmlFor="initials">Initials (auto)</Label>
+                  <Input
+                    id="initials"
+                    name="initials"
+                    value={formInitials}
+                    onChange={(e) => { setFormInitials(e.target.value.toUpperCase()); setInitialsTouched(true); }}
+                    maxLength={20}
+                    placeholder="e.g. M.A.S"
+                  />
                 </div>
               </div>
               <div className="space-y-1.5">
@@ -198,6 +326,65 @@ export default function TeachersPage() {
         </Dialog>
       </div>
 
+      {/* Edit Assignment Dialog */}
+      <Dialog open={assignOpen} onOpenChange={(o) => { setAssignOpen(o); if (!o) setAssignTeacher(null); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Edit assignment — {assignTeacher?.full_name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label>Class teacher of</Label>
+              <Select value={assignClassId} onValueChange={setAssignClassId}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">— Not a class teacher —</SelectItem>
+                  {classes.map((c) => {
+                    const taken = c.class_teacher_id && c.class_teacher_id !== assignTeacher?.id;
+                    const otherTeacher = teachers.find((t) => t.id === c.class_teacher_id);
+                    return (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name}{taken ? ` ⚠ assigned to ${otherTeacher?.full_name ?? "another teacher"}` : ""}
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">Selecting a class already assigned to another teacher will reassign it.</p>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Subjects taught</Label>
+              <div className="max-h-64 overflow-y-auto border rounded-md p-2 space-y-1">
+                {subjects.length === 0 && <p className="text-sm text-muted-foreground">No subjects available.</p>}
+                {subjects.map((s) => {
+                  const otherTeacher = s.subject_teacher_id && s.subject_teacher_id !== assignTeacher?.id
+                    ? teachers.find((t) => t.id === s.subject_teacher_id)
+                    : null;
+                  return (
+                    <label key={s.id} className="flex items-center gap-2 text-sm py-1 cursor-pointer hover:bg-muted/50 px-1 rounded">
+                      <Checkbox checked={assignSubjects.has(s.id)} onCheckedChange={() => toggleSubject(s.id)} />
+                      <span className="flex-1">
+                        <span className="font-mono text-xs mr-2">{subjectDisplayCode(s)}</span>
+                        {s.name} <span className="text-muted-foreground">· {className(s.class_id)}</span>
+                      </span>
+                      {otherTeacher && <span className="text-xs text-amber-600">currently {otherTeacher.full_name}</span>}
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAssignOpen(false)}>Cancel</Button>
+            <Button onClick={saveAssignment} disabled={assignSaving}>
+              {assignSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Save assignment
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Card>
         <CardHeader>
           <CardTitle>All teachers</CardTitle>
@@ -218,7 +405,7 @@ export default function TeachersPage() {
                   <TableHead>Initials</TableHead>
                   <TableHead>Assignments</TableHead>
                   <TableHead>Contact</TableHead>
-                  <TableHead className="w-24" />
+                  <TableHead className="w-56" />
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -250,7 +437,10 @@ export default function TeachersPage() {
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-1">
-                          <Button size="icon" variant="ghost" onClick={() => { setEditing(t); setOpen(true); }}>
+                          <Button size="sm" variant="outline" onClick={() => openAssign(t)}>
+                            <ClipboardList className="h-3.5 w-3.5 mr-1" /> Edit Assignment
+                          </Button>
+                          <Button size="icon" variant="ghost" onClick={() => openTeacherDialog(t)}>
                             <Pencil className="h-4 w-4" />
                           </Button>
                           <Button size="icon" variant="ghost" onClick={() => handleDelete(t.id)}>
