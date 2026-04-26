@@ -243,12 +243,12 @@ table.rc-phase-summary td {
 }
 .rc-eot th, .rc-eot td {
   border: 1px solid #111;
-  padding: 4px 6px;
+  padding: 2px 6px;
   text-align: center;
   font-size: 10pt;
-  height: 20px;
   overflow: hidden;
   white-space: nowrap;
+  text-overflow: ellipsis;
 }
 .rc-eot th { font-weight: 700; }
 .rc-eot-subject { text-align: left !important; font-weight: 600; width: 26%; padding-left: 10px !important; }
