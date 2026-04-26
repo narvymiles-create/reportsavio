@@ -44,21 +44,8 @@
   z-index: 0;
 }
 
-/* ---------- DECORATIVE FLORAL CORNERS ---------- */
-.rc-corner {
-  position: absolute;
-  width: 32mm;
-  height: 32mm;
-  pointer-events: none;
-  z-index: 1;
-  background-size: contain;
-  background-repeat: no-repeat;
-  background-position: center;
-}
-.rc-corner.tl { top: 5mm;    left: 5mm;   transform: rotate(0deg); }
-.rc-corner.tr { top: 5mm;    right: 5mm;  transform: scaleX(-1); }
-.rc-corner.bl { bottom: 5mm; left: 5mm;   transform: scaleY(-1); }
-.rc-corner.br { bottom: 5mm; right: 5mm;  transform: scale(-1, -1); }
+/* ---------- DECORATIVE FLORAL CORNERS (REMOVED) ---------- */
+.rc-corner { display: none !important; }
 
 /* Make all primary content sit above frame */
 .rc-head, .rc-title, .rc-student, .rc-section-label,
