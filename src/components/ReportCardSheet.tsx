@@ -49,6 +49,7 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
   const [divRules, setDivRules] = useState<DivisionRule[]>([]);
   const [classMarks, setClassMarks] = useState<Anything[]>([]);
   const [classSubjects, setClassSubjects] = useState<Anything[]>([]);
+  const [classLearnerCount, setClassLearnerCount] = useState<number>(0);
   const [teachersById, setTeachersById] = useState<Record<string, Anything>>({});
   const [reloadKey, setReloadKey] = useState(0);
   const { flags } = useLearnerFieldSettings();
