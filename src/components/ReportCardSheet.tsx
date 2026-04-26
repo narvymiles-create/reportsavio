@@ -279,7 +279,7 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
   );
 
   const divisionFigure = (() => {
-    const d = report.division;
+    const d = liveDivision || report?.division;
     if (d == null || d === "") return "";
     const s = String(d);
     const arabic = s.match(/\d+/);
