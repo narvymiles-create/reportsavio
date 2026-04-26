@@ -102,7 +102,9 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
     return () => { cancelled = true; };
   }, [learnerId, termId]);
 
-  const orderedSubjects = useMemo(() => subjects, [subjects]);
+  const MAX_SUBJECTS = 7;
+  const orderedSubjects = useMemo(() => subjects.slice(0, MAX_SUBJECTS), [subjects]);
+  const subjectCountKey = Math.min(Math.max(orderedSubjects.length, 3), 7);
   const marksBySubject = useMemo(() => {
     const map = new Map<string, Anything>();
     marks.forEach(m => map.set(m.subject_id, m));
@@ -164,9 +166,9 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
     phase: "bot" | "mid",
     sum: { total: number; avg: number; aggregate: number }
   ) => (
-    <>
+    <div className="rc-phase-section" data-subjects={subjectCountKey}>
       <div className="rc-section-label">{label}</div>
-      <table className="rc-phase">
+      <table className="rc-phase" data-subjects={subjectCountKey}>
         <thead>
           <tr>
             <th className="rc-phase-rowlabel">SUBJECTS</th>
@@ -204,7 +206,7 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
           </tr>
         </tbody>
       </table>
-    </>
+    </div>
   );
 
   const divisionFigure = (() => {
@@ -343,8 +345,9 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
       {renderPhaseTable("BEGINNING OF TERM EXAMS", "bot", botSum)}
       {renderPhaseTable("MID-TERM EXAMS", "mid", midSum)}
 
+      <div className="rc-eot-section" data-subjects={subjectCountKey}>
       <div className="rc-section-label">END OF TERM EXAMS</div>
-      <table className="rc-eot">
+      <table className="rc-eot" data-subjects={subjectCountKey}>
         <thead>
           <tr>
             <th className="rc-eot-subject">SUBJECTS</th>
@@ -379,6 +382,7 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
           </tr>
         </tbody>
       </table>
+      </div>
 
       <table className="rc-bottom" cellSpacing={0} cellPadding={0}>
         <tbody>
