@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -36,6 +37,8 @@ type Learner = {
   active_reg_type: RegType | null;
   pay_code: string | null;
   photo_path: string | null;
+  conduct: string | null;
+  co_curricular: string | null;
 };
 
 const calcAge = (dob: string | null | undefined): number | null => {
@@ -194,6 +197,8 @@ export default function LearnersPage() {
     const sexVal = String(fd.get("sex") ?? "");
     const houseVal = String(fd.get("house") ?? "");
     const payCodeVal = String(fd.get("pay_code") ?? "");
+    const conductVal = String(fd.get("conduct") ?? "").trim();
+    const coCurricularVal = String(fd.get("co_curricular") ?? "").trim();
 
     const payload: any = {
       full_name: parsed.data.full_name,
@@ -209,6 +214,8 @@ export default function LearnersPage() {
       reg_no: regVal || null,
       active_reg_type: regType,
       pay_code: payCodeVal || null,
+      conduct: conductVal || null,
+      co_curricular: coCurricularVal || null,
     };
 
     setSubmitting(true);
