@@ -383,37 +383,45 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
       <table className="rc-bottom" cellSpacing={0} cellPadding={0}>
         <tbody>
           <tr>
-            <td className="rc-b-left">
-              <div className="rc-b-row">
-                <span className="rc-b-label">Learner&rsquo;s Conduct &amp; Behavior:</span>
-                <span className="rc-b-fill">{report.conduct ?? ""}</span>
+            <td className="rc-b-cell rc-b-tl">
+              <div className="rc-b-block">
+                <div className="rc-b-label">Learner&rsquo;s Conduct &amp; Behavior:</div>
+                <div className="rc-b-text">{report.conduct ?? ""}</div>
               </div>
-              <div className="rc-b-row">
-                <span className="rc-b-label">Co-curricular activities:</span>
-                <span className="rc-b-fill">{report.co_curricular ?? ""}</span>
-              </div>
-              <div className="rc-b-row tall">
-                <span className="rc-b-label">Class Teacher&rsquo;s comment:</span>
-                <span className="rc-b-fill">{report.class_teacher_comment ?? ""}</span>
-              </div>
-              <div className="rc-b-row tall">
-                <span className="rc-b-label">Head Teacher&rsquo;s comment:</span>
-                <span className="rc-b-fill">{report.head_teacher_comment ?? ""}</span>
+              <div className="rc-b-block">
+                <div className="rc-b-label">Co-curricular Activities:</div>
+                <div className="rc-b-text">{report.co_curricular ?? ""}</div>
               </div>
             </td>
-            <td className="rc-b-right">
+            <td className="rc-b-cell rc-b-tr">
               <div className="rc-sig-block">
-                <span className="rc-sig-label">Class Teacher&rsquo;s Signature:</span>
+                <div className="rc-sig-label">Class Teacher&rsquo;s Signature:</div>
                 <div className="rc-sig-line">
                   {classSigUrl && <img src={classSigUrl} alt="class signature" className="rc-sig-img" />}
                 </div>
+                <div className="rc-sig-dots">...................................................</div>
                 <div className="rc-sig-name">{classTeacher?.full_name?.toUpperCase() ?? ""}</div>
               </div>
+            </td>
+          </tr>
+          <tr>
+            <td className="rc-b-cell rc-b-bl">
+              <div className="rc-b-row-split">
+                <div className="rc-b-label-col">Class Teacher&rsquo;s final comment:</div>
+                <div className="rc-b-text-col">{report.class_teacher_comment ?? ""}</div>
+              </div>
+              <div className="rc-b-row-split">
+                <div className="rc-b-label-col">Head Teacher&rsquo;s final comment:</div>
+                <div className="rc-b-text-col">{report.head_teacher_comment ?? ""}</div>
+              </div>
+            </td>
+            <td className="rc-b-cell rc-b-br">
               <div className="rc-sig-block">
-                <span className="rc-sig-label">Head Teacher&rsquo;s Signature:</span>
+                <div className="rc-sig-label">Head Teacher&rsquo;s Signature:</div>
                 <div className="rc-sig-line">
                   {headSigUrl && <img src={headSigUrl} alt="head signature" className="rc-sig-img" />}
                 </div>
+                <div className="rc-sig-dots">...................................................</div>
                 <div className="rc-sig-name">{school?.head_teacher_name?.toUpperCase() ?? ""}</div>
               </div>
             </td>
