@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "@/hooks/use-toast";
 import { Loader2, Plus, Pencil, Trash2, ClipboardList } from "lucide-react";
+import { useReportModule } from "@/hooks/useReportModule";
 
 type TeacherRole = "class_teacher" | "head_teacher" | "subject_teacher";
 type Teacher = {
@@ -56,6 +57,9 @@ function autoInitials(name: string): string {
 }
 
 export default function TeachersPage() {
+  const { module } = useReportModule();
+  const section = module === "nursery" ? "nursery" : "primary";
+  const classesTable = module === "nursery" ? "nursery_classes" : "classes";
   const [loading, setLoading] = useState(true);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [classes, setClasses] = useState<ClassRow[]>([]);
@@ -81,11 +85,13 @@ export default function TeachersPage() {
 
   const load = async () => {
     setLoading(true);
-    const [{ data: t }, { data: cls }, { data: subs }] = await Promise.all([
-      supabase.from("teachers").select("*").order("full_name"),
-      supabase.from("classes").select("id, name, class_teacher_id").order("sort_order").order("name"),
-      supabase.from("subjects").select("id, name, code, code_label, class_id, subject_teacher_id, classes(name)"),
-    ]);
+    const teachersQ = (supabase.from("teachers") as any).select("*").eq("section", section).order("full_name");
+    const classesQ = (supabase.from(classesTable) as any).select("id, name, class_teacher_id").order("sort_order").order("name");
+    const subjectsQ: Promise<any> = module === "nursery"
+      ? Promise.resolve({ data: [] as any[] })
+      : (supabase.from("subjects") as any).select("id, name, code, code_label, class_id, subject_teacher_id, classes(name)");
+    const [tRes, cRes, sRes] = await Promise.all([teachersQ, classesQ, subjectsQ]);
+    const t = (tRes as any).data; const cls = (cRes as any).data; const subs = (sRes as any).data;
     setTeachers((t ?? []) as Teacher[]);
     setClasses((cls ?? []) as ClassRow[]);
     setSubjects((subs ?? []) as any);
@@ -112,7 +118,7 @@ export default function TeachersPage() {
 
   useEffect(() => {
     load();
-  }, []);
+  }, [module]);
 
   const openTeacherDialog = (t: Teacher | null) => {
     setEditing(t);
@@ -154,9 +160,9 @@ export default function TeachersPage() {
     setSubmitting(true);
     let error;
     if (editing) {
-      ({ error } = await supabase.from("teachers").update(payload).eq("id", editing.id));
+      ({ error } = await (supabase.from("teachers") as any).update(payload).eq("id", editing.id));
     } else {
-      ({ error } = await supabase.from("teachers").insert([payload as any]));
+      ({ error } = await (supabase.from("teachers") as any).insert([{ ...payload, section } as any]));
     }
     setSubmitting(false);
     if (error) {
@@ -214,16 +220,16 @@ export default function TeachersPage() {
             return;
           }
           // Clear the conflicting class first
-          await supabase.from("classes").update({ class_teacher_id: null }).eq("id", newClassId);
+          await (supabase.from(classesTable) as any).update({ class_teacher_id: null }).eq("id", newClassId);
         }
       }
 
       // Clear previous if changing
       if (previousClass && previousClass.id !== newClassId) {
-        await supabase.from("classes").update({ class_teacher_id: null }).eq("id", previousClass.id);
+        await (supabase.from(classesTable) as any).update({ class_teacher_id: null }).eq("id", previousClass.id);
       }
       if (newClassId) {
-        const { error } = await supabase.from("classes").update({ class_teacher_id: assignTeacher.id }).eq("id", newClassId);
+        const { error } = await (supabase.from(classesTable) as any).update({ class_teacher_id: assignTeacher.id }).eq("id", newClassId);
         if (error) throw error;
       }
 

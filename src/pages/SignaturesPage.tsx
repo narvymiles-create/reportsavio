@@ -10,8 +10,9 @@ import { toast } from "@/hooks/use-toast";
 import { Loader2, PenLine, Trash2, Upload } from "lucide-react";
 import SignatureCanvas from "react-signature-canvas";
 import { processCanvasDataUrl, processSignatureFile } from "@/lib/signatureProcessing";
+import { useReportModule } from "@/hooks/useReportModule";
 
-type School = { id: string; head_teacher_name: string | null; head_teacher_signature_path: string | null };
+type School = { id: string; head_teacher_name: string | null; head_teacher_signature_path: string | null; nursery_head_teacher_name: string | null; nursery_head_teacher_signature_path: string | null };
 type Cls = { id: string; name: string; class_signature_path: string | null; class_teacher_id: string | null };
 type Teacher = { id: string; full_name: string; initials: string | null; signature_path: string | null };
 
@@ -129,32 +130,41 @@ function SignatureCell({ path, onChange, kind }: { path: string | null; onChange
 }
 
 export default function SignaturesPage() {
+  const { module } = useReportModule();
+  const isNursery = module === "nursery";
+  const classesTable = isNursery ? "nursery_classes" : "classes";
+  const section = isNursery ? "nursery" : "primary";
   const [loading, setLoading] = useState(true);
   const [school, setSchool] = useState<School | null>(null);
   const [classes, setClasses] = useState<Cls[]>([]);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [savingHead, setSavingHead] = useState(false);
 
+  const headName = isNursery ? school?.nursery_head_teacher_name ?? "" : school?.head_teacher_name ?? "";
+  const headSigPath = isNursery ? school?.nursery_head_teacher_signature_path ?? null : school?.head_teacher_signature_path ?? null;
+
   const load = async () => {
     setLoading(true);
     const [s, c, t] = await Promise.all([
-      supabase.from("school_info").select("id,head_teacher_name,head_teacher_signature_path").eq("is_active", true).order("created_at", { ascending: false }).limit(1).maybeSingle(),
-      supabase.from("classes").select("id,name,class_signature_path,class_teacher_id").order("sort_order").order("name"),
-      supabase.from("teachers").select("id,full_name,initials,signature_path").order("full_name"),
+      (supabase.from("school_info") as any).select("id,head_teacher_name,head_teacher_signature_path,nursery_head_teacher_name,nursery_head_teacher_signature_path").eq("is_active", true).order("created_at", { ascending: false }).limit(1).maybeSingle(),
+      (supabase.from(classesTable) as any).select("id,name,class_signature_path,class_teacher_id").order("sort_order").order("name"),
+      (supabase.from("teachers") as any).select("id,full_name,initials,signature_path").eq("section", section).order("full_name"),
     ]);
     setSchool((s.data as any) ?? null);
     setClasses((c.data ?? []) as Cls[]);
     setTeachers((t.data ?? []) as Teacher[]);
     setLoading(false);
   };
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [module]);
 
   const saveHeadName = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!school) return toast({ title: "Set up School Info first", variant: "destructive" });
     const fd = new FormData(e.currentTarget);
     setSavingHead(true);
-    const { error } = await supabase.from("school_info").update({ head_teacher_name: String(fd.get("head_teacher_name") ?? "") || null }).eq("id", school.id);
+    const value = String(fd.get("head_teacher_name") ?? "") || null;
+    const patch = isNursery ? { nursery_head_teacher_name: value } : { head_teacher_name: value };
+    const { error } = await (supabase.from("school_info") as any).update(patch).eq("id", school.id);
     setSavingHead(false);
     if (error) return toast({ title: "Failed", description: error.message, variant: "destructive" });
     toast({ title: "Saved" });
@@ -163,11 +173,12 @@ export default function SignaturesPage() {
 
   const updateHeadSig = async (newPath: string | null) => {
     if (!school) return;
-    await supabase.from("school_info").update({ head_teacher_signature_path: newPath }).eq("id", school.id);
-    setSchool({ ...school, head_teacher_signature_path: newPath });
+    const patch = isNursery ? { nursery_head_teacher_signature_path: newPath } : { head_teacher_signature_path: newPath };
+    await (supabase.from("school_info") as any).update(patch).eq("id", school.id);
+    setSchool({ ...school, ...(isNursery ? { nursery_head_teacher_signature_path: newPath } : { head_teacher_signature_path: newPath }) });
   };
   const updateClassSig = async (id: string, newPath: string | null) => {
-    await supabase.from("classes").update({ class_signature_path: newPath }).eq("id", id);
+    await (supabase.from(classesTable) as any).update({ class_signature_path: newPath }).eq("id", id);
     setClasses(prev => prev.map(c => c.id === id ? { ...c, class_signature_path: newPath } : c));
   };
   const updateTeacherSig = async (id: string, newPath: string | null) => {
@@ -180,22 +191,22 @@ export default function SignaturesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Signatures</h1>
+        <h1 className="text-3xl font-bold">{isNursery ? "Nursery Signatures" : "Signatures"}</h1>
         <p className="text-muted-foreground">Upload an image OR draw directly. Backgrounds are removed and signatures auto-cropped & scaled for the report card.</p>
       </div>
 
       <Tabs defaultValue="head">
         <TabsList>
-          <TabsTrigger value="head">Head Teacher</TabsTrigger>
-          <TabsTrigger value="class">Class Teachers</TabsTrigger>
-          <TabsTrigger value="subject">Subject Teachers</TabsTrigger>
+          <TabsTrigger value="head">{isNursery ? "Nursery Head Teacher" : "Head Teacher"}</TabsTrigger>
+          <TabsTrigger value="class">{isNursery ? "Nursery Class Teachers" : "Class Teachers"}</TabsTrigger>
+          {!isNursery && <TabsTrigger value="subject">Subject Teachers</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="head" className="mt-4">
           <Card>
             <CardHeader>
-              <CardTitle>Head Teacher</CardTitle>
-              <CardDescription>Signed at the bottom of every report card.</CardDescription>
+              <CardTitle>{isNursery ? "Nursery Head Teacher" : "Head Teacher"}</CardTitle>
+              <CardDescription>Signed at the bottom of every {isNursery ? "nursery " : ""}report card.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {!school ? (
@@ -204,14 +215,14 @@ export default function SignaturesPage() {
                 <>
                   <form onSubmit={saveHeadName} className="flex items-end gap-3 max-w-xl">
                     <div className="flex-1">
-                      <Label>Head Teacher Name</Label>
-                      <Input name="head_teacher_name" defaultValue={school.head_teacher_name ?? ""} placeholder="e.g. Mr. John Doe" />
+                      <Label>{isNursery ? "Nursery Head Teacher Name" : "Head Teacher Name"}</Label>
+                      <Input name="head_teacher_name" defaultValue={headName} placeholder="e.g. Mr. John Doe" />
                     </div>
                     <Button type="submit" disabled={savingHead}>{savingHead && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Save Name</Button>
                   </form>
                   <div>
                     <Label className="block mb-2">Signature</Label>
-                    <SignatureCell kind="school" path={school.head_teacher_signature_path} onChange={updateHeadSig} />
+                    <SignatureCell kind="school" path={headSigPath} onChange={updateHeadSig} />
                   </div>
                 </>
               )}
@@ -248,6 +259,7 @@ export default function SignaturesPage() {
           </Card>
         </TabsContent>
 
+        {!isNursery && (
         <TabsContent value="subject" className="mt-4">
           <Card>
             <CardHeader>
@@ -273,6 +285,7 @@ export default function SignaturesPage() {
             </CardContent>
           </Card>
         </TabsContent>
+        )}
       </Tabs>
     </div>
   );

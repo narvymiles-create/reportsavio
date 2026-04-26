@@ -43,8 +43,9 @@ export function NurseryReportSheet({ learnerId, termId }: Props) {
         const { data: u } = await supabase.storage.from("school-assets").createSignedUrl((s as any).watermark_path, 3600);
         setWatermarkUrl(u?.signedUrl ?? null);
       }
-      if ((s as any)?.head_teacher_signature_path) {
-        const { data: u } = await supabase.storage.from("signatures").createSignedUrl((s as any).head_teacher_signature_path, 3600);
+      const headSigPath = (s as any)?.nursery_head_teacher_signature_path ?? (s as any)?.head_teacher_signature_path;
+      if (headSigPath) {
+        const { data: u } = await supabase.storage.from("signatures").createSignedUrl(headSigPath, 3600);
         setHeadSigUrl(u?.signedUrl ?? null);
       }
 

@@ -10,6 +10,8 @@ import Auth from "./pages/Auth";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import Dashboard from "./pages/Dashboard";
+import NurseryDashboard from "./pages/NurseryDashboard";
+import { useReportModule } from "@/hooks/useReportModule";
 import SchoolInfoPage from "./pages/SchoolInfoPage";
 import TeachersPage from "./pages/TeachersPage";
 import ClassesPage from "./pages/ClassesPage";
@@ -44,6 +46,11 @@ const Protected = ({ children }: { children: React.ReactNode }) => (
   </RequireAdmin>
 );
 
+const HomeDashboard = () => {
+  const { module } = useReportModule();
+  return module === "nursery" ? <NurseryDashboard /> : <Dashboard />;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -55,7 +62,7 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/" element={<Protected><Dashboard /></Protected>} />
+            <Route path="/" element={<Protected><HomeDashboard /></Protected>} />
             <Route path="/school" element={<Protected><SchoolInfoPage /></Protected>} />
             <Route path="/classes" element={<Protected><ClassesPage /></Protected>} />
             <Route path="/subjects" element={<Protected><SubjectsPage /></Protected>} />

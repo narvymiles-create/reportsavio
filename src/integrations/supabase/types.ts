@@ -676,6 +676,8 @@ export type Database = {
           logo_path: string | null
           motto: string | null
           name: string
+          nursery_head_teacher_name: string | null
+          nursery_head_teacher_signature_path: string | null
           po_box: string | null
           stamp_opacity: number
           stamp_path: string | null
@@ -705,6 +707,8 @@ export type Database = {
           logo_path?: string | null
           motto?: string | null
           name: string
+          nursery_head_teacher_name?: string | null
+          nursery_head_teacher_signature_path?: string | null
           po_box?: string | null
           stamp_opacity?: number
           stamp_path?: string | null
@@ -734,6 +738,8 @@ export type Database = {
           logo_path?: string | null
           motto?: string | null
           name?: string
+          nursery_head_teacher_name?: string | null
+          nursery_head_teacher_signature_path?: string | null
           po_box?: string | null
           stamp_opacity?: number
           stamp_path?: string | null
@@ -870,6 +876,7 @@ export type Database = {
           initials: string | null
           phone: string | null
           role: Database["public"]["Enums"]["teacher_role"]
+          section: string
           signature_path: string | null
           updated_at: string
         }
@@ -881,6 +888,7 @@ export type Database = {
           initials?: string | null
           phone?: string | null
           role?: Database["public"]["Enums"]["teacher_role"]
+          section?: string
           signature_path?: string | null
           updated_at?: string
         }
@@ -892,6 +900,7 @@ export type Database = {
           initials?: string | null
           phone?: string | null
           role?: Database["public"]["Enums"]["teacher_role"]
+          section?: string
           signature_path?: string | null
           updated_at?: string
         }
