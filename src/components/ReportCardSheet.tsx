@@ -46,6 +46,7 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
   const [subjects, setSubjects] = useState<Anything[]>([]);
   const [marks, setMarks] = useState<Anything[]>([]);
   const [bands, setBands] = useState<GradeBand[]>([]);
+  const [teachersById, setTeachersById] = useState<Record<string, Anything>>({});
   const { flags } = useLearnerFieldSettings();
 
   useEffect(() => {
