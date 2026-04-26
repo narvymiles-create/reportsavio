@@ -291,10 +291,16 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
     label: string,
     phase: "bot" | "mid",
     sum: { total: number; avg: number; aggregate: number },
-    info: { position: number | null; classSize: number; division: string }
+    info: { position: number | null; classSize: number; division: string },
+    hasData: boolean
   ) => (
     <div className="rc-phase-section" data-subjects={subjectCountKey}>
-      <div className="rc-section-label">{label}</div>
+      <div className="rc-section-label">
+        {label}
+        {!hasData && <span style={{ color: "#b00", fontWeight: 600, marginLeft: 8, fontSize: 10 }}>
+          — Missing marks data for {label}
+        </span>}
+      </div>
       <table className="rc-phase" data-subjects={subjectCountKey}>
         <thead>
           <tr>
@@ -316,7 +322,7 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
             {orderedSubjects.map(s => {
               const m = marksBySubject.get(s.id);
               const v = m?.[phase];
-              const g = v != null ? gradeFor(Number(v), bands) : null;
+              const g = v != null && v !== "" ? gradeFor(Number(v), bands) : null;
               return <td key={s.id}>{g?.grade ?? ""}</td>;
             })}
           </tr>
