@@ -87,6 +87,14 @@ export default function SchoolInfoPage() {
     } else {
       setStampUrl(null);
     }
+    if (row?.watermark_path) {
+      const { data: signed } = await supabase.storage
+        .from("school-assets")
+        .createSignedUrl(row.watermark_path, 3600);
+      setWatermarkUrl(signed?.signedUrl ?? null);
+    } else {
+      setWatermarkUrl(null);
+    }
     setLoading(false);
   };
 
