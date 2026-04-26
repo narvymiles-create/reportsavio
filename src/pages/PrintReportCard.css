@@ -122,10 +122,9 @@
 }
 .rc-lbl { font-weight: 700; }
 
-/* AUTO-UNDERLINE FIELD */
+/* FIELD (no underline) */
 .rc-fill {
   display: inline-block;
-  border-bottom: 1px solid #111;
   min-width: 110px;
   padding: 0 4px 1px;
   line-height: 1.15;
