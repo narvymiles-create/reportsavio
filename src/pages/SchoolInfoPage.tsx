@@ -55,6 +55,7 @@ export default function SchoolInfoPage() {
   const [info, setInfo] = useState<SchoolInfo | null>(null);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [stampUrl, setStampUrl] = useState<string | null>(null);
+  const [watermarkUrl, setWatermarkUrl] = useState<string | null>(null);
   const [stampDialog, setStampDialog] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const stampRef = useRef<HTMLInputElement>(null);
