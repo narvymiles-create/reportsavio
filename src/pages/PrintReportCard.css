@@ -193,16 +193,16 @@
   white-space: nowrap;
 }
 
-/* EOT rows distribute evenly inside the fixed-height container.
-   Total rows = subjects + 1 header row. Heights are percentages of container. */
-.rc-eot { height: 100%; }
+/* EOT rows use fixed heights per subject count so the table never overflows
+   its share of the container, leaving the summary row fully visible. */
+.rc-eot { height: auto; }
 .rc-eot thead, .rc-eot tbody { height: auto; }
 
-.rc-eot[data-subjects="3"] tr { height: calc(100% / 4); }
-.rc-eot[data-subjects="4"] tr { height: calc(100% / 5); }
-.rc-eot[data-subjects="5"] tr { height: calc(100% / 6); }
-.rc-eot[data-subjects="6"] tr { height: calc(100% / 7); font-size: 10px; }
-.rc-eot[data-subjects="7"] tr { height: calc(100% / 8); font-size: 10px; }
+.rc-eot[data-subjects="3"] tr { height: 30px; }
+.rc-eot[data-subjects="4"] tr { height: 26px; }
+.rc-eot[data-subjects="5"] tr { height: 23px; }
+.rc-eot[data-subjects="6"] tr { height: 21px; }
+.rc-eot[data-subjects="7"] tr { height: 19px; }
 
 .rc-eot[data-subjects="6"] td,
 .rc-eot[data-subjects="6"] th,
