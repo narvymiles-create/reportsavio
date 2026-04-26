@@ -153,22 +153,27 @@
   break-inside: avoid;
 }
 
-/* EOT fixed-height container — table NEVER expands, rows distribute evenly */
+/* EOT fixed-height container — table NEVER expands, summary always visible */
 .rc-eot-section {
   height: 220px;
   max-height: 220px;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 .rc-eot-section .rc-section-label {
   flex: 0 0 auto;
 }
 .rc-eot-section > table.rc-eot {
   flex: 1 1 auto;
-  height: 100%;
+  height: auto;
   min-height: 0;
+  overflow: hidden;
 }
 .rc-eot-section > table.rc-phase-summary {
   flex: 0 0 auto;
+  margin-top: 2px;
+  margin-bottom: 0;
 }
 
 .rc-phase {
