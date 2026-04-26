@@ -267,25 +267,25 @@ table.rc-phase-summary td {
 .rc-sig-block {
   display: flex;
   flex-direction: column;
-  align-items: stretch;
-  height: 100%;
-}
-.rc-sig-label {
-  font-weight: 700;
-  font-size: 10pt;
-  margin-bottom: 4px;
-}
-.rc-sig-line {
-  flex: 1;
-  min-height: 32px;
-  display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-end;
+  height: 100%;
+  padding-top: 2px;
+}
+.rc-sig-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 0;
+  margin-bottom: 2px;
 }
 .rc-sig-img {
-  max-height: 36px;
-  max-width: 150px;
+  display: block;
+  max-height: 22px;
+  max-width: 110px;
   object-fit: contain;
+  margin: 0;
+  padding: 0;
 }
 .rc-sig-dots {
   text-align: center;
@@ -293,16 +293,27 @@ table.rc-phase-summary td {
   letter-spacing: 1px;
   color: #111;
   line-height: 1;
-  margin-top: 2px;
+  margin: 0;
+  padding: 0;
   overflow: hidden;
   white-space: nowrap;
+  width: 160px;
 }
 .rc-sig-name {
-  font-size: 9.5pt;
+  font-size: 9pt;
   text-align: center;
-  margin-top: 3px;
+  margin-top: 1px;
   font-weight: 700;
   letter-spacing: 0.5px;
+  line-height: 1.1;
+}
+.rc-sig-position {
+  font-size: 8pt;
+  text-align: center;
+  font-style: italic;
+  color: #333;
+  line-height: 1.1;
+  margin-top: 1px;
 }
 
 /* Term dates row (below bottom box) */
@@ -311,32 +322,32 @@ table.rc-phase-summary td {
   display: flex;
   justify-content: space-around;
   align-items: baseline;
-  margin: 8px 0 4px;
-  font-size: 10pt;
+  margin: 4px 0 2px;
+  font-size: 9.5pt;
   padding: 0 10mm;
 }
 .rc-term-dates .rc-lbl { font-weight: 700; }
-.rc-term-dates .rc-fill { min-width: 140px; }
+.rc-term-dates .rc-fill { min-width: 130px; }
 
 /* ---------- GRADING ---------- */
 .rc-grading-title {
   text-align: center;
   font-weight: 700;
-  font-size: 11pt;
-  margin-top: 4px;
+  font-size: 10.5pt;
+  margin-top: 2px;
 }
 .rc-grading {
-  margin: 3px auto 0;
+  margin: 2px auto 0;
   border-collapse: collapse;
   table-layout: fixed;
   width: 100%;
 }
 .rc-grading td {
   border: 1px solid #111;
-  padding: 3px 4px;
+  padding: 2px 4px;
   text-align: center;
-  font-size: 10pt;
-  height: 18px;
+  font-size: 9.5pt;
+  height: 16px;
 }
 .rc-g-label { font-weight: 700; width: 14%; padding-left: 10px !important; text-align: left !important; }
 
