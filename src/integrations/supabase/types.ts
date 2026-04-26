@@ -186,6 +186,8 @@ export type Database = {
           active_reg_type: string | null
           age: number | null
           class_id: string | null
+          co_curricular: string | null
+          conduct: string | null
           created_at: string
           dob: string | null
           full_name: string
@@ -205,6 +207,8 @@ export type Database = {
           active_reg_type?: string | null
           age?: number | null
           class_id?: string | null
+          co_curricular?: string | null
+          conduct?: string | null
           created_at?: string
           dob?: string | null
           full_name: string
@@ -224,6 +228,8 @@ export type Database = {
           active_reg_type?: string | null
           age?: number | null
           class_id?: string | null
+          co_curricular?: string | null
+          conduct?: string | null
           created_at?: string
           dob?: string | null
           full_name?: string

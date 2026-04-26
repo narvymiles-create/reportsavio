@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -36,6 +37,8 @@ type Learner = {
   active_reg_type: RegType | null;
   pay_code: string | null;
   photo_path: string | null;
+  conduct: string | null;
+  co_curricular: string | null;
 };
 
 const calcAge = (dob: string | null | undefined): number | null => {
@@ -194,6 +197,8 @@ export default function LearnersPage() {
     const sexVal = String(fd.get("sex") ?? "");
     const houseVal = String(fd.get("house") ?? "");
     const payCodeVal = String(fd.get("pay_code") ?? "");
+    const conductVal = String(fd.get("conduct") ?? "").trim();
+    const coCurricularVal = String(fd.get("co_curricular") ?? "").trim();
 
     const payload: any = {
       full_name: parsed.data.full_name,
@@ -209,6 +214,8 @@ export default function LearnersPage() {
       reg_no: regVal || null,
       active_reg_type: regType,
       pay_code: payCodeVal || null,
+      conduct: conductVal || null,
+      co_curricular: coCurricularVal || null,
     };
 
     setSubmitting(true);
@@ -415,6 +422,31 @@ export default function LearnersPage() {
                     <Label htmlFor="reg_no">REG</Label>
                     <Input id="reg_no" value={regNo} onChange={(e) => setRegNo(e.target.value)} disabled={regType !== "REG"} maxLength={50} />
                   </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="conduct">Conduct &amp; Behaviour</Label>
+                  <Textarea
+                    id="conduct"
+                    name="conduct"
+                    defaultValue={editing?.conduct ?? ""}
+                    placeholder="e.g. Disciplined, respectful and cooperative."
+                    rows={3}
+                    maxLength={500}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="co_curricular">Co-curricular Activities</Label>
+                  <Textarea
+                    id="co_curricular"
+                    name="co_curricular"
+                    defaultValue={editing?.co_curricular ?? ""}
+                    placeholder="e.g. Football, Music, Debate Club."
+                    rows={3}
+                    maxLength={500}
+                  />
                 </div>
               </div>
 
