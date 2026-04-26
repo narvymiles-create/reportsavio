@@ -1,50 +1,110 @@
-/* Report card — fixed table layout matching official Ugandan template */
+/* =====================================================================
+   Report Card — STRICT A4 FIXED PRINT TEMPLATE
+   - Fits exactly on ONE A4 page (210mm x 297mm)
+   - Decorative leaf corners
+   - Auto-underline fields (border-bottom on inline-block)
+   - No auto-expansion / no overflow to next page
+   ===================================================================== */
 
 .print-root {
   background: #e9eaee;
   min-height: 100vh;
 }
 
+/* ---------- A4 SHEET (LOCKED) ---------- */
 .report-page {
   position: relative;
   width: 210mm;
-  min-height: 297mm;
+  height: 297mm;          /* fixed — not min-height */
   margin: 16px auto;
-  padding: 14mm 12mm 10mm;
+  padding: 10mm 9mm 8mm;
   background: #fff;
   color: #111;
   font-family: "Times New Roman", Georgia, serif;
-  font-size: 10.5pt;
+  font-size: 9.5pt;
+  line-height: 1.25;
   box-shadow: 0 6px 24px rgba(0, 0, 0, 0.08);
   box-sizing: border-box;
+  overflow: hidden;       /* never overflow to a 2nd page */
 }
 
-/* Decorative navy corners */
+/* ---------- DECORATIVE LEAF CORNERS ---------- */
 .rc-corner {
   position: absolute;
-  width: 60px;
-  height: 60px;
+  width: 70px;
+  height: 70px;
   pointer-events: none;
-  background:
-    linear-gradient(135deg, #1a2a52 0 12px, transparent 12px) top left/100% 100% no-repeat;
+  z-index: 1;
 }
-.rc-corner.tl { top: 6px; left: 6px; border-top: 3px solid #1a2a52; border-left: 3px solid #1a2a52; background: none; }
-.rc-corner.tr { top: 6px; right: 6px; border-top: 3px solid #1a2a52; border-right: 3px solid #1a2a52; background: none; }
-.rc-corner.bl { bottom: 6px; left: 6px; border-bottom: 3px solid #1a2a52; border-left: 3px solid #1a2a52; background: none; }
-.rc-corner.br { bottom: 6px; right: 6px; border-bottom: 3px solid #1a2a52; border-right: 3px solid #1a2a52; background: none; }
+/* SVG leaf-like ornament drawn inline via background */
+.rc-corner.tl {
+  top: 4mm; left: 4mm;
+  background: radial-gradient(circle at 0% 0%, #1a2a52 0 6px, transparent 7px),
+              linear-gradient(135deg, transparent 50%, rgba(26,42,82,0.08) 50%);
+  border-top: 2.5px solid #1a2a52;
+  border-left: 2.5px solid #1a2a52;
+  border-top-left-radius: 14px;
+  clip-path: polygon(0 0, 100% 0, 70% 14%, 40% 30%, 22% 55%, 14% 80%, 0 100%);
+}
+.rc-corner.tr {
+  top: 4mm; right: 4mm;
+  background: radial-gradient(circle at 100% 0%, #1a2a52 0 6px, transparent 7px),
+              linear-gradient(225deg, transparent 50%, rgba(26,42,82,0.08) 50%);
+  border-top: 2.5px solid #1a2a52;
+  border-right: 2.5px solid #1a2a52;
+  border-top-right-radius: 14px;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 86% 80%, 78% 55%, 60% 30%, 30% 14%);
+}
+.rc-corner.bl {
+  bottom: 4mm; left: 4mm;
+  background: radial-gradient(circle at 0% 100%, #1a2a52 0 6px, transparent 7px),
+              linear-gradient(45deg, transparent 50%, rgba(26,42,82,0.08) 50%);
+  border-bottom: 2.5px solid #1a2a52;
+  border-left: 2.5px solid #1a2a52;
+  border-bottom-left-radius: 14px;
+  clip-path: polygon(0 0, 14% 20%, 22% 45%, 40% 70%, 70% 86%, 100% 100%, 0 100%);
+}
+.rc-corner.br {
+  bottom: 4mm; right: 4mm;
+  background: radial-gradient(circle at 100% 100%, #1a2a52 0 6px, transparent 7px),
+              linear-gradient(315deg, transparent 50%, rgba(26,42,82,0.08) 50%);
+  border-bottom: 2.5px solid #1a2a52;
+  border-right: 2.5px solid #1a2a52;
+  border-bottom-right-radius: 14px;
+  clip-path: polygon(100% 0, 86% 20%, 78% 45%, 60% 70%, 30% 86%, 0 100%, 100% 100%);
+}
 
-/* HEADER */
-.rc-head { width: 100%; margin-bottom: 8px; }
+/* Outer dotted frame */
+.report-page::before {
+  content: "";
+  position: absolute;
+  inset: 6mm;
+  border: 1px dashed #1a2a52;
+  border-radius: 4px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Make all primary content sit above frame */
+.rc-head, .rc-title, .rc-student, .rc-section-label,
+.rc-phase, .rc-phase-footer, .rc-eot, .rc-bottom,
+.rc-grading-title, .rc-grading {
+  position: relative;
+  z-index: 2;
+}
+
+/* ---------- HEADER ---------- */
+.rc-head { width: 100%; margin-bottom: 4px; }
 .rc-head td { vertical-align: top; padding: 0; }
-.rc-head-logo-cell { width: 110px; }
-.rc-head-photo-cell { width: 110px; text-align: right; }
+.rc-head-logo-cell  { width: 95px; }
+.rc-head-photo-cell { width: 95px; text-align: right; }
 .rc-head-school-cell { text-align: center; padding: 0 6px; }
 
 .rc-box {
   border: 1.2px solid #111;
   border-radius: 6px;
-  width: 100px;
-  height: 100px;
+  width: 88px;
+  height: 88px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -55,167 +115,217 @@
   overflow: hidden;
 }
 .rc-photo-box { margin-left: auto; }
-.rc-box img { max-width: 100%; max-height: 100%; object-fit: cover; }
+.rc-box img {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;     /* keep aspect ratio, no stretch */
+}
 
 .rc-school-name {
-  font-size: 18pt;
+  font-size: 16pt;
   font-weight: 700;
   letter-spacing: 1px;
-  margin-top: 6px;
+  margin-top: 2px;
 }
-.rc-school-line { font-size: 10pt; line-height: 1.35; }
+.rc-school-line { font-size: 9pt; line-height: 1.25; }
 
-/* TITLE */
+/* ---------- TITLE ---------- */
 .rc-title {
   text-align: center;
   font-weight: 700;
-  font-size: 12pt;
+  font-size: 11pt;
   letter-spacing: 0.5px;
-  margin: 10px 0 6px;
+  margin: 6px 0 4px;
 }
 
-/* STUDENT DETAILS */
+/* ---------- STUDENT DETAILS ---------- */
 .rc-student {
   width: 100%;
   border: 1.2px solid #111;
   border-radius: 10px;
   border-collapse: separate;
   border-spacing: 0;
-  margin-bottom: 10px;
+  margin-bottom: 6px;
+  table-layout: fixed;
 }
 .rc-student td {
-  padding: 6px 10px;
-  font-size: 10pt;
+  padding: 4px 8px;
+  font-size: 9.5pt;
   width: 33.33%;
   vertical-align: bottom;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.rc-lbl { font-weight: 600; }
+.rc-lbl { font-weight: 700; }
+
+/* AUTO-UNDERLINE FIELD (fit-content) */
 .rc-fill {
   display: inline-block;
-  min-width: 110px;
   border-bottom: 1px solid #111;
-  padding: 0 2px;
-  line-height: 1.3;
+  width: fit-content;
+  min-width: 80px;
+  max-width: 70%;
+  padding: 0 4px 1px;
+  line-height: 1.15;
+  vertical-align: bottom;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-/* PHASE TABLES (BOT/MID) */
+/* ---------- PHASE TABLES ---------- */
 .rc-section-label {
   font-weight: 700;
   font-size: 10pt;
   letter-spacing: 0.5px;
-  margin: 6px 0 2px;
+  text-align: center;
+  margin: 4px 0 2px;
 }
 .rc-phase {
   width: 100%;
   border-collapse: collapse;
-  margin-bottom: 0;
+  table-layout: fixed;
 }
 .rc-phase th, .rc-phase td {
   border: 1px solid #111;
-  padding: 4px 6px;
+  padding: 2px 4px;
   text-align: center;
-  font-size: 10pt;
-  height: 22px;
+  font-size: 9pt;
+  height: 16px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .rc-phase th { font-weight: 700; background: #fff; }
-.rc-phase-rowlabel { text-align: left !important; font-weight: 700; width: 110px; }
+.rc-phase-rowlabel { text-align: left !important; font-weight: 700; width: 90px; }
 
 .rc-phase-footer {
   width: 100%;
   border-collapse: collapse;
-  margin-bottom: 8px;
+  table-layout: fixed;
+  margin-bottom: 4px;
 }
 .rc-phase-footer td {
   border: 1px solid #111;
-  padding: 4px 6px;
-  font-size: 10pt;
-  height: 22px;
+  padding: 2px 4px;
+  font-size: 9pt;
+  height: 16px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.rc-pf-label { font-weight: 700; white-space: nowrap; }
-.rc-pf-val { min-width: 40px; }
+.rc-pf-label { font-weight: 700; }
+.rc-pf-val { min-width: 30px; text-align: center; }
 
-/* EOT */
+/* ---------- EOT TABLE ---------- */
 .rc-eot {
   width: 100%;
   border-collapse: collapse;
-  margin-bottom: 0;
+  table-layout: fixed;
 }
 .rc-eot th, .rc-eot td {
   border: 1px solid #111;
-  padding: 5px 8px;
+  padding: 3px 6px;
   text-align: center;
-  font-size: 10pt;
-  height: 22px;
+  font-size: 9.5pt;
+  height: 18px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .rc-eot th { font-weight: 700; }
-.rc-eot-subject { text-align: left !important; font-weight: 600; }
+.rc-eot-subject { text-align: left !important; font-weight: 600; width: 30%; }
 
-/* BOTTOM */
+/* ---------- BOTTOM (comments / signatures) ---------- */
 .rc-bottom {
   width: 100%;
   border: 1.2px solid #111;
   border-radius: 10px;
   border-collapse: separate;
   border-spacing: 0;
-  margin-top: 10px;
-  margin-bottom: 8px;
+  margin-top: 6px;
+  margin-bottom: 4px;
+  table-layout: fixed;
 }
 .rc-bottom td {
-  padding: 8px 10px;
-  font-size: 10pt;
+  padding: 5px 8px;
+  font-size: 9.5pt;
   vertical-align: bottom;
 }
-.rc-b-label { font-weight: 600; white-space: nowrap; width: 1%; }
+.rc-b-label { font-weight: 700; white-space: nowrap; width: 28%; }
+
+/* Multi-line writing lines effect */
 .rc-b-fill {
-  border-bottom: 1px solid #111;
-  min-width: 220px;
-  height: 18px;
+  min-width: 180px;
+  height: 22px;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 13px,
+    #111 13px,
+    #111 14px
+  );
+  background-position: bottom;
+  background-repeat: repeat-x;
+  background-size: 100% 14px;
 }
-.rc-b-sign-label { font-weight: 600; white-space: nowrap; padding-left: 14px !important; }
+
+.rc-b-sign-label { font-weight: 700; white-space: nowrap; padding-left: 10px !important; width: 14%; }
 .rc-b-sign-cell {
   border-bottom: 1px solid #111;
-  min-width: 140px;
+  min-width: 110px;
   position: relative;
-  height: 32px;
+  height: 26px;
+  width: 22%;
 }
 .rc-sig-img {
-  max-height: 30px;
-  max-width: 130px;
+  max-height: 24px;
+  max-width: 110px;
   object-fit: contain;
   display: block;
 }
-.rc-sig-name { font-size: 9pt; }
+.rc-sig-name { font-size: 8pt; }
 
-/* GRADING */
+/* ---------- GRADING ---------- */
 .rc-grading-title {
   text-align: center;
   font-weight: 700;
-  font-size: 10pt;
-  margin-top: 4px;
+  font-size: 9.5pt;
+  margin-top: 2px;
 }
 .rc-grading {
-  margin: 4px auto 0;
+  margin: 2px auto 0;
   border-collapse: collapse;
+  table-layout: fixed;
 }
 .rc-grading td {
   border: 1px solid #111;
-  padding: 4px 12px;
+  padding: 2px 10px;
   text-align: center;
-  font-size: 10pt;
-  min-width: 40px;
+  font-size: 9pt;
+  min-width: 36px;
+  height: 16px;
 }
 .rc-g-label { font-weight: 700; }
 
-/* PRINT */
+/* ---------- PRINT ---------- */
+@page { size: A4; margin: 0; }
+
 @media print {
   .no-print { display: none !important; }
   .print-root { background: #fff; }
   .report-page {
     margin: 0;
     box-shadow: none;
-    width: auto;
-    min-height: auto;
-    padding: 8mm 8mm 6mm;
+    width: 210mm;
+    height: 297mm;
+    overflow: hidden;
+    page-break-after: always;
+    page-break-inside: avoid;
+    break-inside: avoid;
   }
-  @page { size: A4; margin: 6mm; }
+  .report-page:last-child { page-break-after: auto; }
 }
