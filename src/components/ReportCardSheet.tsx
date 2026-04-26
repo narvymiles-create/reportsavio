@@ -256,7 +256,7 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
   const phaseInfo = (phase: "bot" | "mid" | "eot", aggregate: number) => {
     const lp = livePhase[phase];
     const position = lp.positionMap.get(learnerId) ?? null;
-    const classSize = lp.classSize || 0;
+    const classSize = classLearnerCount || 0;
     const division = (aggregate > 0 && divRules.length) ? divisionFor(aggregate, divRules) : "";
     return { position, classSize, division };
   };
