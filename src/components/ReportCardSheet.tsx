@@ -166,9 +166,9 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
     phase: "bot" | "mid",
     sum: { total: number; avg: number; aggregate: number }
   ) => (
-    <>
+    <div className="rc-phase-section" data-subjects={subjectCountKey}>
       <div className="rc-section-label">{label}</div>
-      <table className="rc-phase">
+      <table className="rc-phase" data-subjects={subjectCountKey}>
         <thead>
           <tr>
             <th className="rc-phase-rowlabel">SUBJECTS</th>
