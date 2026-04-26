@@ -104,7 +104,7 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
         const { data: classLearners } = await supabase.from("learners").select("id").eq("class_id", ln.class_id);
         const ids = (classLearners ?? []).map((l: any) => l.id);
         if (ids.length) {
-          const { data: cm } = await supabase.from("marks").select("learner_id,subject_id,total,eot,points").eq("term_id", termId).in("learner_id", ids);
+          const { data: cm } = await supabase.from("marks").select("learner_id,subject_id,bot,mid,eot,total,points").eq("term_id", termId).in("learner_id", ids);
           if (!cancelled) setClassMarks(cm ?? []);
         } else {
           setClassMarks([]);
@@ -176,30 +176,50 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
     return { total, avg, aggregate };
   };
 
-  // Live class-wide computation for position + class size (based on EOT total marks)
-  const liveClass = useMemo(() => {
+  // Live per-phase class-wide computation: position, aggregate, division for BOT/MID/EOT independently.
+  const livePhase = useMemo(() => {
     const subjIds = new Set(classSubjects.map((s: any) => s.id));
     const coreIds = new Set(classSubjects.filter((s: any) => s.is_core).map((s: any) => s.id));
-    const byLearner = new Map<string, { totalSum: number; aggregate: number }>();
-    classMarks.forEach((m: any) => {
-      if (!subjIds.has(m.subject_id)) return;
-      const acc = byLearner.get(m.learner_id) ?? { totalSum: 0, aggregate: 0 };
-      const t = m.total != null ? Number(m.total) : (m.eot != null ? Number(m.eot) : null);
-      if (t != null && !isNaN(t)) acc.totalSum += t;
-      if (coreIds.has(m.subject_id) && m.points != null) acc.aggregate += Number(m.points);
-      byLearner.set(m.learner_id, acc);
-    });
-    const arr = Array.from(byLearner.entries())
-      .map(([id, v]) => ({ id, total: v.totalSum, aggregate: v.aggregate }))
-      .sort((a, b) => b.total - a.total);
-    let pos = 0, lastTotal: number | null = null, lastPos = 0;
-    const positionMap = new Map<string, number>();
-    arr.forEach((r, i) => {
-      if (r.total !== lastTotal) { lastPos = i + 1; lastTotal = r.total; }
-      positionMap.set(r.id, lastPos);
-    });
-    return { positionMap, classSize: arr.length, perLearner: new Map(arr.map(a => [a.id, a])) };
-  }, [classMarks, classSubjects]);
+    const coreOk = coreIds.size === 4;
+
+    const computeFor = (phase: "bot" | "mid" | "eot") => {
+      const byLearner = new Map<string, { totalSum: number; aggregate: number; count: number }>();
+      classMarks.forEach((m: any) => {
+        if (!subjIds.has(m.subject_id)) return;
+        const acc = byLearner.get(m.learner_id) ?? { totalSum: 0, aggregate: 0, count: 0 };
+        const raw = m?.[phase];
+        const v = raw != null && raw !== "" ? Number(raw) : null;
+        if (v != null && !isNaN(v)) {
+          acc.totalSum += v;
+          acc.count += 1;
+          if (coreOk && coreIds.has(m.subject_id)) {
+            const b = gradeFor(v, bands);
+            acc.aggregate += b?.points ?? 0;
+          }
+        }
+        byLearner.set(m.learner_id, acc);
+      });
+      // rank: only learners with at least one mark for this phase
+      const arr = Array.from(byLearner.entries())
+        .filter(([, v]) => v.count > 0)
+        .map(([id, v]) => ({ id, total: v.totalSum, aggregate: v.aggregate }))
+        .sort((a, b) => b.total - a.total);
+      const positionMap = new Map<string, number>();
+      let lastTotal: number | null = null, lastPos = 0;
+      arr.forEach((r, i) => {
+        if (r.total !== lastTotal) { lastPos = i + 1; lastTotal = r.total; }
+        positionMap.set(r.id, lastPos);
+      });
+      return { positionMap, classSize: arr.length };
+    };
+
+    return {
+      bot: computeFor("bot"),
+      mid: computeFor("mid"),
+      eot: computeFor("eot"),
+    };
+  }, [classMarks, classSubjects, bands]);
+
 
   if (loading || !learner || !term) {
     return <div className="report-page" style={pageBreak ? { pageBreakAfter: "always" } : undefined}>
@@ -215,9 +235,19 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
   const eotTotal = eotSum.total;
   const eotAvg = eotSum.avg;
   const eotAggregate = eotSum.aggregate;
-  const livePosition = liveClass.positionMap.get(learnerId) ?? null;
-  const liveClassSize = liveClass.classSize || 0;
-  const liveDivision = (eotAggregate > 0 && divRules.length) ? divisionFor(eotAggregate, divRules) : "";
+  const phaseInfo = (phase: "bot" | "mid" | "eot", aggregate: number) => {
+    const lp = livePhase[phase];
+    const position = lp.positionMap.get(learnerId) ?? null;
+    const classSize = lp.classSize || 0;
+    const division = (aggregate > 0 && divRules.length) ? divisionFor(aggregate, divRules) : "";
+    return { position, classSize, division };
+  };
+  const botInfo = phaseInfo("bot", botSum.aggregate);
+  const midInfo = phaseInfo("mid", midSum.aggregate);
+  const eotInfo = phaseInfo("eot", eotAggregate);
+  const livePosition = eotInfo.position;
+  const liveClassSize = eotInfo.classSize;
+  const liveDivision = eotInfo.division;
 
   const codeFor = (name: string): string => {
     const n = name.toUpperCase();
@@ -230,10 +260,23 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
     return name.slice(0, 4).toUpperCase();
   };
 
+  const toDivisionFigure = (d: string | null | undefined): string => {
+    if (d == null || d === "") return "";
+    const s = String(d);
+    const arabic = s.match(/\d+/);
+    if (arabic) return arabic[0];
+    const romanMap: Record<string, string> = { I: "1", II: "2", III: "3", IV: "4", V: "5", U: "U", X: "U" };
+    const upper = s.toUpperCase().replace(/[^A-Z]/g, "");
+    const tokens = upper.match(/IV|III|II|I|V|U|X/g);
+    if (tokens && tokens[0] && romanMap[tokens[0]]) return romanMap[tokens[0]];
+    return s;
+  };
+
   const renderPhaseTable = (
     label: string,
     phase: "bot" | "mid",
-    sum: { total: number; avg: number; aggregate: number }
+    sum: { total: number; avg: number; aggregate: number },
+    info: { position: number | null; classSize: number; division: string }
   ) => (
     <div className="rc-phase-section" data-subjects={subjectCountKey}>
       <div className="rc-section-label">{label}</div>
@@ -269,9 +312,9 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
           <tr>
             <td><span className="rc-ps-label">TOTAL MARKS:</span> <span className="rc-ps-val">{sum.total || ""}</span></td>
             <td><span className="rc-ps-label">AVERAGE:</span> <span className="rc-ps-val">{sum.avg || ""}</span></td>
-            <td><span className="rc-ps-label">POSITION:</span> <span className="rc-ps-val">—</span></td>
+            <td><span className="rc-ps-label">POSITION:</span> <span className="rc-ps-val">{info.position ? `${info.position} / ${info.classSize}` : ""}</span></td>
             <td><span className="rc-ps-label">AGGREGATES:</span> <span className="rc-ps-val">{sum.aggregate || ""}</span></td>
-            <td><span className="rc-ps-label">DIVISION:</span> <span className="rc-ps-val">—</span></td>
+            <td><span className="rc-ps-label">DIVISION:</span> <span className="rc-ps-val">{toDivisionFigure(info.division)}</span></td>
           </tr>
         </tbody>
       </table>
@@ -417,8 +460,8 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
         </tbody>
       </table>
 
-      {renderPhaseTable("BEGINNING OF TERM EXAMS", "bot", botSum)}
-      {renderPhaseTable("MID-TERM EXAMS", "mid", midSum)}
+      {renderPhaseTable("BEGINNING OF TERM EXAMS", "bot", botSum, botInfo)}
+      {renderPhaseTable("MID-TERM EXAMS", "mid", midSum, midInfo)}
 
       <div className="rc-eot-section" data-subjects={subjectCountKey}>
       <div className="rc-section-label">END OF TERM EXAMS</div>
