@@ -159,31 +159,32 @@
 .rc-phase th { font-weight: 700; background: #fff; }
 .rc-phase-rowlabel { text-align: left !important; font-weight: 700; width: 18%; padding-left: 10px !important; }
 
-/* Phase summary single rounded bar */
-.rc-phase-summary {
+/* Phase summary as bordered table — each value in its own cell */
+table.rc-phase-summary {
   width: 100%;
   margin-top: 4px;
   margin-bottom: 6px;
-  border: 1.2px solid #111;
-  border-radius: 12px;
-  padding: 5px 10px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  border-collapse: collapse;
+  table-layout: fixed;
   font-size: 10pt;
-  gap: 8px;
 }
-.rc-ps-item { display: inline-flex; align-items: baseline; gap: 6px; flex: 1; justify-content: center; }
-.rc-ps-item:first-child { justify-content: flex-start; }
-.rc-ps-item:last-child  { justify-content: flex-end; }
+table.rc-phase-summary td {
+  border: 1px solid #111;
+  padding: 4px 6px;
+  text-align: center;
+  height: 20px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .rc-ps-label { font-weight: 700; white-space: nowrap; }
 .rc-ps-val {
   display: inline-block;
-  border-bottom: 1px solid #111;
-  min-width: 50px;
-  padding: 0 6px 1px;
+  min-width: 30px;
+  padding: 0 4px;
   text-align: center;
   white-space: nowrap;
+  font-weight: 600;
 }
 
 /* ---------- EOT TABLE ---------- */
