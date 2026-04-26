@@ -203,8 +203,10 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
 
   return (
     <div className="report-page" style={pageBreak ? { pageBreakAfter: "always" } : undefined}>
-      <span className="rc-corner tl" /><span className="rc-corner tr" />
-      <span className="rc-corner bl" /><span className="rc-corner br" />
+      <span className="rc-corner tl" style={{ backgroundImage: `url(${rcCorner})` }} />
+      <span className="rc-corner tr" style={{ backgroundImage: `url(${rcCorner})` }} />
+      <span className="rc-corner bl" style={{ backgroundImage: `url(${rcCorner})` }} />
+      <span className="rc-corner br" style={{ backgroundImage: `url(${rcCorner})` }} />
 
       <table className="rc-head" cellSpacing={0} cellPadding={0}>
         <tbody>
