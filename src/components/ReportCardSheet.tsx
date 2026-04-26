@@ -395,12 +395,12 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
             </td>
             <td className="rc-b-cell rc-b-tr">
               <div className="rc-sig-block">
-                <div className="rc-sig-label">Class Teacher&rsquo;s Signature:</div>
-                <div className="rc-sig-line">
+                <div className="rc-sig-stack">
                   {classSigUrl && <img src={classSigUrl} alt="class signature" className="rc-sig-img" />}
+                  <div className="rc-sig-dots">..................................................</div>
                 </div>
-                <div className="rc-sig-dots">...................................................</div>
                 <div className="rc-sig-name">{classTeacher?.full_name?.toUpperCase() ?? ""}</div>
+                <div className="rc-sig-position">Class Teacher</div>
               </div>
             </td>
           </tr>
