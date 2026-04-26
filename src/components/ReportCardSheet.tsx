@@ -221,9 +221,15 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
 
   const divisionFigure = (() => {
     const d = report.division;
-    if (d == null) return "";
-    const m = String(d).match(/\d+/);
-    return m ? m[0] : String(d);
+    if (d == null || d === "") return "";
+    const s = String(d);
+    const arabic = s.match(/\d+/);
+    if (arabic) return arabic[0];
+    const romanMap: Record<string, string> = { I: "1", II: "2", III: "3", IV: "4", V: "5", U: "U", X: "U" };
+    const upper = s.toUpperCase().replace(/[^A-Z]/g, "");
+    const tokens = upper.match(/IV|III|II|I|V|U|X/g);
+    if (tokens && tokens[0] && romanMap[tokens[0]]) return romanMap[tokens[0]];
+    return s;
   })();
 
   const wmEnabled = !!school?.watermark_enabled && !!watermarkUrl;
