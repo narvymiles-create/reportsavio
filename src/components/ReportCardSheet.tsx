@@ -205,12 +205,15 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
     </>
   );
 
+  const divisionFigure = (() => {
+    const d = report.division;
+    if (d == null) return "";
+    const m = String(d).match(/\d+/);
+    return m ? m[0] : String(d);
+  })();
+
   return (
     <div className="report-page" style={pageBreak ? { pageBreakAfter: "always" } : undefined}>
-      <span className="rc-corner tl" style={{ backgroundImage: `url(${rcCorner})` }} />
-      <span className="rc-corner tr" style={{ backgroundImage: `url(${rcCorner})` }} />
-      <span className="rc-corner bl" style={{ backgroundImage: `url(${rcCorner})` }} />
-      <span className="rc-corner br" style={{ backgroundImage: `url(${rcCorner})` }} />
 
       <table className="rc-head" cellSpacing={0} cellPadding={0}>
         <tbody>
