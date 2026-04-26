@@ -49,6 +49,7 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
   const [divRules, setDivRules] = useState<DivisionRule[]>([]);
   const [classMarks, setClassMarks] = useState<Anything[]>([]);
   const [classSubjects, setClassSubjects] = useState<Anything[]>([]);
+  const [classLearnerCount, setClassLearnerCount] = useState<number>(0);
   const [teachersById, setTeachersById] = useState<Record<string, Anything>>({});
   const [reloadKey, setReloadKey] = useState(0);
   const { flags } = useLearnerFieldSettings();
@@ -103,6 +104,7 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
         setClassSubjects(((await supabase.from("subjects").select("id,is_core,class_id").eq("class_id", ln.class_id)).data ?? []));
         const { data: classLearners } = await supabase.from("learners").select("id").eq("class_id", ln.class_id);
         const ids = (classLearners ?? []).map((l: any) => l.id);
+        if (!cancelled) setClassLearnerCount(ids.length);
         if (ids.length) {
           const { data: cm } = await supabase.from("marks").select("learner_id,subject_id,bot,mid,eot,total,points").eq("term_id", termId).in("learner_id", ids);
           if (!cancelled) setClassMarks(cm ?? []);
@@ -136,6 +138,7 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
       .channel(`rc-live-${learnerId}-${termId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "marks", filter: `term_id=eq.${termId}` }, () => setReloadKey(k => k + 1))
       .on("postgres_changes", { event: "*", schema: "public", table: "subjects" }, () => setReloadKey(k => k + 1))
+      .on("postgres_changes", { event: "*", schema: "public", table: "learners" }, () => setReloadKey(k => k + 1))
       .on("postgres_changes", { event: "*", schema: "public", table: "division_rules" }, () => setReloadKey(k => k + 1))
       .on("postgres_changes", { event: "*", schema: "public", table: "grading_scales" }, () => setReloadKey(k => k + 1))
       .subscribe();
@@ -253,7 +256,7 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
   const phaseInfo = (phase: "bot" | "mid" | "eot", aggregate: number) => {
     const lp = livePhase[phase];
     const position = lp.positionMap.get(learnerId) ?? null;
-    const classSize = lp.classSize || 0;
+    const classSize = classLearnerCount || 0;
     const division = (aggregate > 0 && divRules.length) ? divisionFor(aggregate, divRules) : "";
     return { position, classSize, division };
   };
@@ -293,14 +296,11 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
     sum: { total: number; avg: number; aggregate: number },
     info: { position: number | null; classSize: number; division: string },
     hasData: boolean
-  ) => (
+  ) => {
+    if (!hasData) return null;
+    return (
     <div className="rc-phase-section" data-subjects={subjectCountKey}>
-      <div className="rc-section-label">
-        {label}
-        {!hasData && <span style={{ color: "#b00", fontWeight: 600, marginLeft: 8, fontSize: 10 }}>
-          — Missing marks data for {label}
-        </span>}
-      </div>
+      <div className="rc-section-label">{label}</div>
       <table className="rc-phase" data-subjects={subjectCountKey}>
         <thead>
           <tr>
@@ -333,17 +333,17 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
           <tr>
             <td><span className="rc-ps-label">TOTAL MARKS:</span> <span className="rc-ps-val">{sum.total || ""}</span></td>
             <td><span className="rc-ps-label">AVERAGE:</span> <span className="rc-ps-val">{sum.avg || ""}</span></td>
-            <td><span className="rc-ps-label">POSITION:</span> <span className="rc-ps-val">{info.position ? `${info.position} / ${info.classSize}` : ""}</span></td>
+            <td><span className="rc-ps-label">POSITION:</span> <span className="rc-ps-val">{info.position && info.classSize ? `${info.position}/${info.classSize}` : ""}</span></td>
             <td><span className="rc-ps-label">AGGREGATES:</span> <span className="rc-ps-val">{sum.aggregate || ""}</span></td>
             <td><span className="rc-ps-label">DIVISION:</span> <span className="rc-ps-val">{toDivisionFigure(info.division)}</span></td>
           </tr>
         </tbody>
       </table>
     </div>
-  );
-
+    );
+  };
   const divisionFigure = (() => {
-    const d = liveDivision || report?.division;
+    const d = liveDivision;
     if (d == null || d === "") return "";
     const s = String(d);
     const arabic = s.match(/\d+/);
@@ -484,13 +484,9 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
       {renderPhaseTable("BEGINNING OF TERM EXAMS", "bot", botSum, botInfo, botHas)}
       {renderPhaseTable("MID-TERM EXAMS", "mid", midSum, midInfo, midHas)}
 
+      {eotHas && (
       <div className="rc-eot-section" data-subjects={subjectCountKey}>
-      <div className="rc-section-label">
-        END OF TERM EXAMS
-        {!eotHas && <span style={{ color: "#b00", fontWeight: 600, marginLeft: 8, fontSize: 10 }}>
-          — Missing marks data for END OF TERM EXAMS
-        </span>}
-      </div>
+      <div className="rc-section-label">END OF TERM EXAMS</div>
       <table className="rc-eot" data-subjects={subjectCountKey}>
         <thead>
           <tr>
@@ -520,13 +516,14 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
           <tr>
             <td><span className="rc-ps-label">TOTAL MARKS:</span> <span className="rc-ps-val">{eotTotal || ""}</span></td>
             <td><span className="rc-ps-label">AVERAGE:</span> <span className="rc-ps-val">{eotAvg || ""}</span></td>
-            <td><span className="rc-ps-label">POSITION:</span> <span className="rc-ps-val">{livePosition ? `${livePosition} / ${liveClassSize}` : ""}</span></td>
+            <td><span className="rc-ps-label">POSITION:</span> <span className="rc-ps-val">{livePosition && liveClassSize ? `${livePosition}/${liveClassSize}` : ""}</span></td>
             <td><span className="rc-ps-label">AGGREGATES:</span> <span className="rc-ps-val">{eotAggregate || ""}</span></td>
             <td><span className="rc-ps-label">DIVISION:</span> <span className="rc-ps-val">{divisionFigure}</span></td>
           </tr>
         </tbody>
       </table>
       </div>
+      )}
 
       <table className="rc-bottom" cellSpacing={0} cellPadding={0}>
         <tbody>
