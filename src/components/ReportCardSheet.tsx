@@ -491,7 +491,7 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
               </div>
               <div className="rc-b-row-split">
                 <div className="rc-b-label-col">Head Teacher&rsquo;s final comment:</div>
-                <div className="rc-b-text-col">{report.head_teacher_comment ?? ""}</div>
+                <div className="rc-b-text-col">{report?.head_teacher_comment ?? ""}</div>
               </div>
             </td>
             <td className="rc-b-cell rc-b-br">
