@@ -191,22 +191,22 @@ export default function SignaturesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Signatures</h1>
+        <h1 className="text-3xl font-bold">{isNursery ? "Nursery Signatures" : "Signatures"}</h1>
         <p className="text-muted-foreground">Upload an image OR draw directly. Backgrounds are removed and signatures auto-cropped & scaled for the report card.</p>
       </div>
 
       <Tabs defaultValue="head">
         <TabsList>
-          <TabsTrigger value="head">Head Teacher</TabsTrigger>
-          <TabsTrigger value="class">Class Teachers</TabsTrigger>
-          <TabsTrigger value="subject">Subject Teachers</TabsTrigger>
+          <TabsTrigger value="head">{isNursery ? "Nursery Head Teacher" : "Head Teacher"}</TabsTrigger>
+          <TabsTrigger value="class">{isNursery ? "Nursery Class Teachers" : "Class Teachers"}</TabsTrigger>
+          {!isNursery && <TabsTrigger value="subject">Subject Teachers</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="head" className="mt-4">
           <Card>
             <CardHeader>
-              <CardTitle>Head Teacher</CardTitle>
-              <CardDescription>Signed at the bottom of every report card.</CardDescription>
+              <CardTitle>{isNursery ? "Nursery Head Teacher" : "Head Teacher"}</CardTitle>
+              <CardDescription>Signed at the bottom of every {isNursery ? "nursery " : ""}report card.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {!school ? (
@@ -215,14 +215,14 @@ export default function SignaturesPage() {
                 <>
                   <form onSubmit={saveHeadName} className="flex items-end gap-3 max-w-xl">
                     <div className="flex-1">
-                      <Label>Head Teacher Name</Label>
-                      <Input name="head_teacher_name" defaultValue={school.head_teacher_name ?? ""} placeholder="e.g. Mr. John Doe" />
+                      <Label>{isNursery ? "Nursery Head Teacher Name" : "Head Teacher Name"}</Label>
+                      <Input name="head_teacher_name" defaultValue={headName} placeholder="e.g. Mr. John Doe" />
                     </div>
                     <Button type="submit" disabled={savingHead}>{savingHead && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Save Name</Button>
                   </form>
                   <div>
                     <Label className="block mb-2">Signature</Label>
-                    <SignatureCell kind="school" path={school.head_teacher_signature_path} onChange={updateHeadSig} />
+                    <SignatureCell kind="school" path={headSigPath} onChange={updateHeadSig} />
                   </div>
                 </>
               )}
