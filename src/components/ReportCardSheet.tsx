@@ -102,7 +102,9 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
     return () => { cancelled = true; };
   }, [learnerId, termId]);
 
-  const orderedSubjects = useMemo(() => subjects, [subjects]);
+  const MAX_SUBJECTS = 7;
+  const orderedSubjects = useMemo(() => subjects.slice(0, MAX_SUBJECTS), [subjects]);
+  const subjectCountKey = Math.min(Math.max(orderedSubjects.length, 3), 7);
   const marksBySubject = useMemo(() => {
     const map = new Map<string, Anything>();
     marks.forEach(m => map.set(m.subject_id, m));
