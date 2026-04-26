@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { gradeFor, type GradeBand } from "@/lib/grading";
+import { gradeFor, divisionFor, type GradeBand, type DivisionRule } from "@/lib/grading";
 import { useLearnerFieldSettings } from "@/hooks/useLearnerFieldSettings";
 
 
