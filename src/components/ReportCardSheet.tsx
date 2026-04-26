@@ -98,6 +98,18 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
           setTeachersById({});
         }
       }
+      // Load class-wide subjects + marks for live position/aggregate computation
+      if (ln?.class_id) {
+        setClassSubjects(((await supabase.from("subjects").select("id,is_core,class_id").eq("class_id", ln.class_id)).data ?? []));
+        const { data: classLearners } = await supabase.from("learners").select("id").eq("class_id", ln.class_id);
+        const ids = (classLearners ?? []).map((l: any) => l.id);
+        if (ids.length) {
+          const { data: cm } = await supabase.from("marks").select("learner_id,subject_id,total,eot,points").eq("term_id", termId).in("learner_id", ids);
+          if (!cancelled) setClassMarks(cm ?? []);
+        } else {
+          setClassMarks([]);
+        }
+      }
       const { data: mks } = await supabase.from("marks").select("*").eq("term_id", termId).eq("learner_id", learnerId);
       setMarks(mks ?? []);
 
@@ -115,6 +127,19 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
       onReady?.();
     })();
     return () => { cancelled = true; };
+  }, [learnerId, termId, reloadKey]);
+
+  // Realtime: refetch when marks/subjects/division_rules change
+  useEffect(() => {
+    if (!learnerId || !termId) return;
+    const ch = supabase
+      .channel(`rc-live-${learnerId}-${termId}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "marks", filter: `term_id=eq.${termId}` }, () => setReloadKey(k => k + 1))
+      .on("postgres_changes", { event: "*", schema: "public", table: "subjects" }, () => setReloadKey(k => k + 1))
+      .on("postgres_changes", { event: "*", schema: "public", table: "division_rules" }, () => setReloadKey(k => k + 1))
+      .on("postgres_changes", { event: "*", schema: "public", table: "grading_scales" }, () => setReloadKey(k => k + 1))
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
   }, [learnerId, termId]);
 
   const MAX_SUBJECTS = 7;
