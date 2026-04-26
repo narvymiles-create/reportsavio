@@ -182,7 +182,14 @@
   border-collapse: separate;
   border-spacing: 0;
   box-sizing: border-box;
+  box-shadow: inset 0 -1px 0 #111;
   background: #fff;
+}
+.rc-eot-section > table.rc-phase-summary td {
+  height: 20px;
+  padding: 1px 6px;
+  line-height: 1.05;
+  box-sizing: border-box;
 }
 
 .rc-phase {
