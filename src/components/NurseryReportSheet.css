@@ -1,0 +1,260 @@
+/* Nursery Report Card — strict A4 single page */
+
+.nrc-page {
+  width: 210mm;
+  height: 297mm;
+  margin: 0 auto;
+  background: #fff;
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
+  padding: 6mm;
+  font-family: "Georgia", "Times New Roman", serif;
+  color: #111;
+}
+
+.nrc-frame {
+  width: 100%;
+  height: 100%;
+  border: 2px solid #1d4ed8;
+  border-radius: 6px;
+  padding: 4mm;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  position: relative;
+  background: rgba(255,255,255,0.9);
+}
+
+/* Header */
+.nrc-header {
+  display: grid;
+  grid-template-columns: 28mm 1fr 28mm;
+  gap: 3mm;
+  align-items: start;
+  padding-bottom: 2mm;
+  border-bottom: 1px dashed #cbd5e1;
+}
+.nrc-logo-box,
+.nrc-photo-box {
+  width: 28mm;
+  height: 32mm;
+  border: 1.5px dashed #1d4ed8;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: #fff;
+}
+.nrc-logo-box img,
+.nrc-photo-box img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.nrc-logo-placeholder,
+.nrc-photo-placeholder {
+  font-size: 8pt;
+  text-align: center;
+  color: #64748b;
+  letter-spacing: 1px;
+}
+.nrc-school { text-align: center; }
+.nrc-school-name {
+  font-weight: 800;
+  font-size: 16pt;
+  color: #1e3a8a;
+  letter-spacing: 0.5px;
+  line-height: 1.1;
+}
+.nrc-motto {
+  font-style: italic;
+  font-size: 9pt;
+  color: #334155;
+  margin-top: 1mm;
+}
+.nrc-divider {
+  width: 60%;
+  height: 0;
+  border-top: 1px dotted #dc2626;
+  margin: 2mm auto;
+}
+.nrc-assessment-title {
+  font-weight: 700;
+  font-size: 14pt;
+  color: #dc2626;
+  letter-spacing: 1px;
+}
+.nrc-pupil {
+  font-size: 10pt;
+  margin-top: 2mm;
+  text-align: left;
+  padding: 0 4mm;
+}
+.nrc-pupil-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10pt;
+  padding: 1mm 4mm 0;
+  gap: 4mm;
+}
+.nrc-write {
+  font-family: "Brush Script MT", "Comic Sans MS", cursive;
+  font-style: italic;
+  color: #1d4ed8;
+  border-bottom: 1px solid #1d4ed8;
+  padding: 0 2px;
+  min-width: 24mm;
+  display: inline-block;
+}
+.nrc-write-red { color: #dc2626; border-color: #dc2626; }
+
+/* Areas — fills remaining vertical space evenly */
+.nrc-areas {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  margin-top: 2mm;
+  border: 1px solid #94a3b8;
+  border-radius: 3px;
+  overflow: hidden;
+  min-height: 0;
+}
+.nrc-area-row {
+  display: grid;
+  grid-template-columns: 18mm 1fr 14mm;
+  align-items: center;
+  gap: 3mm;
+  padding: 0 3mm;
+  border-bottom: 1px solid #cbd5e1;
+  flex: 1 1 0;
+  min-height: 0;
+}
+.nrc-area-row:last-child { border-bottom: none; }
+.nrc-area-img {
+  width: 16mm;
+  height: 14mm;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.nrc-area-img img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+.nrc-area-img-empty {
+  width: 100%;
+  height: 100%;
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+.nrc-area-text { min-width: 0; }
+.nrc-area-name { font-weight: 700; font-size: 10pt; font-family: Georgia, serif; }
+.nrc-area-comment { font-size: 10pt; line-height: 1.2; margin-top: 1mm; min-width: 0; display: block; border: none; }
+.nrc-area-grade {
+  width: 11mm;
+  height: 11mm;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 14pt;
+  color: #fff;
+  border-radius: 3px;
+  border: 1.5px solid transparent;
+  text-shadow: 0 1px 1px rgba(0,0,0,0.2);
+  font-family: Georgia, serif;
+}
+
+/* Key */
+.nrc-key {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4mm;
+  flex-wrap: wrap;
+  padding: 2mm 0 1mm;
+  font-size: 9pt;
+}
+.nrc-key-label { font-weight: 800; }
+.nrc-key-item { display: inline-flex; align-items: center; gap: 1.5mm; }
+.nrc-key-box {
+  width: 6mm; height: 6mm;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: #fff; font-weight: 800; border-radius: 2px; font-size: 9pt;
+}
+
+/* Comments */
+.nrc-comments {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3mm;
+  border-top: 1px solid #94a3b8;
+  padding-top: 2mm;
+}
+.nrc-comment-cell {
+  border: 1px solid #cbd5e1;
+  border-radius: 3px;
+  padding: 2mm 3mm;
+  min-height: 24mm;
+  display: flex;
+  flex-direction: column;
+}
+.nrc-comment-title { font-size: 10pt; color: #dc2626; font-weight: 700; }
+.nrc-comment-body {
+  flex: 1;
+  font-size: 11pt;
+  line-height: 6mm;
+  background-image: linear-gradient(transparent calc(6mm - 1px), #cbd5e1 1px);
+  background-size: 100% 6mm;
+  margin: 1mm 0;
+  border: none;
+  display: block;
+  padding-top: 0;
+}
+.nrc-sign { display: flex; align-items: center; gap: 2mm; font-size: 10pt; }
+.nrc-sig-img { height: 8mm; max-width: 30mm; object-fit: contain; }
+.nrc-sig-line { flex: 1; border-bottom: 1px dotted #475569; height: 1px; }
+
+/* Footer */
+.nrc-footer {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10pt;
+  margin-top: 2mm;
+  padding: 0 4mm;
+}
+.nrc-motto-bottom {
+  text-align: center;
+  font-weight: 700;
+  font-size: 9pt;
+  margin-top: 1mm;
+}
+
+/* Watermark + stamp */
+.nrc-watermark {
+  position: absolute;
+  pointer-events: none;
+  max-width: 60%;
+  max-height: 60%;
+  z-index: 0;
+}
+.nrc-stamp {
+  position: absolute;
+  width: 35mm;
+  height: 35mm;
+  object-fit: contain;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Print */
+@page { size: A4; margin: 0; }
+@media print {
+  html, body { margin: 0; padding: 0; background: #fff; }
+  .nrc-page { box-shadow: none; margin: 0; }
+  .no-print { display: none !important; }
+}
