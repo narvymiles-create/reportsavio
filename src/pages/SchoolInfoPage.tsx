@@ -38,6 +38,13 @@ type SchoolInfo = {
   stamp_position_type: string | null;
   stamp_size: number;
   stamp_opacity: number;
+  watermark_path: string | null;
+  watermark_enabled: boolean;
+  watermark_x: number;
+  watermark_y: number;
+  watermark_scale: number;
+  watermark_opacity: number;
+  watermark_mode: string;
 };
 
 export default function SchoolInfoPage() {
