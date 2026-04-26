@@ -86,15 +86,16 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
       const { data: mks } = await supabase.from("marks").select("*").eq("term_id", termId).eq("learner_id", learnerId);
       setMarks(mks ?? []);
 
-      const [lg, hs, cs, ph, st] = await Promise.all([
+      const [lg, hs, cs, ph, st, wm] = await Promise.all([
         signedUrl("school-assets", si?.logo_path ?? null),
         signedUrl("signatures", si?.head_teacher_signature_path ?? null),
         signedUrl("signatures", cls?.class_signature_path ?? null),
         signedUrl("learner-photos", ln?.photo_path ?? null),
         signedUrl("school-assets", si?.stamp_path ?? null),
+        signedUrl("school-assets", si?.watermark_path ?? null),
       ]);
       if (cancelled) return;
-      setLogoUrl(lg); setHeadSigUrl(hs); setClassSigUrl(cs); setPhotoUrl(ph); setStampUrl(st);
+      setLogoUrl(lg); setHeadSigUrl(hs); setClassSigUrl(cs); setPhotoUrl(ph); setStampUrl(st); setWatermarkUrl(wm);
       setLoading(false);
       onReady?.();
     })();
