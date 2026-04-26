@@ -481,11 +481,16 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
         </tbody>
       </table>
 
-      {renderPhaseTable("BEGINNING OF TERM EXAMS", "bot", botSum, botInfo)}
-      {renderPhaseTable("MID-TERM EXAMS", "mid", midSum, midInfo)}
+      {renderPhaseTable("BEGINNING OF TERM EXAMS", "bot", botSum, botInfo, botHas)}
+      {renderPhaseTable("MID-TERM EXAMS", "mid", midSum, midInfo, midHas)}
 
       <div className="rc-eot-section" data-subjects={subjectCountKey}>
-      <div className="rc-section-label">END OF TERM EXAMS</div>
+      <div className="rc-section-label">
+        END OF TERM EXAMS
+        {!eotHas && <span style={{ color: "#b00", fontWeight: 600, marginLeft: 8, fontSize: 10 }}>
+          — Missing marks data for END OF TERM EXAMS
+        </span>}
+      </div>
       <table className="rc-eot" data-subjects={subjectCountKey}>
         <thead>
           <tr>
