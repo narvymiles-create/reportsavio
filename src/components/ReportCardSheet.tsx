@@ -157,7 +157,11 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
     return name.slice(0, 4).toUpperCase();
   };
 
-  const renderPhaseTable = (label: string, phase: "bot" | "mid", sum: { total: number; avg: number; aggregate: number }) => (
+  const renderPhaseTable = (
+    label: string,
+    phase: "bot" | "mid",
+    sum: { total: number; avg: number; aggregate: number }
+  ) => (
     <>
       <div className="rc-section-label">{label}</div>
       <table className="rc-phase">
@@ -181,29 +185,19 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
             {orderedSubjects.map(s => {
               const m = marksBySubject.get(s.id);
               const v = m?.[phase];
-              if (!coreSubjectIds.has(s.id)) return <td key={s.id}></td>;
               const g = v != null ? gradeFor(Number(v), bands) : null;
               return <td key={s.id}>{g?.grade ?? ""}</td>;
             })}
           </tr>
         </tbody>
       </table>
-      <table className="rc-phase-footer">
-        <tbody>
-          <tr>
-            <td className="rc-pf-label">TOTAL MARKS</td>
-            <td className="rc-pf-val">{sum.total || ""}</td>
-            <td className="rc-pf-label">AVERAGE</td>
-            <td className="rc-pf-val">{sum.avg || ""}</td>
-            <td className="rc-pf-label">POSITION — OUT OF</td>
-            <td className="rc-pf-val">—</td>
-            <td className="rc-pf-label">AGGREGATES</td>
-            <td className="rc-pf-val">{sum.aggregate || ""}</td>
-            <td className="rc-pf-label">DIVISION</td>
-            <td className="rc-pf-val">—</td>
-          </tr>
-        </tbody>
-      </table>
+      <div className="rc-phase-summary">
+        <div className="rc-ps-item"><span className="rc-ps-label">TOTAL MARKS:</span><span className="rc-ps-val">{sum.total || ""}</span></div>
+        <div className="rc-ps-item"><span className="rc-ps-label">AVERAGE:</span><span className="rc-ps-val">{sum.avg || ""}</span></div>
+        <div className="rc-ps-item"><span className="rc-ps-label">POSITION:</span><span className="rc-ps-val">—</span></div>
+        <div className="rc-ps-item"><span className="rc-ps-label">AGGREGATES:</span><span className="rc-ps-val">{sum.aggregate || ""}</span></div>
+        <div className="rc-ps-item"><span className="rc-ps-label">DIVISION:</span><span className="rc-ps-val">—</span></div>
+      </div>
     </>
   );
 
