@@ -101,8 +101,8 @@
 .rc-head-school-cell { text-align: center; padding: 0 6px; }
 
 .rc-box {
-  border: 1.2px solid #111;
-  border-radius: 6px;
+  border: none;
+  background: transparent;
   width: 88px;
   height: 88px;
   display: flex;
