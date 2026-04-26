@@ -296,14 +296,11 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
     sum: { total: number; avg: number; aggregate: number },
     info: { position: number | null; classSize: number; division: string },
     hasData: boolean
-  ) => (
+  ) => {
+    if (!hasData) return null;
+    return (
     <div className="rc-phase-section" data-subjects={subjectCountKey}>
-      <div className="rc-section-label">
-        {label}
-        {!hasData && <span style={{ color: "#b00", fontWeight: 600, marginLeft: 8, fontSize: 10 }}>
-          — Missing marks data for {label}
-        </span>}
-      </div>
+      <div className="rc-section-label">{label}</div>
       <table className="rc-phase" data-subjects={subjectCountKey}>
         <thead>
           <tr>
@@ -336,15 +333,15 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
           <tr>
             <td><span className="rc-ps-label">TOTAL MARKS:</span> <span className="rc-ps-val">{sum.total || ""}</span></td>
             <td><span className="rc-ps-label">AVERAGE:</span> <span className="rc-ps-val">{sum.avg || ""}</span></td>
-            <td><span className="rc-ps-label">POSITION:</span> <span className="rc-ps-val">{info.position ? `${info.position} / ${info.classSize}` : ""}</span></td>
+            <td><span className="rc-ps-label">POSITION:</span> <span className="rc-ps-val">{info.position && info.classSize ? `${info.position}/${info.classSize}` : ""}</span></td>
             <td><span className="rc-ps-label">AGGREGATES:</span> <span className="rc-ps-val">{sum.aggregate || ""}</span></td>
             <td><span className="rc-ps-label">DIVISION:</span> <span className="rc-ps-val">{toDivisionFigure(info.division)}</span></td>
           </tr>
         </tbody>
       </table>
     </div>
-  );
-
+    );
+  };
   const divisionFigure = (() => {
     const d = liveDivision || report?.division;
     if (d == null || d === "") return "";
