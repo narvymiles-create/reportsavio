@@ -160,9 +160,9 @@ export default function TeachersPage() {
     setSubmitting(true);
     let error;
     if (editing) {
-      ({ error } = await supabase.from("teachers").update(payload).eq("id", editing.id));
+      ({ error } = await (supabase.from("teachers") as any).update(payload).eq("id", editing.id));
     } else {
-      ({ error } = await supabase.from("teachers").insert([payload as any]));
+      ({ error } = await (supabase.from("teachers") as any).insert([{ ...payload, section } as any]));
     }
     setSubmitting(false);
     if (error) {
@@ -220,16 +220,16 @@ export default function TeachersPage() {
             return;
           }
           // Clear the conflicting class first
-          await supabase.from("classes").update({ class_teacher_id: null }).eq("id", newClassId);
+          await (supabase.from(classesTable) as any).update({ class_teacher_id: null }).eq("id", newClassId);
         }
       }
 
       // Clear previous if changing
       if (previousClass && previousClass.id !== newClassId) {
-        await supabase.from("classes").update({ class_teacher_id: null }).eq("id", previousClass.id);
+        await (supabase.from(classesTable) as any).update({ class_teacher_id: null }).eq("id", previousClass.id);
       }
       if (newClassId) {
-        const { error } = await supabase.from("classes").update({ class_teacher_id: assignTeacher.id }).eq("id", newClassId);
+        const { error } = await (supabase.from(classesTable) as any).update({ class_teacher_id: assignTeacher.id }).eq("id", newClassId);
         if (error) throw error;
       }
 
