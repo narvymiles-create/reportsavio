@@ -191,60 +191,6 @@ export default function MarksPage() {
       </Card>
 
       <Card>
-        <CardHeader><CardTitle>Selection</CardTitle></CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div>
-              <Label>Term</Label>
-              <Select value={termId} onValueChange={setTermId}>
-                <SelectTrigger><SelectValue placeholder="Select term" /></SelectTrigger>
-                <SelectContent>
-                  {terms.map(t => <SelectItem key={t.id} value={t.id}>{t.name} {t.year}{t.is_current ? " (current)" : ""}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Class</Label>
-              <Select value={classId} onValueChange={(v) => { setClassId(v); setStreamId("all"); }}>
-                <SelectTrigger><SelectValue placeholder="Select class" /></SelectTrigger>
-                <SelectContent>
-                  {classes.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Stream</Label>
-              <Select value={streamId} onValueChange={setStreamId} disabled={!classId}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All streams</SelectItem>
-                  <SelectItem value="none">No stream</SelectItem>
-                  {streams.filter(s => s.class_id === classId).map(s => (
-                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Subject</Label>
-              <Select value={subjectId} onValueChange={setSubjectId} disabled={!classId || subjects.length === 0}>
-                <SelectTrigger><SelectValue placeholder={subjects.length ? "Select subject" : "No subjects"} /></SelectTrigger>
-                <SelectContent>
-                  {subjects.map(s => <SelectItem key={s.id} value={s.id}>{(s as any).code === "OTHER" && (s as any).code_label ? (s as any).code_label : (s as any).code} – {s.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          {subject && (
-            <div className="flex items-center gap-2 mt-3 text-sm text-muted-foreground">
-              <span>Max marks: <strong>{subject.max_marks}</strong></span>
-              {teacherInitials && <Badge variant="secondary">Teacher: {teacherInitials}</Badge>}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Learners ({filteredLearners.length})</CardTitle>
           <Button onClick={saveAll} disabled={saving || !termId || !subjectId || filteredLearners.length === 0}>
