@@ -214,8 +214,57 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
     return m ? m[0] : String(d);
   })();
 
+  const wmEnabled = !!school?.watermark_enabled && !!watermarkUrl;
+  const wmMode = (school?.watermark_mode as string) || "custom";
+  const wmOpacity = school?.watermark_opacity ?? 0.3;
+  const wmScale = school?.watermark_scale ?? 1.0;
+  const wmX = school?.watermark_x ?? 50;
+  const wmY = school?.watermark_y ?? 50;
+
   return (
     <div className="report-page" style={pageBreak ? { pageBreakAfter: "always" } : undefined}>
+      {wmEnabled && (
+        <div
+          aria-hidden
+          className="rc-watermark"
+          style={{
+            position: "absolute",
+            inset: 0,
+            zIndex: 1,
+            pointerEvents: "none",
+            overflow: "hidden",
+          }}
+        >
+          {wmMode === "fit" || wmMode === "fill" ? (
+            <img
+              src={watermarkUrl!}
+              alt=""
+              style={{
+                position: "absolute",
+                inset: 0,
+                width: "100%",
+                height: "100%",
+                objectFit: wmMode === "fill" ? "cover" : "contain",
+                opacity: wmOpacity,
+              }}
+            />
+          ) : (
+            <img
+              src={watermarkUrl!}
+              alt=""
+              style={{
+                position: "absolute",
+                left: `${wmX}%`,
+                top: `${wmY}%`,
+                width: `${40 * wmScale}%`,
+                height: "auto",
+                transform: "translate(-50%, -50%)",
+                opacity: wmOpacity,
+              }}
+            />
+          )}
+        </div>
+      )}
 
       <table className="rc-head" cellSpacing={0} cellPadding={0}>
         <tbody>
