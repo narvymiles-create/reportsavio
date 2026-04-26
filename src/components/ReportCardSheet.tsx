@@ -384,13 +384,13 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
         <tbody>
           <tr>
             <td className="rc-b-cell rc-b-tl">
-              <div className="rc-b-block">
-                <div className="rc-b-label">Learner&rsquo;s Conduct &amp; Behavior:</div>
-                <div className="rc-b-text">{learner.conduct ?? ""}</div>
+              <div className="rc-b-block rc-b-inline">
+                <span className="rc-b-label">Learner&rsquo;s Conduct &amp; Behavior:</span>
+                <span className="rc-b-text">{learner.conduct ?? ""}</span>
               </div>
-              <div className="rc-b-block">
-                <div className="rc-b-label">Co-curricular Activities:</div>
-                <div className="rc-b-text">{learner.co_curricular ?? ""}</div>
+              <div className="rc-b-block rc-b-inline">
+                <span className="rc-b-label">Co-curricular Activities:</span>
+                <span className="rc-b-text">{learner.co_curricular ?? ""}</span>
               </div>
             </td>
             <td className="rc-b-cell rc-b-tr">

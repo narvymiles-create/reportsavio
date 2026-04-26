@@ -241,6 +241,26 @@ table.rc-phase-summary td {
   min-height: 14px;
 }
 
+/* Inline (single-line) variant for Conduct + Co-curricular */
+.rc-b-block.rc-b-inline {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-height: 0;
+  margin-bottom: 4px;
+}
+.rc-b-block.rc-b-inline .rc-b-label {
+  display: inline;
+  margin-bottom: 0;
+  margin-right: 4px;
+}
+.rc-b-block.rc-b-inline .rc-b-text {
+  display: inline;
+  padding-left: 0;
+  min-height: 0;
+}
+
 /* Bottom-left rows (final comments) — label left, comment right */
 .rc-b-row-split {
   display: flex;
