@@ -85,12 +85,13 @@ export default function TeachersPage() {
 
   const load = async () => {
     setLoading(true);
-    const teachersQ = supabase.from("teachers").select("*").eq("section" as any, section).order("full_name");
-    const classesQ = supabase.from(classesTable as any).select("id, name, class_teacher_id").order("sort_order").order("name");
-    const subjectsQ = module === "nursery"
+    const teachersQ = (supabase.from("teachers") as any).select("*").eq("section", section).order("full_name");
+    const classesQ = (supabase.from(classesTable) as any).select("id, name, class_teacher_id").order("sort_order").order("name");
+    const subjectsQ: Promise<any> = module === "nursery"
       ? Promise.resolve({ data: [] as any[] })
-      : supabase.from("subjects").select("id, name, code, code_label, class_id, subject_teacher_id, classes(name)");
-    const [{ data: t }, { data: cls }, { data: subs }] = await Promise.all([teachersQ, classesQ, subjectsQ as any]);
+      : (supabase.from("subjects") as any).select("id, name, code, code_label, class_id, subject_teacher_id, classes(name)");
+    const [tRes, cRes, sRes] = await Promise.all([teachersQ, classesQ, subjectsQ]);
+    const t = (tRes as any).data; const cls = (cRes as any).data; const subs = (sRes as any).data;
     setTeachers((t ?? []) as Teacher[]);
     setClasses((cls ?? []) as ClassRow[]);
     setSubjects((subs ?? []) as any);
