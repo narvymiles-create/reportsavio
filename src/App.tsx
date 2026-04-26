@@ -27,6 +27,13 @@ import ReportCardsPage from "./pages/ReportCardsPage";
 import SettingsPage from "./pages/SettingsPage";
 import PrintReportCard from "./pages/PrintReportCard";
 import BulkReportCardsPage from "./pages/BulkReportCardsPage";
+import NurseryClassesPage from "./pages/nursery/NurseryClassesPage";
+import NurseryLearningAreasPage from "./pages/nursery/NurseryLearningAreasPage";
+import NurseryColorsPage from "./pages/nursery/NurseryColorsPage";
+import NurseryLearnersPage from "./pages/nursery/NurseryLearnersPage";
+import NurseryAssessmentPage from "./pages/nursery/NurseryAssessmentPage";
+import NurseryReportsPage from "./pages/nursery/NurseryReportsPage";
+import PrintNurseryReportCard from "./pages/PrintNurseryReportCard";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -66,6 +73,14 @@ const App = () => (
             <Route path="/settings" element={<Protected><SettingsPage /></Protected>} />
             <Route path="/print/report-card/:learnerId/:termId" element={<RequireAdmin><PrintReportCard /></RequireAdmin>} />
             <Route path="/print/bulk/:termId/:classId" element={<RequireAdmin><BulkReportCardsPage /></RequireAdmin>} />
+            {/* Nursery module */}
+            <Route path="/nursery/classes" element={<Protected><NurseryClassesPage /></Protected>} />
+            <Route path="/nursery/learning-areas" element={<Protected><NurseryLearningAreasPage /></Protected>} />
+            <Route path="/nursery/colors" element={<Protected><NurseryColorsPage /></Protected>} />
+            <Route path="/nursery/learners" element={<Protected><NurseryLearnersPage /></Protected>} />
+            <Route path="/nursery/assessment" element={<Protected><NurseryAssessmentPage /></Protected>} />
+            <Route path="/nursery/reports" element={<Protected><NurseryReportsPage /></Protected>} />
+            <Route path="/print/nursery/:learnerId/:termId" element={<RequireAdmin><PrintNurseryReportCard /></RequireAdmin>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>

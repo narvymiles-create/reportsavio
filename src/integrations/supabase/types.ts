@@ -313,6 +313,279 @@ export type Database = {
         }
         Relationships: []
       }
+      nursery_assessments: {
+        Row: {
+          comment: string | null
+          created_at: string
+          grade: string | null
+          id: string
+          learner_id: string
+          learning_area_id: string
+          term_id: string
+          updated_at: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          grade?: string | null
+          id?: string
+          learner_id: string
+          learning_area_id: string
+          term_id: string
+          updated_at?: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          grade?: string | null
+          id?: string
+          learner_id?: string
+          learning_area_id?: string
+          term_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nursery_assessments_learner_id_fkey"
+            columns: ["learner_id"]
+            isOneToOne: false
+            referencedRelation: "nursery_learners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nursery_assessments_learning_area_id_fkey"
+            columns: ["learning_area_id"]
+            isOneToOne: false
+            referencedRelation: "nursery_learning_areas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nursery_assessments_term_id_fkey"
+            columns: ["term_id"]
+            isOneToOne: false
+            referencedRelation: "terms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      nursery_classes: {
+        Row: {
+          class_teacher_id: string | null
+          created_at: string
+          id: string
+          level: string | null
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          class_teacher_id?: string | null
+          created_at?: string
+          id?: string
+          level?: string | null
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          class_teacher_id?: string | null
+          created_at?: string
+          id?: string
+          level?: string | null
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      nursery_grade_colors: {
+        Row: {
+          color: string
+          created_at: string
+          grade: string
+          id: string
+          label: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          color: string
+          created_at?: string
+          grade: string
+          id?: string
+          label: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          grade?: string
+          id?: string
+          label?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      nursery_learners: {
+        Row: {
+          age: number | null
+          class_id: string | null
+          created_at: string
+          dob: string | null
+          full_name: string
+          id: string
+          photo_path: string | null
+          sex: string | null
+          stream_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          age?: number | null
+          class_id?: string | null
+          created_at?: string
+          dob?: string | null
+          full_name: string
+          id?: string
+          photo_path?: string | null
+          sex?: string | null
+          stream_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          age?: number | null
+          class_id?: string | null
+          created_at?: string
+          dob?: string | null
+          full_name?: string
+          id?: string
+          photo_path?: string | null
+          sex?: string | null
+          stream_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nursery_learners_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "nursery_classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nursery_learners_stream_id_fkey"
+            columns: ["stream_id"]
+            isOneToOne: false
+            referencedRelation: "nursery_streams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      nursery_learning_areas: {
+        Row: {
+          created_at: string
+          id: string
+          image_path: string | null
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          image_path?: string | null
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          image_path?: string | null
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      nursery_report_cards: {
+        Row: {
+          class_teacher_comment: string | null
+          created_at: string
+          generated_at: string | null
+          head_teacher_comment: string | null
+          id: string
+          learner_id: string
+          term_id: string
+          updated_at: string
+        }
+        Insert: {
+          class_teacher_comment?: string | null
+          created_at?: string
+          generated_at?: string | null
+          head_teacher_comment?: string | null
+          id?: string
+          learner_id: string
+          term_id: string
+          updated_at?: string
+        }
+        Update: {
+          class_teacher_comment?: string | null
+          created_at?: string
+          generated_at?: string | null
+          head_teacher_comment?: string | null
+          id?: string
+          learner_id?: string
+          term_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nursery_report_cards_learner_id_fkey"
+            columns: ["learner_id"]
+            isOneToOne: false
+            referencedRelation: "nursery_learners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nursery_report_cards_term_id_fkey"
+            columns: ["term_id"]
+            isOneToOne: false
+            referencedRelation: "terms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      nursery_streams: {
+        Row: {
+          class_id: string
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          class_id: string
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          class_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nursery_streams_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "nursery_classes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
