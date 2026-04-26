@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { gradeFor, type GradeBand } from "@/lib/grading";
+import { gradeFor, divisionFor, type GradeBand, type DivisionRule } from "@/lib/grading";
 import { useLearnerFieldSettings } from "@/hooks/useLearnerFieldSettings";
 
 
@@ -46,7 +46,11 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
   const [subjects, setSubjects] = useState<Anything[]>([]);
   const [marks, setMarks] = useState<Anything[]>([]);
   const [bands, setBands] = useState<GradeBand[]>([]);
+  const [divRules, setDivRules] = useState<DivisionRule[]>([]);
+  const [classMarks, setClassMarks] = useState<Anything[]>([]);
+  const [classSubjects, setClassSubjects] = useState<Anything[]>([]);
   const [teachersById, setTeachersById] = useState<Record<string, Anything>>({});
+  const [reloadKey, setReloadKey] = useState(0);
   const { flags } = useLearnerFieldSettings();
 
   useEffect(() => {
@@ -58,14 +62,15 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
       if (cancelled) return;
       setLearner(ln);
 
-      const [{ data: tm }, { data: rc }, { data: si }, { data: gs }] = await Promise.all([
+      const [{ data: tm }, { data: rc }, { data: si }, { data: gs }, { data: dr }] = await Promise.all([
         supabase.from("terms").select("*").eq("id", termId).maybeSingle(),
         supabase.from("report_cards").select("*").eq("learner_id", learnerId).eq("term_id", termId).maybeSingle(),
         supabase.from("school_info").select("*").eq("is_active", true).order("created_at", { ascending: false }).limit(1).maybeSingle(),
         supabase.from("grading_scales").select("grade,points,min_mark,max_mark,remark").order("sort_order"),
+        supabase.from("division_rules").select("division,min_aggregate,max_aggregate").order("sort_order"),
       ]);
       if (cancelled) return;
-      setTerm(tm); setReport(rc); setSchool(si); setBands((gs ?? []) as GradeBand[]);
+      setTerm(tm); setReport(rc); setSchool(si); setBands((gs ?? []) as GradeBand[]); setDivRules((dr ?? []) as DivisionRule[]);
 
       let cls: Anything | null = null;
       if (ln?.class_id) {
@@ -93,6 +98,18 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
           setTeachersById({});
         }
       }
+      // Load class-wide subjects + marks for live position/aggregate computation
+      if (ln?.class_id) {
+        setClassSubjects(((await supabase.from("subjects").select("id,is_core,class_id").eq("class_id", ln.class_id)).data ?? []));
+        const { data: classLearners } = await supabase.from("learners").select("id").eq("class_id", ln.class_id);
+        const ids = (classLearners ?? []).map((l: any) => l.id);
+        if (ids.length) {
+          const { data: cm } = await supabase.from("marks").select("learner_id,subject_id,total,eot,points").eq("term_id", termId).in("learner_id", ids);
+          if (!cancelled) setClassMarks(cm ?? []);
+        } else {
+          setClassMarks([]);
+        }
+      }
       const { data: mks } = await supabase.from("marks").select("*").eq("term_id", termId).eq("learner_id", learnerId);
       setMarks(mks ?? []);
 
@@ -110,6 +127,19 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
       onReady?.();
     })();
     return () => { cancelled = true; };
+  }, [learnerId, termId, reloadKey]);
+
+  // Realtime: refetch when marks/subjects/division_rules change
+  useEffect(() => {
+    if (!learnerId || !termId) return;
+    const ch = supabase
+      .channel(`rc-live-${learnerId}-${termId}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "marks", filter: `term_id=eq.${termId}` }, () => setReloadKey(k => k + 1))
+      .on("postgres_changes", { event: "*", schema: "public", table: "subjects" }, () => setReloadKey(k => k + 1))
+      .on("postgres_changes", { event: "*", schema: "public", table: "division_rules" }, () => setReloadKey(k => k + 1))
+      .on("postgres_changes", { event: "*", schema: "public", table: "grading_scales" }, () => setReloadKey(k => k + 1))
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
   }, [learnerId, termId]);
 
   const MAX_SUBJECTS = 7;
@@ -146,19 +176,48 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
     return { total, avg, aggregate };
   };
 
-  if (loading || !learner || !term || !report) {
+  // Live class-wide computation for position + class size (based on EOT total marks)
+  const liveClass = useMemo(() => {
+    const subjIds = new Set(classSubjects.map((s: any) => s.id));
+    const coreIds = new Set(classSubjects.filter((s: any) => s.is_core).map((s: any) => s.id));
+    const byLearner = new Map<string, { totalSum: number; aggregate: number }>();
+    classMarks.forEach((m: any) => {
+      if (!subjIds.has(m.subject_id)) return;
+      const acc = byLearner.get(m.learner_id) ?? { totalSum: 0, aggregate: 0 };
+      const t = m.total != null ? Number(m.total) : (m.eot != null ? Number(m.eot) : null);
+      if (t != null && !isNaN(t)) acc.totalSum += t;
+      if (coreIds.has(m.subject_id) && m.points != null) acc.aggregate += Number(m.points);
+      byLearner.set(m.learner_id, acc);
+    });
+    const arr = Array.from(byLearner.entries())
+      .map(([id, v]) => ({ id, total: v.totalSum, aggregate: v.aggregate }))
+      .sort((a, b) => b.total - a.total);
+    let pos = 0, lastTotal: number | null = null, lastPos = 0;
+    const positionMap = new Map<string, number>();
+    arr.forEach((r, i) => {
+      if (r.total !== lastTotal) { lastPos = i + 1; lastTotal = r.total; }
+      positionMap.set(r.id, lastPos);
+    });
+    return { positionMap, classSize: arr.length, perLearner: new Map(arr.map(a => [a.id, a])) };
+  }, [classMarks, classSubjects]);
+
+  if (loading || !learner || !term) {
     return <div className="report-page" style={pageBreak ? { pageBreakAfter: "always" } : undefined}>
       <p style={{ textAlign: "center", marginTop: "40mm", color: "#666" }}>
-        {loading ? "Loading..." : "Report card not generated for this learner."}
+        {loading ? "Loading..." : "Learner or term not found."}
       </p>
     </div>;
   }
 
   const botSum = summary("bot");
   const midSum = summary("mid");
-  const eotTotal = report.total_marks ?? 0;
-  const eotAvg = report.average ?? 0;
-  const eotAggregate = report.aggregate ?? 0;
+  const eotSum = summary("eot");
+  const eotTotal = eotSum.total;
+  const eotAvg = eotSum.avg;
+  const eotAggregate = eotSum.aggregate;
+  const livePosition = liveClass.positionMap.get(learnerId) ?? null;
+  const liveClassSize = liveClass.classSize || 0;
+  const liveDivision = (eotAggregate > 0 && divRules.length) ? divisionFor(eotAggregate, divRules) : "";
 
   const codeFor = (name: string): string => {
     const n = name.toUpperCase();
@@ -220,7 +279,7 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
   );
 
   const divisionFigure = (() => {
-    const d = report.division;
+    const d = liveDivision || report?.division;
     if (d == null || d === "") return "";
     const s = String(d);
     const arabic = s.match(/\d+/);
@@ -392,7 +451,7 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
           <tr>
             <td><span className="rc-ps-label">TOTAL MARKS:</span> <span className="rc-ps-val">{eotTotal || ""}</span></td>
             <td><span className="rc-ps-label">AVERAGE:</span> <span className="rc-ps-val">{eotAvg || ""}</span></td>
-            <td><span className="rc-ps-label">POSITION:</span> <span className="rc-ps-val">{report.position ? `${report.position} / ${report.class_size}` : ""}</span></td>
+            <td><span className="rc-ps-label">POSITION:</span> <span className="rc-ps-val">{livePosition ? `${livePosition} / ${liveClassSize}` : ""}</span></td>
             <td><span className="rc-ps-label">AGGREGATES:</span> <span className="rc-ps-val">{eotAggregate || ""}</span></td>
             <td><span className="rc-ps-label">DIVISION:</span> <span className="rc-ps-val">{divisionFigure}</span></td>
           </tr>
@@ -428,11 +487,11 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
             <td className="rc-b-cell rc-b-bl">
               <div className="rc-b-row-split">
                 <div className="rc-b-label-col">Class Teacher&rsquo;s final comment:</div>
-                <div className="rc-b-text-col">{report.class_teacher_comment ?? ""}</div>
+                <div className="rc-b-text-col">{report?.class_teacher_comment ?? ""}</div>
               </div>
               <div className="rc-b-row-split">
                 <div className="rc-b-label-col">Head Teacher&rsquo;s final comment:</div>
-                <div className="rc-b-text-col">{report.head_teacher_comment ?? ""}</div>
+                <div className="rc-b-text-col">{report?.head_teacher_comment ?? ""}</div>
               </div>
             </td>
             <td className="rc-b-cell rc-b-br">
