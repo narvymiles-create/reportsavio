@@ -343,7 +343,7 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
     );
   };
   const divisionFigure = (() => {
-    const d = liveDivision || report?.division;
+    const d = liveDivision;
     if (d == null || d === "") return "";
     const s = String(d);
     const arabic = s.match(/\d+/);
