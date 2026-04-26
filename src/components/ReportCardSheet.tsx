@@ -138,6 +138,7 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
       .channel(`rc-live-${learnerId}-${termId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "marks", filter: `term_id=eq.${termId}` }, () => setReloadKey(k => k + 1))
       .on("postgres_changes", { event: "*", schema: "public", table: "subjects" }, () => setReloadKey(k => k + 1))
+      .on("postgres_changes", { event: "*", schema: "public", table: "learners" }, () => setReloadKey(k => k + 1))
       .on("postgres_changes", { event: "*", schema: "public", table: "division_rules" }, () => setReloadKey(k => k + 1))
       .on("postgres_changes", { event: "*", schema: "public", table: "grading_scales" }, () => setReloadKey(k => k + 1))
       .subscribe();
