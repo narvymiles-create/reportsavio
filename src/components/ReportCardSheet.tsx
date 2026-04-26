@@ -176,19 +176,48 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
     return { total, avg, aggregate };
   };
 
-  if (loading || !learner || !term || !report) {
+  // Live class-wide computation for position + class size (based on EOT total marks)
+  const liveClass = useMemo(() => {
+    const subjIds = new Set(classSubjects.map((s: any) => s.id));
+    const coreIds = new Set(classSubjects.filter((s: any) => s.is_core).map((s: any) => s.id));
+    const byLearner = new Map<string, { totalSum: number; aggregate: number }>();
+    classMarks.forEach((m: any) => {
+      if (!subjIds.has(m.subject_id)) return;
+      const acc = byLearner.get(m.learner_id) ?? { totalSum: 0, aggregate: 0 };
+      const t = m.total != null ? Number(m.total) : (m.eot != null ? Number(m.eot) : null);
+      if (t != null && !isNaN(t)) acc.totalSum += t;
+      if (coreIds.has(m.subject_id) && m.points != null) acc.aggregate += Number(m.points);
+      byLearner.set(m.learner_id, acc);
+    });
+    const arr = Array.from(byLearner.entries())
+      .map(([id, v]) => ({ id, total: v.totalSum, aggregate: v.aggregate }))
+      .sort((a, b) => b.total - a.total);
+    let pos = 0, lastTotal: number | null = null, lastPos = 0;
+    const positionMap = new Map<string, number>();
+    arr.forEach((r, i) => {
+      if (r.total !== lastTotal) { lastPos = i + 1; lastTotal = r.total; }
+      positionMap.set(r.id, lastPos);
+    });
+    return { positionMap, classSize: arr.length, perLearner: new Map(arr.map(a => [a.id, a])) };
+  }, [classMarks, classSubjects]);
+
+  if (loading || !learner || !term) {
     return <div className="report-page" style={pageBreak ? { pageBreakAfter: "always" } : undefined}>
       <p style={{ textAlign: "center", marginTop: "40mm", color: "#666" }}>
-        {loading ? "Loading..." : "Report card not generated for this learner."}
+        {loading ? "Loading..." : "Learner or term not found."}
       </p>
     </div>;
   }
 
   const botSum = summary("bot");
   const midSum = summary("mid");
-  const eotTotal = report.total_marks ?? 0;
-  const eotAvg = report.average ?? 0;
-  const eotAggregate = report.aggregate ?? 0;
+  const eotSum = summary("eot");
+  const eotTotal = eotSum.total;
+  const eotAvg = eotSum.avg;
+  const eotAggregate = eotSum.aggregate;
+  const livePosition = liveClass.positionMap.get(learnerId) ?? null;
+  const liveClassSize = liveClass.classSize || 0;
+  const liveDivision = (eotAggregate > 0 && divRules.length) ? divisionFor(eotAggregate, divRules) : "";
 
   const codeFor = (name: string): string => {
     const n = name.toUpperCase();
