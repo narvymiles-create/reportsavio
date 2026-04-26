@@ -425,6 +425,31 @@ export default function LearnersPage() {
                 </div>
               </div>
 
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="conduct">Conduct &amp; Behaviour</Label>
+                  <Textarea
+                    id="conduct"
+                    name="conduct"
+                    defaultValue={editing?.conduct ?? ""}
+                    placeholder="e.g. Disciplined, respectful and cooperative."
+                    rows={3}
+                    maxLength={500}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="co_curricular">Co-curricular Activities</Label>
+                  <Textarea
+                    id="co_curricular"
+                    name="co_curricular"
+                    defaultValue={editing?.co_curricular ?? ""}
+                    placeholder="e.g. Football, Music, Debate Club."
+                    rows={3}
+                    maxLength={500}
+                  />
+                </div>
+              </div>
+
               <DialogFooter>
                 <Button type="submit" disabled={submitting}>
                   {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
