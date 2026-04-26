@@ -7,8 +7,9 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
-import { Loader2, Upload, Image as ImageIcon, Stamp, Settings2 } from "lucide-react";
+import { Loader2, Upload, Image as ImageIcon, Stamp, Settings2, Droplet } from "lucide-react";
 import { StampPositionDialog, StampPositionPanel } from "@/components/StampPositionDialog";
+import { WatermarkPanel } from "@/components/WatermarkPanel";
 import { processSignatureFile } from "@/lib/signatureProcessing";
 
 const schema = z.object({
@@ -37,6 +38,13 @@ type SchoolInfo = {
   stamp_position_type: string | null;
   stamp_size: number;
   stamp_opacity: number;
+  watermark_path: string | null;
+  watermark_enabled: boolean;
+  watermark_x: number;
+  watermark_y: number;
+  watermark_scale: number;
+  watermark_opacity: number;
+  watermark_mode: string;
 };
 
 export default function SchoolInfoPage() {
@@ -47,6 +55,7 @@ export default function SchoolInfoPage() {
   const [info, setInfo] = useState<SchoolInfo | null>(null);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [stampUrl, setStampUrl] = useState<string | null>(null);
+  const [watermarkUrl, setWatermarkUrl] = useState<string | null>(null);
   const [stampDialog, setStampDialog] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const stampRef = useRef<HTMLInputElement>(null);
@@ -77,6 +86,14 @@ export default function SchoolInfoPage() {
       setStampUrl(signed?.signedUrl ?? null);
     } else {
       setStampUrl(null);
+    }
+    if (row?.watermark_path) {
+      const { data: signed } = await supabase.storage
+        .from("school-assets")
+        .createSignedUrl(row.watermark_path, 3600);
+      setWatermarkUrl(signed?.signedUrl ?? null);
+    } else {
+      setWatermarkUrl(null);
     }
     setLoading(false);
   };
@@ -313,6 +330,35 @@ export default function SchoolInfoPage() {
           </Card>
         )}
       </div>
+
+      {info && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2"><Droplet className="h-4 w-4" /> Report Card Watermark</CardTitle>
+            <CardDescription>
+              Upload a watermark (PNG/JPG, &lt; 5 MB). White background is removed automatically. Drag to position, scale, set opacity, or stretch to full page. Always renders behind report content.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="max-w-xl">
+              <WatermarkPanel
+                schoolId={info.id}
+                watermarkUrl={watermarkUrl}
+                initial={{
+                  watermark_enabled: info.watermark_enabled,
+                  watermark_x: info.watermark_x,
+                  watermark_y: info.watermark_y,
+                  watermark_scale: info.watermark_scale,
+                  watermark_opacity: info.watermark_opacity,
+                  watermark_mode: (info.watermark_mode as any) ?? "custom",
+                }}
+                onSaved={(s) => setInfo({ ...info, ...s })}
+                onUploaded={load}
+              />
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>

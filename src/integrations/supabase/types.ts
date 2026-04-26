@@ -406,6 +406,13 @@ export type Database = {
           stamp_y: number
           tel: string
           updated_at: string
+          watermark_enabled: boolean
+          watermark_mode: string
+          watermark_opacity: number
+          watermark_path: string | null
+          watermark_scale: number
+          watermark_x: number
+          watermark_y: number
           website: string | null
         }
         Insert: {
@@ -428,6 +435,13 @@ export type Database = {
           stamp_y?: number
           tel: string
           updated_at?: string
+          watermark_enabled?: boolean
+          watermark_mode?: string
+          watermark_opacity?: number
+          watermark_path?: string | null
+          watermark_scale?: number
+          watermark_x?: number
+          watermark_y?: number
           website?: string | null
         }
         Update: {
@@ -450,6 +464,13 @@ export type Database = {
           stamp_y?: number
           tel?: string
           updated_at?: string
+          watermark_enabled?: boolean
+          watermark_mode?: string
+          watermark_opacity?: number
+          watermark_path?: string | null
+          watermark_scale?: number
+          watermark_x?: number
+          watermark_y?: number
           website?: string | null
         }
         Relationships: []

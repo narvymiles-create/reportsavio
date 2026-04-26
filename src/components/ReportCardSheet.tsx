@@ -33,6 +33,7 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
   const [school, setSchool] = useState<Anything | null>(null);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [stampUrl, setStampUrl] = useState<string | null>(null);
+  const [watermarkUrl, setWatermarkUrl] = useState<string | null>(null);
   const [headSigUrl, setHeadSigUrl] = useState<string | null>(null);
   const [classSigUrl, setClassSigUrl] = useState<string | null>(null);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
@@ -85,15 +86,16 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
       const { data: mks } = await supabase.from("marks").select("*").eq("term_id", termId).eq("learner_id", learnerId);
       setMarks(mks ?? []);
 
-      const [lg, hs, cs, ph, st] = await Promise.all([
+      const [lg, hs, cs, ph, st, wm] = await Promise.all([
         signedUrl("school-assets", si?.logo_path ?? null),
         signedUrl("signatures", si?.head_teacher_signature_path ?? null),
         signedUrl("signatures", cls?.class_signature_path ?? null),
         signedUrl("learner-photos", ln?.photo_path ?? null),
         signedUrl("school-assets", si?.stamp_path ?? null),
+        signedUrl("school-assets", si?.watermark_path ?? null),
       ]);
       if (cancelled) return;
-      setLogoUrl(lg); setHeadSigUrl(hs); setClassSigUrl(cs); setPhotoUrl(ph); setStampUrl(st);
+      setLogoUrl(lg); setHeadSigUrl(hs); setClassSigUrl(cs); setPhotoUrl(ph); setStampUrl(st); setWatermarkUrl(wm);
       setLoading(false);
       onReady?.();
     })();
@@ -212,8 +214,57 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
     return m ? m[0] : String(d);
   })();
 
+  const wmEnabled = !!school?.watermark_enabled && !!watermarkUrl;
+  const wmMode = (school?.watermark_mode as string) || "custom";
+  const wmOpacity = school?.watermark_opacity ?? 0.3;
+  const wmScale = school?.watermark_scale ?? 1.0;
+  const wmX = school?.watermark_x ?? 50;
+  const wmY = school?.watermark_y ?? 50;
+
   return (
     <div className="report-page" style={pageBreak ? { pageBreakAfter: "always" } : undefined}>
+      {wmEnabled && (
+        <div
+          aria-hidden
+          className="rc-watermark"
+          style={{
+            position: "absolute",
+            inset: 0,
+            zIndex: 1,
+            pointerEvents: "none",
+            overflow: "hidden",
+          }}
+        >
+          {wmMode === "fit" || wmMode === "fill" ? (
+            <img
+              src={watermarkUrl!}
+              alt=""
+              style={{
+                position: "absolute",
+                inset: 0,
+                width: "100%",
+                height: "100%",
+                objectFit: wmMode === "fill" ? "cover" : "contain",
+                opacity: wmOpacity,
+              }}
+            />
+          ) : (
+            <img
+              src={watermarkUrl!}
+              alt=""
+              style={{
+                position: "absolute",
+                left: `${wmX}%`,
+                top: `${wmY}%`,
+                width: `${40 * wmScale}%`,
+                height: "auto",
+                transform: "translate(-50%, -50%)",
+                opacity: wmOpacity,
+              }}
+            />
+          )}
+        </div>
+      )}
 
       <table className="rc-head" cellSpacing={0} cellPadding={0}>
         <tbody>
