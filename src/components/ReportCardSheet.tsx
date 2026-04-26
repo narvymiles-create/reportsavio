@@ -104,6 +104,7 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
         setClassSubjects(((await supabase.from("subjects").select("id,is_core,class_id").eq("class_id", ln.class_id)).data ?? []));
         const { data: classLearners } = await supabase.from("learners").select("id").eq("class_id", ln.class_id);
         const ids = (classLearners ?? []).map((l: any) => l.id);
+        if (!cancelled) setClassLearnerCount(ids.length);
         if (ids.length) {
           const { data: cm } = await supabase.from("marks").select("learner_id,subject_id,bot,mid,eot,total,points").eq("term_id", termId).in("learner_id", ids);
           if (!cancelled) setClassMarks(cm ?? []);
