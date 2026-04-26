@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { gradeFor, type GradeBand } from "@/lib/grading";
 import { useLearnerFieldSettings } from "@/hooks/useLearnerFieldSettings";
+import rcCorner from "@/assets/rc-corner.png";
 
 type Anything = Record<string, any>;
 
@@ -156,7 +157,11 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
     return name.slice(0, 4).toUpperCase();
   };
 
-  const renderPhaseTable = (label: string, phase: "bot" | "mid", sum: { total: number; avg: number; aggregate: number }) => (
+  const renderPhaseTable = (
+    label: string,
+    phase: "bot" | "mid",
+    sum: { total: number; avg: number; aggregate: number }
+  ) => (
     <>
       <div className="rc-section-label">{label}</div>
       <table className="rc-phase">
@@ -180,36 +185,28 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
             {orderedSubjects.map(s => {
               const m = marksBySubject.get(s.id);
               const v = m?.[phase];
-              if (!coreSubjectIds.has(s.id)) return <td key={s.id}></td>;
               const g = v != null ? gradeFor(Number(v), bands) : null;
               return <td key={s.id}>{g?.grade ?? ""}</td>;
             })}
           </tr>
         </tbody>
       </table>
-      <table className="rc-phase-footer">
-        <tbody>
-          <tr>
-            <td className="rc-pf-label">TOTAL MARKS</td>
-            <td className="rc-pf-val">{sum.total || ""}</td>
-            <td className="rc-pf-label">AVERAGE</td>
-            <td className="rc-pf-val">{sum.avg || ""}</td>
-            <td className="rc-pf-label">POSITION — OUT OF</td>
-            <td className="rc-pf-val">—</td>
-            <td className="rc-pf-label">AGGREGATES</td>
-            <td className="rc-pf-val">{sum.aggregate || ""}</td>
-            <td className="rc-pf-label">DIVISION</td>
-            <td className="rc-pf-val">—</td>
-          </tr>
-        </tbody>
-      </table>
+      <div className="rc-phase-summary">
+        <div className="rc-ps-item"><span className="rc-ps-label">TOTAL MARKS:</span><span className="rc-ps-val">{sum.total || ""}</span></div>
+        <div className="rc-ps-item"><span className="rc-ps-label">AVERAGE:</span><span className="rc-ps-val">{sum.avg || ""}</span></div>
+        <div className="rc-ps-item"><span className="rc-ps-label">POSITION:</span><span className="rc-ps-val">—</span></div>
+        <div className="rc-ps-item"><span className="rc-ps-label">AGGREGATES:</span><span className="rc-ps-val">{sum.aggregate || ""}</span></div>
+        <div className="rc-ps-item"><span className="rc-ps-label">DIVISION:</span><span className="rc-ps-val">—</span></div>
+      </div>
     </>
   );
 
   return (
     <div className="report-page" style={pageBreak ? { pageBreakAfter: "always" } : undefined}>
-      <span className="rc-corner tl" /><span className="rc-corner tr" />
-      <span className="rc-corner bl" /><span className="rc-corner br" />
+      <span className="rc-corner tl" style={{ backgroundImage: `url(${rcCorner})` }} />
+      <span className="rc-corner tr" style={{ backgroundImage: `url(${rcCorner})` }} />
+      <span className="rc-corner bl" style={{ backgroundImage: `url(${rcCorner})` }} />
+      <span className="rc-corner br" style={{ backgroundImage: `url(${rcCorner})` }} />
 
       <table className="rc-head" cellSpacing={0} cellPadding={0}>
         <tbody>
@@ -313,59 +310,59 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
           })}
         </tbody>
       </table>
-      <table className="rc-phase-footer">
-        <tbody>
-          <tr>
-            <td className="rc-pf-label">TOTAL MARKS</td>
-            <td className="rc-pf-val">{eotTotal || ""}</td>
-            <td className="rc-pf-label">AVERAGE</td>
-            <td className="rc-pf-val">{eotAvg || ""}</td>
-            <td className="rc-pf-label">POSITION — OUT OF</td>
-            <td className="rc-pf-val">{report.position ? `${report.position} / ${report.class_size}` : ""}</td>
-            <td className="rc-pf-label">AGGREGATES</td>
-            <td className="rc-pf-val">{eotAggregate || ""}</td>
-            <td className="rc-pf-label">DIVISION</td>
-            <td className="rc-pf-val">{report.division ?? ""}</td>
-          </tr>
-        </tbody>
-      </table>
+      <div className="rc-phase-summary">
+        <div className="rc-ps-item"><span className="rc-ps-label">TOTAL MARKS:</span><span className="rc-ps-val">{eotTotal || ""}</span></div>
+        <div className="rc-ps-item"><span className="rc-ps-label">AVERAGE:</span><span className="rc-ps-val">{eotAvg || ""}</span></div>
+        <div className="rc-ps-item"><span className="rc-ps-label">POSITION:</span><span className="rc-ps-val">{report.position ? `${report.position} / ${report.class_size}` : ""}</span></div>
+        <div className="rc-ps-item"><span className="rc-ps-label">AGGREGATES:</span><span className="rc-ps-val">{eotAggregate || ""}</span></div>
+        <div className="rc-ps-item"><span className="rc-ps-label">DIVISION:</span><span className="rc-ps-val">{report.division ?? ""}</span></div>
+      </div>
 
       <table className="rc-bottom" cellSpacing={0} cellPadding={0}>
         <tbody>
           <tr>
-            <td className="rc-b-label">Learner&rsquo;s Conduct &amp; Behavior</td>
-            <td className="rc-b-fill" colSpan={3}>&nbsp;</td>
-          </tr>
-          <tr>
-            <td className="rc-b-label">Co-curricular activities</td>
-            <td className="rc-b-fill" colSpan={3}>&nbsp;</td>
-          </tr>
-          <tr>
-            <td className="rc-b-label">Class Teacher&rsquo;s comment</td>
-            <td className="rc-b-fill">{report.class_teacher_comment ?? ""}</td>
-            <td className="rc-b-sign-label">Signature</td>
-            <td className="rc-b-sign-cell">
-              {classSigUrl && <img src={classSigUrl} alt="class signature" className="rc-sig-img" />}
-              <div className="rc-sig-name">{classTeacher?.full_name ?? ""}</div>
+            <td className="rc-b-left">
+              <div className="rc-b-row">
+                <span className="rc-b-label">Learner&rsquo;s Conduct &amp; Behavior:</span>
+                <span className="rc-b-fill">{report.conduct ?? ""}</span>
+              </div>
+              <div className="rc-b-row">
+                <span className="rc-b-label">Co-curricular activities:</span>
+                <span className="rc-b-fill">{report.co_curricular ?? ""}</span>
+              </div>
+              <div className="rc-b-row tall">
+                <span className="rc-b-label">Class Teacher&rsquo;s comment:</span>
+                <span className="rc-b-fill">{report.class_teacher_comment ?? ""}</span>
+              </div>
+              <div className="rc-b-row tall">
+                <span className="rc-b-label">Head Teacher&rsquo;s comment:</span>
+                <span className="rc-b-fill">{report.head_teacher_comment ?? ""}</span>
+              </div>
             </td>
-          </tr>
-          <tr>
-            <td className="rc-b-label">Head Teacher&rsquo;s comment</td>
-            <td className="rc-b-fill">{report.head_teacher_comment ?? ""}</td>
-            <td className="rc-b-sign-label">Signature</td>
-            <td className="rc-b-sign-cell">
-              {headSigUrl && <img src={headSigUrl} alt="head signature" className="rc-sig-img" />}
-              <div className="rc-sig-name">{school?.head_teacher_name ?? ""}</div>
+            <td className="rc-b-right">
+              <div className="rc-sig-block">
+                <span className="rc-sig-label">Class Teacher&rsquo;s Signature:</span>
+                <div className="rc-sig-line">
+                  {classSigUrl && <img src={classSigUrl} alt="class signature" className="rc-sig-img" />}
+                </div>
+                <div className="rc-sig-name">{classTeacher?.full_name?.toUpperCase() ?? ""}</div>
+              </div>
+              <div className="rc-sig-block">
+                <span className="rc-sig-label">Head Teacher&rsquo;s Signature:</span>
+                <div className="rc-sig-line">
+                  {headSigUrl && <img src={headSigUrl} alt="head signature" className="rc-sig-img" />}
+                </div>
+                <div className="rc-sig-name">{school?.head_teacher_name?.toUpperCase() ?? ""}</div>
+              </div>
             </td>
-          </tr>
-          <tr>
-            <td className="rc-b-label">Next begins on</td>
-            <td className="rc-b-fill">{fmtDate(term.next_begins_on)}</td>
-            <td className="rc-b-label">Ends on</td>
-            <td className="rc-b-fill">{fmtDate(term.ends_on ?? term.end_date)}</td>
           </tr>
         </tbody>
       </table>
+
+      <div className="rc-term-dates">
+        <div><span className="rc-lbl">Next Term Begins On:</span> <span className="rc-fill">{fmtDate(term.next_begins_on)}</span></div>
+        <div><span className="rc-lbl">Ends On:</span> <span className="rc-fill">{fmtDate(term.ends_on ?? term.end_date)}</span></div>
+      </div>
 
       <div className="rc-grading-title">SCHOOL GRADING SYSTEM</div>
       <table className="rc-grading">
