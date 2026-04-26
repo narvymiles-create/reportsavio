@@ -375,7 +375,7 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
                 <td>{m?.eot ?? ""}</td>
                 <td>{isCore ? (m?.grade ?? "") : ""}</td>
                 <td>{isCore ? (m?.remark ?? "") : ""}</td>
-                <td>{m?.teacher_initials ?? ""}</td>
+                <td>{(s.subject_teacher_id && teachersById[s.subject_teacher_id]?.initials) || m?.teacher_initials || ""}</td>
               </tr>
             );
           })}
