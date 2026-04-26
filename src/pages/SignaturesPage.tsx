@@ -259,6 +259,7 @@ export default function SignaturesPage() {
           </Card>
         </TabsContent>
 
+        {!isNursery && (
         <TabsContent value="subject" className="mt-4">
           <Card>
             <CardHeader>
@@ -284,6 +285,7 @@ export default function SignaturesPage() {
             </CardContent>
           </Card>
         </TabsContent>
+        )}
       </Tabs>
     </div>
   );
