@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "@/hooks/use-toast";
 import { Loader2, Plus, Pencil, Trash2, ClipboardList } from "lucide-react";
+import { useReportModule } from "@/hooks/useReportModule";
 
 type TeacherRole = "class_teacher" | "head_teacher" | "subject_teacher";
 type Teacher = {
@@ -56,6 +57,9 @@ function autoInitials(name: string): string {
 }
 
 export default function TeachersPage() {
+  const { module } = useReportModule();
+  const section = module === "nursery" ? "nursery" : "primary";
+  const classesTable = module === "nursery" ? "nursery_classes" : "classes";
   const [loading, setLoading] = useState(true);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [classes, setClasses] = useState<ClassRow[]>([]);
@@ -81,11 +85,12 @@ export default function TeachersPage() {
 
   const load = async () => {
     setLoading(true);
-    const [{ data: t }, { data: cls }, { data: subs }] = await Promise.all([
-      supabase.from("teachers").select("*").order("full_name"),
-      supabase.from("classes").select("id, name, class_teacher_id").order("sort_order").order("name"),
-      supabase.from("subjects").select("id, name, code, code_label, class_id, subject_teacher_id, classes(name)"),
-    ]);
+    const teachersQ = supabase.from("teachers").select("*").eq("section" as any, section).order("full_name");
+    const classesQ = supabase.from(classesTable as any).select("id, name, class_teacher_id").order("sort_order").order("name");
+    const subjectsQ = module === "nursery"
+      ? Promise.resolve({ data: [] as any[] })
+      : supabase.from("subjects").select("id, name, code, code_label, class_id, subject_teacher_id, classes(name)");
+    const [{ data: t }, { data: cls }, { data: subs }] = await Promise.all([teachersQ, classesQ, subjectsQ as any]);
     setTeachers((t ?? []) as Teacher[]);
     setClasses((cls ?? []) as ClassRow[]);
     setSubjects((subs ?? []) as any);
@@ -112,7 +117,7 @@ export default function TeachersPage() {
 
   useEffect(() => {
     load();
-  }, []);
+  }, [module]);
 
   const openTeacherDialog = (t: Teacher | null) => {
     setEditing(t);
