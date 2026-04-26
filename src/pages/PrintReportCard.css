@@ -233,7 +233,6 @@ table.rc-phase-summary td {
 }
 .rc-b-row .rc-b-fill {
   flex: 1;
-  border-bottom: 1px solid #111;
   min-height: 18px;
   padding: 0 4px 1px;
   line-height: 1.2;
@@ -241,17 +240,6 @@ table.rc-phase-summary td {
 }
 .rc-b-row.tall .rc-b-fill {
   min-height: 40px;
-  background-image: repeating-linear-gradient(
-    to bottom,
-    transparent 0,
-    transparent 17px,
-    #111 17px,
-    #111 18px
-  );
-  background-position: bottom;
-  background-repeat: repeat-x;
-  background-size: 100% 18px;
-  border-bottom: none;
 }
 
 /* Right signature column */
