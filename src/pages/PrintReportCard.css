@@ -153,6 +153,24 @@
   break-inside: avoid;
 }
 
+/* EOT fixed-height container — table NEVER expands, rows distribute evenly */
+.rc-eot-section {
+  height: 220px;
+  max-height: 220px;
+  overflow: hidden;
+}
+.rc-eot-section .rc-section-label {
+  flex: 0 0 auto;
+}
+.rc-eot-section > table.rc-eot {
+  flex: 1 1 auto;
+  height: 100%;
+  min-height: 0;
+}
+.rc-eot-section > table.rc-phase-summary {
+  flex: 0 0 auto;
+}
+
 .rc-phase {
   width: 100%;
   border-collapse: collapse;
