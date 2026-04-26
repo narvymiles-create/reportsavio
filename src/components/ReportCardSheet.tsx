@@ -382,6 +382,7 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
           </tr>
         </tbody>
       </table>
+      </div>
 
       <table className="rc-bottom" cellSpacing={0} cellPadding={0}>
         <tbody>
