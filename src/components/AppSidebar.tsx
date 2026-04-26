@@ -76,11 +76,12 @@ const nurseryGroups = [
     items: [
       { title: "Nursery Learners", url: "/nursery/learners", icon: Baby },
       { title: "Assessment Entry", url: "/nursery/assessment", icon: ClipboardList },
+      { title: "Comments", url: "/comments", icon: MessageSquareText },
       { title: "Signatures", url: "/signatures", icon: PenLine },
     ],
   },
-  { label: "Reports", items: [{ title: "Nursery Reports", url: "/nursery/reports", icon: FileText }] },
-  { label: "System", items: [{ title: "Settings", url: "/settings", icon: SettingsIcon }] },
+  { label: "Reports", items: [{ title: "Nursery Report Cards", url: "/nursery/reports", icon: FileText }] },
+  { label: "System", items: [{ title: "Nursery Settings", url: "/settings", icon: SettingsIcon }] },
 ];
 
 export function AppSidebar() {
