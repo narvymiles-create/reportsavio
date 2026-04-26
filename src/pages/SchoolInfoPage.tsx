@@ -331,6 +331,35 @@ export default function SchoolInfoPage() {
         )}
       </div>
 
+      {info && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2"><Droplet className="h-4 w-4" /> Report Card Watermark</CardTitle>
+            <CardDescription>
+              Upload a watermark (PNG/JPG, &lt; 5 MB). White background is removed automatically. Drag to position, scale, set opacity, or stretch to full page. Always renders behind report content.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="max-w-xl">
+              <WatermarkPanel
+                schoolId={info.id}
+                watermarkUrl={watermarkUrl}
+                initial={{
+                  watermark_enabled: info.watermark_enabled,
+                  watermark_x: info.watermark_x,
+                  watermark_y: info.watermark_y,
+                  watermark_scale: info.watermark_scale,
+                  watermark_opacity: info.watermark_opacity,
+                  watermark_mode: (info.watermark_mode as any) ?? "custom",
+                }}
+                onSaved={(s) => setInfo({ ...info, ...s })}
+                onUploaded={load}
+              />
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle>Details</CardTitle>
