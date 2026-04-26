@@ -83,6 +83,15 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
       if (ln?.class_id) {
         const { data: subs } = await supabase.from("subjects").select("*").eq("class_id", ln.class_id).order("sort_order");
         setSubjects(subs ?? []);
+        const teacherIds = Array.from(new Set((subs ?? []).map((s: any) => s.subject_teacher_id).filter(Boolean)));
+        if (teacherIds.length) {
+          const { data: ts } = await supabase.from("teachers").select("id,initials,full_name").in("id", teacherIds);
+          const map: Record<string, Anything> = {};
+          (ts ?? []).forEach((t: any) => { map[t.id] = t; });
+          setTeachersById(map);
+        } else {
+          setTeachersById({});
+        }
       }
       const { data: mks } = await supabase.from("marks").select("*").eq("term_id", termId).eq("learner_id", learnerId);
       setMarks(mks ?? []);
