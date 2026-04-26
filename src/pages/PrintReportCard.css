@@ -153,6 +153,24 @@
   break-inside: avoid;
 }
 
+/* EOT fixed-height container — table NEVER expands, rows distribute evenly */
+.rc-eot-section {
+  height: 220px;
+  max-height: 220px;
+  overflow: hidden;
+}
+.rc-eot-section .rc-section-label {
+  flex: 0 0 auto;
+}
+.rc-eot-section > table.rc-eot {
+  flex: 1 1 auto;
+  height: 100%;
+  min-height: 0;
+}
+.rc-eot-section > table.rc-phase-summary {
+  flex: 0 0 auto;
+}
+
 .rc-phase {
   width: 100%;
   border-collapse: collapse;
@@ -170,17 +188,21 @@
   white-space: nowrap;
 }
 
-/* Dynamic row heights — fewer subjects = larger rows; columns are auto-distributed by table-layout:fixed */
-.rc-eot[data-subjects="3"] td,
-.rc-eot[data-subjects="3"] th { height: 32px; }
-.rc-eot[data-subjects="4"] td,
-.rc-eot[data-subjects="4"] th { height: 28px; }
-.rc-eot[data-subjects="5"] td,
-.rc-eot[data-subjects="5"] th { height: 24px; }
+/* EOT rows distribute evenly inside the fixed-height container.
+   Total rows = subjects + 1 header row. Heights are percentages of container. */
+.rc-eot { height: 100%; }
+.rc-eot thead, .rc-eot tbody { height: auto; }
+
+.rc-eot[data-subjects="3"] tr { height: calc(100% / 4); }
+.rc-eot[data-subjects="4"] tr { height: calc(100% / 5); }
+.rc-eot[data-subjects="5"] tr { height: calc(100% / 6); }
+.rc-eot[data-subjects="6"] tr { height: calc(100% / 7); font-size: 10px; }
+.rc-eot[data-subjects="7"] tr { height: calc(100% / 8); font-size: 10px; }
+
 .rc-eot[data-subjects="6"] td,
-.rc-eot[data-subjects="6"] th { height: 22px; }
+.rc-eot[data-subjects="6"] th,
 .rc-eot[data-subjects="7"] td,
-.rc-eot[data-subjects="7"] th { height: 20px; font-size: 9.5pt; }
+.rc-eot[data-subjects="7"] th { font-size: 9.5pt; }
 
 .rc-phase th { font-weight: 700; background: #fff; }
 .rc-phase-rowlabel { text-align: left !important; font-weight: 700; width: 18%; padding-left: 10px !important; }
@@ -221,12 +243,12 @@ table.rc-phase-summary td {
 }
 .rc-eot th, .rc-eot td {
   border: 1px solid #111;
-  padding: 4px 6px;
+  padding: 2px 6px;
   text-align: center;
   font-size: 10pt;
-  height: 20px;
   overflow: hidden;
   white-space: nowrap;
+  text-overflow: ellipsis;
 }
 .rc-eot th { font-weight: 700; }
 .rc-eot-subject { text-align: left !important; font-weight: 600; width: 26%; padding-left: 10px !important; }
