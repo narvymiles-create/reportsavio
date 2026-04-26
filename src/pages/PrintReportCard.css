@@ -322,32 +322,32 @@ table.rc-phase-summary td {
   display: flex;
   justify-content: space-around;
   align-items: baseline;
-  margin: 8px 0 4px;
-  font-size: 10pt;
+  margin: 4px 0 2px;
+  font-size: 9.5pt;
   padding: 0 10mm;
 }
 .rc-term-dates .rc-lbl { font-weight: 700; }
-.rc-term-dates .rc-fill { min-width: 140px; }
+.rc-term-dates .rc-fill { min-width: 130px; }
 
 /* ---------- GRADING ---------- */
 .rc-grading-title {
   text-align: center;
   font-weight: 700;
-  font-size: 11pt;
-  margin-top: 4px;
+  font-size: 10.5pt;
+  margin-top: 2px;
 }
 .rc-grading {
-  margin: 3px auto 0;
+  margin: 2px auto 0;
   border-collapse: collapse;
   table-layout: fixed;
   width: 100%;
 }
 .rc-grading td {
   border: 1px solid #111;
-  padding: 3px 4px;
+  padding: 2px 4px;
   text-align: center;
-  font-size: 10pt;
-  height: 18px;
+  font-size: 9.5pt;
+  height: 16px;
 }
 .rc-g-label { font-weight: 700; width: 14%; padding-left: 10px !important; text-align: left !important; }
 
