@@ -142,10 +142,23 @@
   text-align: center;
   margin: 6px 0 3px;
 }
+
+/* Dynamic phase/eot section wrappers — fixed height, content adapts inside */
+.rc-phase-section,
+.rc-eot-section {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
 .rc-phase {
   width: 100%;
   border-collapse: collapse;
   table-layout: fixed;
+  page-break-inside: avoid;
+  break-inside: avoid;
 }
 .rc-phase th, .rc-phase td {
   border: 1px solid #111;
@@ -156,6 +169,19 @@
   overflow: hidden;
   white-space: nowrap;
 }
+
+/* Dynamic row heights — fewer subjects = larger rows; columns are auto-distributed by table-layout:fixed */
+.rc-eot[data-subjects="3"] td,
+.rc-eot[data-subjects="3"] th { height: 32px; }
+.rc-eot[data-subjects="4"] td,
+.rc-eot[data-subjects="4"] th { height: 28px; }
+.rc-eot[data-subjects="5"] td,
+.rc-eot[data-subjects="5"] th { height: 24px; }
+.rc-eot[data-subjects="6"] td,
+.rc-eot[data-subjects="6"] th { height: 22px; }
+.rc-eot[data-subjects="7"] td,
+.rc-eot[data-subjects="7"] th { height: 20px; font-size: 9.5pt; }
+
 .rc-phase th { font-weight: 700; background: #fff; }
 .rc-phase-rowlabel { text-align: left !important; font-weight: 700; width: 18%; padding-left: 10px !important; }
 
