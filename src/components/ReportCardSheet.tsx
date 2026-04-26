@@ -206,7 +206,7 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
           </tr>
         </tbody>
       </table>
-    </>
+    </div>
   );
 
   const divisionFigure = (() => {
