@@ -176,30 +176,50 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
     return { total, avg, aggregate };
   };
 
-  // Live class-wide computation for position + class size (based on EOT total marks)
-  const liveClass = useMemo(() => {
+  // Live per-phase class-wide computation: position, aggregate, division for BOT/MID/EOT independently.
+  const livePhase = useMemo(() => {
     const subjIds = new Set(classSubjects.map((s: any) => s.id));
     const coreIds = new Set(classSubjects.filter((s: any) => s.is_core).map((s: any) => s.id));
-    const byLearner = new Map<string, { totalSum: number; aggregate: number }>();
-    classMarks.forEach((m: any) => {
-      if (!subjIds.has(m.subject_id)) return;
-      const acc = byLearner.get(m.learner_id) ?? { totalSum: 0, aggregate: 0 };
-      const t = m.total != null ? Number(m.total) : (m.eot != null ? Number(m.eot) : null);
-      if (t != null && !isNaN(t)) acc.totalSum += t;
-      if (coreIds.has(m.subject_id) && m.points != null) acc.aggregate += Number(m.points);
-      byLearner.set(m.learner_id, acc);
-    });
-    const arr = Array.from(byLearner.entries())
-      .map(([id, v]) => ({ id, total: v.totalSum, aggregate: v.aggregate }))
-      .sort((a, b) => b.total - a.total);
-    let pos = 0, lastTotal: number | null = null, lastPos = 0;
-    const positionMap = new Map<string, number>();
-    arr.forEach((r, i) => {
-      if (r.total !== lastTotal) { lastPos = i + 1; lastTotal = r.total; }
-      positionMap.set(r.id, lastPos);
-    });
-    return { positionMap, classSize: arr.length, perLearner: new Map(arr.map(a => [a.id, a])) };
-  }, [classMarks, classSubjects]);
+    const coreOk = coreIds.size === 4;
+
+    const computeFor = (phase: "bot" | "mid" | "eot") => {
+      const byLearner = new Map<string, { totalSum: number; aggregate: number; count: number }>();
+      classMarks.forEach((m: any) => {
+        if (!subjIds.has(m.subject_id)) return;
+        const acc = byLearner.get(m.learner_id) ?? { totalSum: 0, aggregate: 0, count: 0 };
+        const raw = m?.[phase];
+        const v = raw != null && raw !== "" ? Number(raw) : null;
+        if (v != null && !isNaN(v)) {
+          acc.totalSum += v;
+          acc.count += 1;
+          if (coreOk && coreIds.has(m.subject_id)) {
+            const b = gradeFor(v, bands);
+            acc.aggregate += b?.points ?? 0;
+          }
+        }
+        byLearner.set(m.learner_id, acc);
+      });
+      // rank: only learners with at least one mark for this phase
+      const arr = Array.from(byLearner.entries())
+        .filter(([, v]) => v.count > 0)
+        .map(([id, v]) => ({ id, total: v.totalSum, aggregate: v.aggregate }))
+        .sort((a, b) => b.total - a.total);
+      const positionMap = new Map<string, number>();
+      let lastTotal: number | null = null, lastPos = 0;
+      arr.forEach((r, i) => {
+        if (r.total !== lastTotal) { lastPos = i + 1; lastTotal = r.total; }
+        positionMap.set(r.id, lastPos);
+      });
+      return { positionMap, classSize: arr.length };
+    };
+
+    return {
+      bot: computeFor("bot"),
+      mid: computeFor("mid"),
+      eot: computeFor("eot"),
+    };
+  }, [classMarks, classSubjects, bands]);
+
 
   if (loading || !learner || !term) {
     return <div className="report-page" style={pageBreak ? { pageBreakAfter: "always" } : undefined}>
