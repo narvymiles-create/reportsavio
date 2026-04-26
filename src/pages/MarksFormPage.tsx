@@ -190,12 +190,12 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
     for (const l of filteredLearners) {
       const c = rowCalcs.get(l.id);
       if (!c || c.total === 0) continue;
-      const d = c.div;
-      // Map common division labels to columns
-      const key = d === "1" || d.toUpperCase() === "I" ? "I"
-        : d === "2" || d.toUpperCase() === "II" ? "II"
-        : d === "3" || d.toUpperCase() === "III" ? "III"
-        : d === "4" || d.toUpperCase() === "IV" ? "IV"
+      // Normalise division label (e.g. "Division I", "DIV 1", "1", "I") -> I/II/III/IV/U
+      const raw = (c.div ?? "").toString().toUpperCase().replace(/DIVISION|DIV|\s|\./g, "");
+      const key = raw === "1" || raw === "I" ? "I"
+        : raw === "2" || raw === "II" ? "II"
+        : raw === "3" || raw === "III" ? "III"
+        : raw === "4" || raw === "IV" ? "IV"
         : "U";
       counts[key] = (counts[key] ?? 0) + 1;
     }
