@@ -317,13 +317,17 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
           })}
         </tbody>
       </table>
-      <div className="rc-phase-summary">
-        <div className="rc-ps-item"><span className="rc-ps-label">TOTAL MARKS:</span><span className="rc-ps-val">{eotTotal || ""}</span></div>
-        <div className="rc-ps-item"><span className="rc-ps-label">AVERAGE:</span><span className="rc-ps-val">{eotAvg || ""}</span></div>
-        <div className="rc-ps-item"><span className="rc-ps-label">POSITION:</span><span className="rc-ps-val">{report.position ? `${report.position} / ${report.class_size}` : ""}</span></div>
-        <div className="rc-ps-item"><span className="rc-ps-label">AGGREGATES:</span><span className="rc-ps-val">{eotAggregate || ""}</span></div>
-        <div className="rc-ps-item"><span className="rc-ps-label">DIVISION:</span><span className="rc-ps-val">{report.division ?? ""}</span></div>
-      </div>
+      <table className="rc-phase-summary">
+        <tbody>
+          <tr>
+            <td><span className="rc-ps-label">TOTAL MARKS:</span> <span className="rc-ps-val">{eotTotal || ""}</span></td>
+            <td><span className="rc-ps-label">AVERAGE:</span> <span className="rc-ps-val">{eotAvg || ""}</span></td>
+            <td><span className="rc-ps-label">POSITION:</span> <span className="rc-ps-val">{report.position ? `${report.position} / ${report.class_size}` : ""}</span></td>
+            <td><span className="rc-ps-label">AGGREGATES:</span> <span className="rc-ps-val">{eotAggregate || ""}</span></td>
+            <td><span className="rc-ps-label">DIVISION:</span> <span className="rc-ps-val">{divisionFigure}</span></td>
+          </tr>
+        </tbody>
+      </table>
 
       <table className="rc-bottom" cellSpacing={0} cellPadding={0}>
         <tbody>
