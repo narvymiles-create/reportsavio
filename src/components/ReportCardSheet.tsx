@@ -260,10 +260,23 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
     return name.slice(0, 4).toUpperCase();
   };
 
+  const toDivisionFigure = (d: string | null | undefined): string => {
+    if (d == null || d === "") return "";
+    const s = String(d);
+    const arabic = s.match(/\d+/);
+    if (arabic) return arabic[0];
+    const romanMap: Record<string, string> = { I: "1", II: "2", III: "3", IV: "4", V: "5", U: "U", X: "U" };
+    const upper = s.toUpperCase().replace(/[^A-Z]/g, "");
+    const tokens = upper.match(/IV|III|II|I|V|U|X/g);
+    if (tokens && tokens[0] && romanMap[tokens[0]]) return romanMap[tokens[0]];
+    return s;
+  };
+
   const renderPhaseTable = (
     label: string,
     phase: "bot" | "mid",
-    sum: { total: number; avg: number; aggregate: number }
+    sum: { total: number; avg: number; aggregate: number },
+    info: { position: number | null; classSize: number; division: string }
   ) => (
     <div className="rc-phase-section" data-subjects={subjectCountKey}>
       <div className="rc-section-label">{label}</div>
@@ -299,9 +312,9 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
           <tr>
             <td><span className="rc-ps-label">TOTAL MARKS:</span> <span className="rc-ps-val">{sum.total || ""}</span></td>
             <td><span className="rc-ps-label">AVERAGE:</span> <span className="rc-ps-val">{sum.avg || ""}</span></td>
-            <td><span className="rc-ps-label">POSITION:</span> <span className="rc-ps-val">—</span></td>
+            <td><span className="rc-ps-label">POSITION:</span> <span className="rc-ps-val">{info.position ? `${info.position} / ${info.classSize}` : ""}</span></td>
             <td><span className="rc-ps-label">AGGREGATES:</span> <span className="rc-ps-val">{sum.aggregate || ""}</span></td>
-            <td><span className="rc-ps-label">DIVISION:</span> <span className="rc-ps-val">—</span></td>
+            <td><span className="rc-ps-label">DIVISION:</span> <span className="rc-ps-val">{toDivisionFigure(info.division)}</span></td>
           </tr>
         </tbody>
       </table>
