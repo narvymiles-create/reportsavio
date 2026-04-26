@@ -62,14 +62,15 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
       if (cancelled) return;
       setLearner(ln);
 
-      const [{ data: tm }, { data: rc }, { data: si }, { data: gs }] = await Promise.all([
+      const [{ data: tm }, { data: rc }, { data: si }, { data: gs }, { data: dr }] = await Promise.all([
         supabase.from("terms").select("*").eq("id", termId).maybeSingle(),
         supabase.from("report_cards").select("*").eq("learner_id", learnerId).eq("term_id", termId).maybeSingle(),
         supabase.from("school_info").select("*").eq("is_active", true).order("created_at", { ascending: false }).limit(1).maybeSingle(),
         supabase.from("grading_scales").select("grade,points,min_mark,max_mark,remark").order("sort_order"),
+        supabase.from("division_rules").select("division,min_aggregate,max_aggregate").order("sort_order"),
       ]);
       if (cancelled) return;
-      setTerm(tm); setReport(rc); setSchool(si); setBands((gs ?? []) as GradeBand[]);
+      setTerm(tm); setReport(rc); setSchool(si); setBands((gs ?? []) as GradeBand[]); setDivRules((dr ?? []) as DivisionRule[]);
 
       let cls: Anything | null = null;
       if (ln?.class_id) {
