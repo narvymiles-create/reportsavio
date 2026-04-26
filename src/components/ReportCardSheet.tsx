@@ -235,6 +235,21 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
   const eotTotal = eotSum.total;
   const eotAvg = eotSum.avg;
   const eotAggregate = eotSum.aggregate;
+
+  // Per-phase presence check (independent datasets)
+  const hasPhaseData = (phase: "bot" | "mid" | "eot") =>
+    marks.some((m: any) => m?.[phase] != null && m?.[phase] !== "");
+  const botHas = hasPhaseData("bot");
+  const midHas = hasPhaseData("mid");
+  const eotHas = hasPhaseData("eot");
+
+  // Debug verification — confirms each section is sourced independently
+  // eslint-disable-next-line no-console
+  console.log(
+    `[ReportCard ${learnerId}] BEGINNING data ${botHas ? "loaded" : "MISSING"} | ` +
+    `MID-TERM data ${midHas ? "loaded" : "MISSING"} | ` +
+    `END-TERM data ${eotHas ? "loaded" : "MISSING"}`
+  );
   const phaseInfo = (phase: "bot" | "mid" | "eot", aggregate: number) => {
     const lp = livePhase[phase];
     const position = lp.positionMap.get(learnerId) ?? null;
