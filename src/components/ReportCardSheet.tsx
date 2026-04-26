@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { gradeFor, type GradeBand } from "@/lib/grading";
 import { useLearnerFieldSettings } from "@/hooks/useLearnerFieldSettings";
-import rcCorner from "@/assets/rc-corner.png";
+
 
 type Anything = Record<string, any>;
 
@@ -191,22 +191,29 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
           </tr>
         </tbody>
       </table>
-      <div className="rc-phase-summary">
-        <div className="rc-ps-item"><span className="rc-ps-label">TOTAL MARKS:</span><span className="rc-ps-val">{sum.total || ""}</span></div>
-        <div className="rc-ps-item"><span className="rc-ps-label">AVERAGE:</span><span className="rc-ps-val">{sum.avg || ""}</span></div>
-        <div className="rc-ps-item"><span className="rc-ps-label">POSITION:</span><span className="rc-ps-val">—</span></div>
-        <div className="rc-ps-item"><span className="rc-ps-label">AGGREGATES:</span><span className="rc-ps-val">{sum.aggregate || ""}</span></div>
-        <div className="rc-ps-item"><span className="rc-ps-label">DIVISION:</span><span className="rc-ps-val">—</span></div>
-      </div>
+      <table className="rc-phase-summary">
+        <tbody>
+          <tr>
+            <td><span className="rc-ps-label">TOTAL MARKS:</span> <span className="rc-ps-val">{sum.total || ""}</span></td>
+            <td><span className="rc-ps-label">AVERAGE:</span> <span className="rc-ps-val">{sum.avg || ""}</span></td>
+            <td><span className="rc-ps-label">POSITION:</span> <span className="rc-ps-val">—</span></td>
+            <td><span className="rc-ps-label">AGGREGATES:</span> <span className="rc-ps-val">{sum.aggregate || ""}</span></td>
+            <td><span className="rc-ps-label">DIVISION:</span> <span className="rc-ps-val">—</span></td>
+          </tr>
+        </tbody>
+      </table>
     </>
   );
 
+  const divisionFigure = (() => {
+    const d = report.division;
+    if (d == null) return "";
+    const m = String(d).match(/\d+/);
+    return m ? m[0] : String(d);
+  })();
+
   return (
     <div className="report-page" style={pageBreak ? { pageBreakAfter: "always" } : undefined}>
-      <span className="rc-corner tl" style={{ backgroundImage: `url(${rcCorner})` }} />
-      <span className="rc-corner tr" style={{ backgroundImage: `url(${rcCorner})` }} />
-      <span className="rc-corner bl" style={{ backgroundImage: `url(${rcCorner})` }} />
-      <span className="rc-corner br" style={{ backgroundImage: `url(${rcCorner})` }} />
 
       <table className="rc-head" cellSpacing={0} cellPadding={0}>
         <tbody>
@@ -310,13 +317,17 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
           })}
         </tbody>
       </table>
-      <div className="rc-phase-summary">
-        <div className="rc-ps-item"><span className="rc-ps-label">TOTAL MARKS:</span><span className="rc-ps-val">{eotTotal || ""}</span></div>
-        <div className="rc-ps-item"><span className="rc-ps-label">AVERAGE:</span><span className="rc-ps-val">{eotAvg || ""}</span></div>
-        <div className="rc-ps-item"><span className="rc-ps-label">POSITION:</span><span className="rc-ps-val">{report.position ? `${report.position} / ${report.class_size}` : ""}</span></div>
-        <div className="rc-ps-item"><span className="rc-ps-label">AGGREGATES:</span><span className="rc-ps-val">{eotAggregate || ""}</span></div>
-        <div className="rc-ps-item"><span className="rc-ps-label">DIVISION:</span><span className="rc-ps-val">{report.division ?? ""}</span></div>
-      </div>
+      <table className="rc-phase-summary">
+        <tbody>
+          <tr>
+            <td><span className="rc-ps-label">TOTAL MARKS:</span> <span className="rc-ps-val">{eotTotal || ""}</span></td>
+            <td><span className="rc-ps-label">AVERAGE:</span> <span className="rc-ps-val">{eotAvg || ""}</span></td>
+            <td><span className="rc-ps-label">POSITION:</span> <span className="rc-ps-val">{report.position ? `${report.position} / ${report.class_size}` : ""}</span></td>
+            <td><span className="rc-ps-label">AGGREGATES:</span> <span className="rc-ps-val">{eotAggregate || ""}</span></td>
+            <td><span className="rc-ps-label">DIVISION:</span> <span className="rc-ps-val">{divisionFigure}</span></td>
+          </tr>
+        </tbody>
+      </table>
 
       <table className="rc-bottom" cellSpacing={0} cellPadding={0}>
         <tbody>

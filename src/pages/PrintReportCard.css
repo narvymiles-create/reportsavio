@@ -44,21 +44,8 @@
   z-index: 0;
 }
 
-/* ---------- DECORATIVE FLORAL CORNERS ---------- */
-.rc-corner {
-  position: absolute;
-  width: 32mm;
-  height: 32mm;
-  pointer-events: none;
-  z-index: 1;
-  background-size: contain;
-  background-repeat: no-repeat;
-  background-position: center;
-}
-.rc-corner.tl { top: 5mm;    left: 5mm;   transform: rotate(0deg); }
-.rc-corner.tr { top: 5mm;    right: 5mm;  transform: scaleX(-1); }
-.rc-corner.bl { bottom: 5mm; left: 5mm;   transform: scaleY(-1); }
-.rc-corner.br { bottom: 5mm; right: 5mm;  transform: scale(-1, -1); }
+/* ---------- DECORATIVE FLORAL CORNERS (REMOVED) ---------- */
+.rc-corner { display: none !important; }
 
 /* Make all primary content sit above frame */
 .rc-head, .rc-title, .rc-student, .rc-section-label,
@@ -135,10 +122,9 @@
 }
 .rc-lbl { font-weight: 700; }
 
-/* AUTO-UNDERLINE FIELD */
+/* FIELD (no underline) */
 .rc-fill {
   display: inline-block;
-  border-bottom: 1px solid #111;
   min-width: 110px;
   padding: 0 4px 1px;
   line-height: 1.15;
@@ -173,31 +159,32 @@
 .rc-phase th { font-weight: 700; background: #fff; }
 .rc-phase-rowlabel { text-align: left !important; font-weight: 700; width: 18%; padding-left: 10px !important; }
 
-/* Phase summary single rounded bar */
-.rc-phase-summary {
+/* Phase summary as bordered table — each value in its own cell */
+table.rc-phase-summary {
   width: 100%;
   margin-top: 4px;
   margin-bottom: 6px;
-  border: 1.2px solid #111;
-  border-radius: 12px;
-  padding: 5px 10px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  border-collapse: collapse;
+  table-layout: fixed;
   font-size: 10pt;
-  gap: 8px;
 }
-.rc-ps-item { display: inline-flex; align-items: baseline; gap: 6px; flex: 1; justify-content: center; }
-.rc-ps-item:first-child { justify-content: flex-start; }
-.rc-ps-item:last-child  { justify-content: flex-end; }
+table.rc-phase-summary td {
+  border: 1px solid #111;
+  padding: 4px 6px;
+  text-align: center;
+  height: 20px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .rc-ps-label { font-weight: 700; white-space: nowrap; }
 .rc-ps-val {
   display: inline-block;
-  border-bottom: 1px solid #111;
-  min-width: 50px;
-  padding: 0 6px 1px;
+  min-width: 30px;
+  padding: 0 4px;
   text-align: center;
   white-space: nowrap;
+  font-weight: 600;
 }
 
 /* ---------- EOT TABLE ---------- */
@@ -246,7 +233,6 @@
 }
 .rc-b-row .rc-b-fill {
   flex: 1;
-  border-bottom: 1px solid #111;
   min-height: 18px;
   padding: 0 4px 1px;
   line-height: 1.2;
@@ -254,17 +240,6 @@
 }
 .rc-b-row.tall .rc-b-fill {
   min-height: 40px;
-  background-image: repeating-linear-gradient(
-    to bottom,
-    transparent 0,
-    transparent 17px,
-    #111 17px,
-    #111 18px
-  );
-  background-position: bottom;
-  background-repeat: repeat-x;
-  background-size: 100% 18px;
-  border-bottom: none;
 }
 
 /* Right signature column */
@@ -277,7 +252,6 @@
   margin-bottom: 4px;
 }
 .rc-sig-line {
-  border-bottom: 1px solid #111;
   height: 28px;
   position: relative;
   display: flex;
