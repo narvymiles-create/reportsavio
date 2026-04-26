@@ -484,13 +484,9 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
       {renderPhaseTable("BEGINNING OF TERM EXAMS", "bot", botSum, botInfo, botHas)}
       {renderPhaseTable("MID-TERM EXAMS", "mid", midSum, midInfo, midHas)}
 
+      {eotHas && (
       <div className="rc-eot-section" data-subjects={subjectCountKey}>
-      <div className="rc-section-label">
-        END OF TERM EXAMS
-        {!eotHas && <span style={{ color: "#b00", fontWeight: 600, marginLeft: 8, fontSize: 10 }}>
-          — Missing marks data for END OF TERM EXAMS
-        </span>}
-      </div>
+      <div className="rc-section-label">END OF TERM EXAMS</div>
       <table className="rc-eot" data-subjects={subjectCountKey}>
         <thead>
           <tr>
@@ -520,13 +516,14 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
           <tr>
             <td><span className="rc-ps-label">TOTAL MARKS:</span> <span className="rc-ps-val">{eotTotal || ""}</span></td>
             <td><span className="rc-ps-label">AVERAGE:</span> <span className="rc-ps-val">{eotAvg || ""}</span></td>
-            <td><span className="rc-ps-label">POSITION:</span> <span className="rc-ps-val">{livePosition ? `${livePosition} / ${liveClassSize}` : ""}</span></td>
+            <td><span className="rc-ps-label">POSITION:</span> <span className="rc-ps-val">{livePosition && liveClassSize ? `${livePosition}/${liveClassSize}` : ""}</span></td>
             <td><span className="rc-ps-label">AGGREGATES:</span> <span className="rc-ps-val">{eotAggregate || ""}</span></td>
             <td><span className="rc-ps-label">DIVISION:</span> <span className="rc-ps-val">{divisionFigure}</span></td>
           </tr>
         </tbody>
       </table>
       </div>
+      )}
 
       <table className="rc-bottom" cellSpacing={0} cellPadding={0}>
         <tbody>
