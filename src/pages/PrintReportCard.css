@@ -1,9 +1,5 @@
 /* =====================================================================
-   Report Card — STRICT A4 FIXED PRINT TEMPLATE
-   - Fits exactly on ONE A4 page (210mm x 297mm)
-   - Decorative leaf corners
-   - Auto-underline fields (border-bottom on inline-block)
-   - No auto-expansion / no overflow to next page
+   Report Card — STRICT A4 FIXED PRINT TEMPLATE (matches design image)
    ===================================================================== */
 
 .print-root {
@@ -15,103 +11,81 @@
 .report-page {
   position: relative;
   width: 210mm;
-  height: 297mm;          /* fixed — not min-height */
+  height: 297mm;
   margin: 16px auto;
-  padding: 10mm 9mm 8mm;
+  padding: 14mm 12mm 10mm;
   background: #fff;
   color: #111;
   font-family: "Times New Roman", Georgia, serif;
-  font-size: 9.5pt;
+  font-size: 10pt;
   line-height: 1.25;
   box-shadow: 0 6px 24px rgba(0, 0, 0, 0.08);
   box-sizing: border-box;
-  overflow: hidden;       /* never overflow to a 2nd page */
+  overflow: hidden;
 }
 
-/* ---------- DECORATIVE LEAF CORNERS ---------- */
-.rc-corner {
-  position: absolute;
-  width: 70px;
-  height: 70px;
-  pointer-events: none;
-  z-index: 1;
-}
-/* SVG leaf-like ornament drawn inline via background */
-.rc-corner.tl {
-  top: 4mm; left: 4mm;
-  background: radial-gradient(circle at 0% 0%, #1a2a52 0 6px, transparent 7px),
-              linear-gradient(135deg, transparent 50%, rgba(26,42,82,0.08) 50%);
-  border-top: 2.5px solid #1a2a52;
-  border-left: 2.5px solid #1a2a52;
-  border-top-left-radius: 14px;
-  clip-path: polygon(0 0, 100% 0, 70% 14%, 40% 30%, 22% 55%, 14% 80%, 0 100%);
-}
-.rc-corner.tr {
-  top: 4mm; right: 4mm;
-  background: radial-gradient(circle at 100% 0%, #1a2a52 0 6px, transparent 7px),
-              linear-gradient(225deg, transparent 50%, rgba(26,42,82,0.08) 50%);
-  border-top: 2.5px solid #1a2a52;
-  border-right: 2.5px solid #1a2a52;
-  border-top-right-radius: 14px;
-  clip-path: polygon(0 0, 100% 0, 100% 100%, 86% 80%, 78% 55%, 60% 30%, 30% 14%);
-}
-.rc-corner.bl {
-  bottom: 4mm; left: 4mm;
-  background: radial-gradient(circle at 0% 100%, #1a2a52 0 6px, transparent 7px),
-              linear-gradient(45deg, transparent 50%, rgba(26,42,82,0.08) 50%);
-  border-bottom: 2.5px solid #1a2a52;
-  border-left: 2.5px solid #1a2a52;
-  border-bottom-left-radius: 14px;
-  clip-path: polygon(0 0, 14% 20%, 22% 45%, 40% 70%, 70% 86%, 100% 100%, 0 100%);
-}
-.rc-corner.br {
-  bottom: 4mm; right: 4mm;
-  background: radial-gradient(circle at 100% 100%, #1a2a52 0 6px, transparent 7px),
-              linear-gradient(315deg, transparent 50%, rgba(26,42,82,0.08) 50%);
-  border-bottom: 2.5px solid #1a2a52;
-  border-right: 2.5px solid #1a2a52;
-  border-bottom-right-radius: 14px;
-  clip-path: polygon(100% 0, 86% 20%, 78% 45%, 60% 70%, 30% 86%, 0 100%, 100% 100%);
-}
-
-/* Outer dotted frame */
+/* Inner thin blue border frame */
 .report-page::before {
   content: "";
   position: absolute;
   inset: 6mm;
-  border: 1px dashed #1a2a52;
-  border-radius: 4px;
+  border: 1.2px solid #1a2a52;
+  border-radius: 2px;
+  pointer-events: none;
+  z-index: 0;
+}
+.report-page::after {
+  content: "";
+  position: absolute;
+  inset: 7.2mm;
+  border: 0.5px solid #1a2a52;
+  border-radius: 2px;
   pointer-events: none;
   z-index: 0;
 }
 
+/* ---------- DECORATIVE FLORAL CORNERS ---------- */
+.rc-corner {
+  position: absolute;
+  width: 32mm;
+  height: 32mm;
+  pointer-events: none;
+  z-index: 1;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+.rc-corner.tl { top: 5mm;    left: 5mm;   transform: rotate(0deg); }
+.rc-corner.tr { top: 5mm;    right: 5mm;  transform: scaleX(-1); }
+.rc-corner.bl { bottom: 5mm; left: 5mm;   transform: scaleY(-1); }
+.rc-corner.br { bottom: 5mm; right: 5mm;  transform: scale(-1, -1); }
+
 /* Make all primary content sit above frame */
 .rc-head, .rc-title, .rc-student, .rc-section-label,
-.rc-phase, .rc-phase-footer, .rc-eot, .rc-bottom,
-.rc-grading-title, .rc-grading {
+.rc-phase, .rc-phase-summary, .rc-eot, .rc-bottom,
+.rc-grading-title, .rc-grading, .rc-term-dates {
   position: relative;
   z-index: 2;
 }
 
 /* ---------- HEADER ---------- */
-.rc-head { width: 100%; margin-bottom: 4px; }
-.rc-head td { vertical-align: top; padding: 0; }
-.rc-head-logo-cell  { width: 95px; }
-.rc-head-photo-cell { width: 95px; text-align: right; }
+.rc-head { width: 100%; margin-bottom: 2px; }
+.rc-head td { vertical-align: middle; padding: 0; }
+.rc-head-logo-cell  { width: 110px; }
+.rc-head-photo-cell { width: 110px; text-align: right; }
 .rc-head-school-cell { text-align: center; padding: 0 6px; }
 
 .rc-box {
   border: none;
   background: transparent;
-  width: 88px;
-  height: 88px;
+  width: 95px;
+  height: 95px;
   display: flex;
   align-items: center;
   justify-content: center;
   text-align: center;
   font-size: 9pt;
-  letter-spacing: 0.5px;
-  color: #444;
+  color: #888;
   overflow: hidden;
 }
 .rc-photo-box { margin-left: auto; }
@@ -120,54 +94,52 @@
   max-height: 100%;
   width: auto;
   height: auto;
-  object-fit: contain;     /* keep aspect ratio, no stretch */
+  object-fit: contain;
 }
 
 .rc-school-name {
-  font-size: 16pt;
+  font-size: 22pt;
   font-weight: 700;
   letter-spacing: 1px;
-  margin-top: 2px;
+  margin: 0;
+  line-height: 1.1;
 }
-.rc-school-line { font-size: 9pt; line-height: 1.25; }
+.rc-school-line { font-size: 10.5pt; line-height: 1.3; }
 
 /* ---------- TITLE ---------- */
 .rc-title {
   text-align: center;
   font-weight: 700;
-  font-size: 11pt;
+  font-size: 12pt;
   letter-spacing: 0.5px;
-  margin: 6px 0 4px;
+  margin: 8px 0 6px;
 }
 
-/* ---------- STUDENT DETAILS ---------- */
+/* ---------- STUDENT DETAILS BOX ---------- */
 .rc-student {
   width: 100%;
   border: 1.2px solid #111;
-  border-radius: 10px;
+  border-radius: 12px;
   border-collapse: separate;
   border-spacing: 0;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
   table-layout: fixed;
 }
 .rc-student td {
-  padding: 4px 8px;
-  font-size: 9.5pt;
+  padding: 5px 10px;
+  font-size: 10pt;
   width: 33.33%;
   vertical-align: bottom;
   white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
 }
 .rc-lbl { font-weight: 700; }
 
-/* AUTO-UNDERLINE FIELD (fit-content) */
+/* AUTO-UNDERLINE FIELD */
 .rc-fill {
   display: inline-block;
   border-bottom: 1px solid #111;
-  width: fit-content;
-  min-width: 80px;
-  max-width: 70%;
+  min-width: 110px;
   padding: 0 4px 1px;
   line-height: 1.15;
   vertical-align: bottom;
@@ -179,10 +151,10 @@
 /* ---------- PHASE TABLES ---------- */
 .rc-section-label {
   font-weight: 700;
-  font-size: 10pt;
+  font-size: 11pt;
   letter-spacing: 0.5px;
   text-align: center;
-  margin: 4px 0 2px;
+  margin: 6px 0 3px;
 }
 .rc-phase {
   width: 100%;
@@ -191,34 +163,42 @@
 }
 .rc-phase th, .rc-phase td {
   border: 1px solid #111;
-  padding: 2px 4px;
+  padding: 3px 4px;
   text-align: center;
-  font-size: 9pt;
-  height: 16px;
+  font-size: 10pt;
+  height: 18px;
   overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
 }
 .rc-phase th { font-weight: 700; background: #fff; }
-.rc-phase-rowlabel { text-align: left !important; font-weight: 700; width: 90px; }
+.rc-phase-rowlabel { text-align: left !important; font-weight: 700; width: 18%; padding-left: 10px !important; }
 
-.rc-phase-footer {
+/* Phase summary single rounded bar */
+.rc-phase-summary {
   width: 100%;
-  border-collapse: collapse;
-  table-layout: fixed;
-  margin-bottom: 4px;
+  margin-top: 4px;
+  margin-bottom: 6px;
+  border: 1.2px solid #111;
+  border-radius: 12px;
+  padding: 5px 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 10pt;
+  gap: 8px;
 }
-.rc-phase-footer td {
-  border: 1px solid #111;
-  padding: 2px 4px;
-  font-size: 9pt;
-  height: 16px;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.rc-ps-item { display: inline-flex; align-items: baseline; gap: 6px; flex: 1; justify-content: center; }
+.rc-ps-item:first-child { justify-content: flex-start; }
+.rc-ps-item:last-child  { justify-content: flex-end; }
+.rc-ps-label { font-weight: 700; white-space: nowrap; }
+.rc-ps-val {
+  display: inline-block;
+  border-bottom: 1px solid #111;
+  min-width: 50px;
+  padding: 0 6px 1px;
+  text-align: center;
   white-space: nowrap;
 }
-.rc-pf-label { font-weight: 700; }
-.rc-pf-val { min-width: 30px; text-align: center; }
 
 /* ---------- EOT TABLE ---------- */
 .rc-eot {
@@ -228,88 +208,130 @@
 }
 .rc-eot th, .rc-eot td {
   border: 1px solid #111;
-  padding: 3px 6px;
+  padding: 4px 6px;
   text-align: center;
-  font-size: 9.5pt;
-  height: 18px;
+  font-size: 10pt;
+  height: 20px;
   overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
 }
 .rc-eot th { font-weight: 700; }
-.rc-eot-subject { text-align: left !important; font-weight: 600; width: 30%; }
+.rc-eot-subject { text-align: left !important; font-weight: 600; width: 26%; padding-left: 10px !important; }
 
-/* ---------- BOTTOM (comments / signatures) ---------- */
+/* ---------- BOTTOM (comments + signatures) ---------- */
 .rc-bottom {
   width: 100%;
   border: 1.2px solid #111;
-  border-radius: 10px;
+  border-radius: 12px;
   border-collapse: separate;
   border-spacing: 0;
-  margin-top: 6px;
-  margin-bottom: 4px;
+  margin-top: 8px;
   table-layout: fixed;
 }
 .rc-bottom td {
-  padding: 5px 8px;
-  font-size: 9.5pt;
-  vertical-align: bottom;
+  padding: 6px 10px;
+  font-size: 10pt;
+  vertical-align: top;
 }
-.rc-b-label { font-weight: 700; white-space: nowrap; width: 28%; }
+.rc-b-left  { width: 58%; border-right: 1px solid #111; }
+.rc-b-right { width: 42%; }
 
-/* Multi-line writing lines effect */
-.rc-b-fill {
-  min-width: 180px;
-  height: 22px;
+.rc-b-row { display: flex; align-items: flex-end; gap: 8px; margin-bottom: 8px; }
+.rc-b-row:last-child { margin-bottom: 0; }
+.rc-b-row .rc-b-label {
+  font-weight: 600;
+  white-space: nowrap;
+  min-width: 145px;
+  font-size: 10pt;
+}
+.rc-b-row .rc-b-fill {
+  flex: 1;
+  border-bottom: 1px solid #111;
+  min-height: 18px;
+  padding: 0 4px 1px;
+  line-height: 1.2;
+  font-size: 10pt;
+}
+.rc-b-row.tall .rc-b-fill {
+  min-height: 40px;
   background-image: repeating-linear-gradient(
     to bottom,
     transparent 0,
-    transparent 13px,
-    #111 13px,
-    #111 14px
+    transparent 17px,
+    #111 17px,
+    #111 18px
   );
   background-position: bottom;
   background-repeat: repeat-x;
-  background-size: 100% 14px;
+  background-size: 100% 18px;
+  border-bottom: none;
 }
 
-.rc-b-sign-label { font-weight: 700; white-space: nowrap; padding-left: 10px !important; width: 14%; }
-.rc-b-sign-cell {
+/* Right signature column */
+.rc-sig-block { margin-bottom: 14px; position: relative; }
+.rc-sig-block:last-child { margin-bottom: 0; }
+.rc-sig-label {
+  font-weight: 600;
+  font-size: 10pt;
+  display: inline-block;
+  margin-bottom: 4px;
+}
+.rc-sig-line {
   border-bottom: 1px solid #111;
-  min-width: 110px;
+  height: 28px;
   position: relative;
-  height: 26px;
-  width: 22%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  padding-right: 4px;
 }
 .rc-sig-img {
-  max-height: 24px;
-  max-width: 110px;
+  max-height: 30px;
+  max-width: 140px;
   object-fit: contain;
-  display: block;
 }
-.rc-sig-name { font-size: 8pt; }
+.rc-sig-name {
+  font-size: 9pt;
+  text-align: right;
+  margin-top: 2px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+/* Term dates row (below bottom box) */
+.rc-term-dates {
+  width: 100%;
+  display: flex;
+  justify-content: space-around;
+  align-items: baseline;
+  margin: 8px 0 4px;
+  font-size: 10pt;
+  padding: 0 10mm;
+}
+.rc-term-dates .rc-lbl { font-weight: 700; }
+.rc-term-dates .rc-fill { min-width: 140px; }
 
 /* ---------- GRADING ---------- */
 .rc-grading-title {
   text-align: center;
   font-weight: 700;
-  font-size: 9.5pt;
-  margin-top: 2px;
+  font-size: 11pt;
+  margin-top: 4px;
 }
 .rc-grading {
-  margin: 2px auto 0;
+  margin: 3px auto 0;
   border-collapse: collapse;
   table-layout: fixed;
+  width: 100%;
 }
 .rc-grading td {
   border: 1px solid #111;
-  padding: 2px 10px;
+  padding: 3px 4px;
   text-align: center;
-  font-size: 9pt;
-  min-width: 36px;
-  height: 16px;
+  font-size: 10pt;
+  height: 18px;
 }
-.rc-g-label { font-weight: 700; }
+.rc-g-label { font-weight: 700; width: 14%; padding-left: 10px !important; text-align: left !important; }
 
 /* ---------- PRINT ---------- */
 @page { size: A4; margin: 0; }
