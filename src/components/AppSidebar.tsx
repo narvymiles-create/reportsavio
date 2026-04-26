@@ -13,6 +13,9 @@ import {
   FileText,
   UserCog,
   Settings as SettingsIcon,
+  Baby,
+  Palette,
+  Shapes,
 } from "lucide-react";
 import {
   Sidebar,
@@ -26,12 +29,11 @@ import {
   SidebarHeader,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { useReportModule } from "@/hooks/useReportModule";
+import { Button } from "@/components/ui/button";
 
-const groups = [
-  {
-    label: "Overview",
-    items: [{ title: "Dashboard", url: "/", icon: LayoutDashboard }],
-  },
+const primaryGroups = [
+  { label: "Overview", items: [{ title: "Dashboard", url: "/", icon: LayoutDashboard }] },
   {
     label: "Configuration",
     items: [
@@ -52,20 +54,41 @@ const groups = [
       { title: "Signatures", url: "/signatures", icon: PenLine },
     ],
   },
+  { label: "Reports", items: [{ title: "Report Cards", url: "/report-cards", icon: FileText }] },
+  { label: "System", items: [{ title: "Settings", url: "/settings", icon: SettingsIcon }] },
+];
+
+const nurseryGroups = [
+  { label: "Overview", items: [{ title: "Dashboard", url: "/", icon: LayoutDashboard }] },
   {
-    label: "Reports",
-    items: [{ title: "Report Cards", url: "/report-cards", icon: FileText }],
+    label: "Configuration",
+    items: [
+      { title: "School Info", url: "/school", icon: School },
+      { title: "Nursery Classes", url: "/nursery/classes", icon: GraduationCap },
+      { title: "Learning Areas", url: "/nursery/learning-areas", icon: Shapes },
+      { title: "Color Key", url: "/nursery/colors", icon: Palette },
+      { title: "Teachers", url: "/teachers", icon: UserCog },
+      { title: "Terms", url: "/terms", icon: CalendarDays },
+    ],
   },
   {
-    label: "System",
-    items: [{ title: "Settings", url: "/settings", icon: SettingsIcon }],
+    label: "Academics",
+    items: [
+      { title: "Nursery Learners", url: "/nursery/learners", icon: Baby },
+      { title: "Assessment Entry", url: "/nursery/assessment", icon: ClipboardList },
+      { title: "Signatures", url: "/signatures", icon: PenLine },
+    ],
   },
+  { label: "Reports", items: [{ title: "Nursery Reports", url: "/nursery/reports", icon: FileText }] },
+  { label: "System", items: [{ title: "Settings", url: "/settings", icon: SettingsIcon }] },
 ];
 
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const { pathname } = useLocation();
+  const { module, setModule } = useReportModule();
+  const groups = module === "nursery" ? nurseryGroups : primaryGroups;
 
   return (
     <Sidebar collapsible="icon">
@@ -81,6 +104,29 @@ export function AppSidebar() {
             </div>
           )}
         </div>
+        {!collapsed && (
+          <div className="px-2 pb-2">
+            <div className="text-[10px] uppercase tracking-wide text-sidebar-foreground/60 mb-1">Report Type</div>
+            <div className="grid grid-cols-2 gap-1 rounded-md bg-sidebar-accent/40 p-0.5">
+              <Button
+                size="sm"
+                variant={module === "primary" ? "default" : "ghost"}
+                className="h-7 text-xs"
+                onClick={() => setModule("primary")}
+              >
+                Primary
+              </Button>
+              <Button
+                size="sm"
+                variant={module === "nursery" ? "default" : "ghost"}
+                className="h-7 text-xs"
+                onClick={() => setModule("nursery")}
+              >
+                Nursery
+              </Button>
+            </div>
+          </div>
+        )}
       </SidebarHeader>
       <SidebarContent>
         {groups.map((group) => (
