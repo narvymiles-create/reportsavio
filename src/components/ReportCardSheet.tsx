@@ -235,9 +235,19 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
   const eotTotal = eotSum.total;
   const eotAvg = eotSum.avg;
   const eotAggregate = eotSum.aggregate;
-  const livePosition = liveClass.positionMap.get(learnerId) ?? null;
-  const liveClassSize = liveClass.classSize || 0;
-  const liveDivision = (eotAggregate > 0 && divRules.length) ? divisionFor(eotAggregate, divRules) : "";
+  const phaseInfo = (phase: "bot" | "mid" | "eot", aggregate: number) => {
+    const lp = livePhase[phase];
+    const position = lp.positionMap.get(learnerId) ?? null;
+    const classSize = lp.classSize || 0;
+    const division = (aggregate > 0 && divRules.length) ? divisionFor(aggregate, divRules) : "";
+    return { position, classSize, division };
+  };
+  const botInfo = phaseInfo("bot", botSum.aggregate);
+  const midInfo = phaseInfo("mid", midSum.aggregate);
+  const eotInfo = phaseInfo("eot", eotAggregate);
+  const livePosition = eotInfo.position;
+  const liveClassSize = eotInfo.classSize;
+  const liveDivision = eotInfo.division;
 
   const codeFor = (name: string): string => {
     const n = name.toUpperCase();
