@@ -32,11 +32,11 @@ function SignatureCell({ path, onChange, kind }: { path: string | null; onChange
     return () => { cancelled = true; };
   }, [path]);
 
-  const persist = async (blob: Blob) => {
+  const persist = async (blob: Blob, ext = "png", contentType = "image/png") => {
     setBusy(true);
     try {
-      const newPath = `${kind}/${crypto.randomUUID()}.png`;
-      const { error } = await supabase.storage.from("signatures").upload(newPath, blob, { upsert: false, contentType: "image/png" });
+      const newPath = `${kind}/${crypto.randomUUID()}.${ext}`;
+      const { error } = await supabase.storage.from("signatures").upload(newPath, blob, { upsert: false, contentType });
       if (error) throw error;
       if (path) await supabase.storage.from("signatures").remove([path]);
       await onChange(newPath);
