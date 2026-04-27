@@ -343,8 +343,8 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
     XLSX.utils.book_append_sheet(wb, ws, "Marks");
     // Summary sheet
     const sumWs = XLSX.utils.aoa_to_sheet([
-      ["DIV1", "DIV2", "DIV3", "DIV4", "U"],
-      [divSummary["1"] || 0, divSummary["2"] || 0, divSummary["3"] || 0, divSummary["4"] || 0, divSummary.U || 0],
+      ["DIV1", "DIV2", "DIV3", "DIV4", "DIV X", "U"],
+      [divSummary["1"] || 0, divSummary["2"] || 0, divSummary["3"] || 0, divSummary["4"] || 0, divSummary.X || 0, divSummary.U || 0],
     ]);
     XLSX.utils.book_append_sheet(wb, sumWs, "Summary");
     XLSX.writeFile(wb, `${baseFileName()}.xlsx`);
