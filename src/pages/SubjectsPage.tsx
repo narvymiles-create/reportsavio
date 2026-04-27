@@ -157,7 +157,7 @@ export default function SubjectsPage() {
     setSubmitting(false);
     if (error) {
       const msg = /Only 4 core/i.test(error.message)
-        ? "Only 4 core subjects are allowed per level"
+        ? "Only 4 core subjects allowed for this class"
         : error.message;
       toast({ title: "Save failed", description: msg, variant: "destructive" });
     } else {
