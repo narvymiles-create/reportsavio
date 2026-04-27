@@ -7,22 +7,26 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
-import { FileText, Save, Eye } from "lucide-react";
+import { FileText, Save, Eye, Printer, Download, Users } from "lucide-react";
 import { NurseryReportSheet } from "@/components/NurseryReportSheet";
 
 type Cls = { id: string; name: string };
+type Stream = { id: string; name: string; class_id: string };
 type Term = { id: string; name: string; year: number; is_current: boolean };
-type Learner = { id: string; full_name: string };
+type Learner = { id: string; full_name: string; stream_id: string | null };
 
 export default function NurseryReportsPage() {
   const [classes, setClasses] = useState<Cls[]>([]);
+  const [streams, setStreams] = useState<Stream[]>([]);
   const [terms, setTerms] = useState<Term[]>([]);
   const [learners, setLearners] = useState<Learner[]>([]);
   const [classId, setClassId] = useState("");
+  const [streamId, setStreamId] = useState("");
   const [termId, setTermId] = useState("");
   const [learnerId, setLearnerId] = useState("");
   const [ctc, setCtc] = useState("");
   const [htc, setHtc] = useState("");
+  const [bulkPreview, setBulkPreview] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -39,9 +43,13 @@ export default function NurseryReportsPage() {
   }, []);
 
   useEffect(() => {
-    if (!classId) { setLearners([]); setLearnerId(""); return; }
-    supabase.from("nursery_learners" as any).select("id,full_name").eq("class_id", classId).order("full_name").then(({ data }) => setLearners((data as any) ?? []));
+    if (!classId) { setLearners([]); setLearnerId(""); setStreams([]); setStreamId(""); return; }
+    supabase.from("nursery_streams" as any).select("id,name,class_id").eq("class_id", classId).order("name").then(({ data }) => setStreams((data as any) ?? []));
+    let q = supabase.from("nursery_learners" as any).select("id,full_name,stream_id").eq("class_id", classId).order("full_name");
+    q.then(({ data }) => setLearners((data as any) ?? []));
   }, [classId]);
+
+  const filteredLearners = streamId ? learners.filter(l => l.stream_id === streamId) : learners;
 
   useEffect(() => {
     if (!learnerId || !termId) { setCtc(""); setHtc(""); return; }
@@ -61,20 +69,33 @@ export default function NurseryReportsPage() {
     toast({ title: "Saved" });
   };
 
+  const bulkBase = classId && termId ? `/print/nursery-bulk/${termId}/${classId}${streamId ? `?stream=${streamId}` : ""}` : "";
+  const sep = streamId ? "&" : "?";
+
   return (
     <div className="p-6 space-y-6">
       <Card>
         <CardHeader>
           <CardTitle>Nursery Report Cards</CardTitle>
-          <CardDescription>Pick learner, save comments, preview, and print.</CardDescription>
+          <CardDescription>Pick a learner to edit/preview a single report, or use bulk actions to preview, print, or export an entire class/stream.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
             <div>
               <Label>Class</Label>
-              <Select value={classId} onValueChange={setClassId}>
+              <Select value={classId} onValueChange={(v) => { setClassId(v); setStreamId(""); setLearnerId(""); setBulkPreview(false); }}>
                 <SelectTrigger><SelectValue placeholder="Select class" /></SelectTrigger>
                 <SelectContent>{classes.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Stream (optional)</Label>
+              <Select value={streamId || "__all"} onValueChange={(v) => { setStreamId(v === "__all" ? "" : v); setLearnerId(""); setBulkPreview(false); }}>
+                <SelectTrigger><SelectValue placeholder="All streams" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all">All streams</SelectItem>
+                  {streams.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                </SelectContent>
               </Select>
             </div>
             <div>
@@ -86,12 +107,27 @@ export default function NurseryReportsPage() {
             </div>
             <div>
               <Label>Learner</Label>
-              <Select value={learnerId} onValueChange={setLearnerId}>
+              <Select value={learnerId} onValueChange={(v) => { setLearnerId(v); setBulkPreview(false); }}>
                 <SelectTrigger><SelectValue placeholder="Learner" /></SelectTrigger>
-                <SelectContent>{learners.map((l) => <SelectItem key={l.id} value={l.id}>{l.full_name}</SelectItem>)}</SelectContent>
+                <SelectContent>{filteredLearners.map((l) => <SelectItem key={l.id} value={l.id}>{l.full_name}</SelectItem>)}</SelectContent>
               </Select>
             </div>
           </div>
+
+          {/* Bulk actions */}
+          {classId && termId && (
+            <div className="flex flex-wrap gap-2 pt-2 border-t">
+              <Button variant="secondary" onClick={() => { setLearnerId(""); setBulkPreview(true); }}>
+                <Users className="h-4 w-4 mr-1" />Bulk Preview ({filteredLearners.length})
+              </Button>
+              <Link to={`${bulkBase}${bulkBase.includes("?") ? "&" : "?"}mode=print`} target="_blank">
+                <Button variant="outline"><Printer className="h-4 w-4 mr-1" />Bulk Print</Button>
+              </Link>
+              <Link to={`${bulkBase}${bulkBase.includes("?") ? "&" : "?"}mode=download`} target="_blank">
+                <Button><Download className="h-4 w-4 mr-1" />Bulk Download (ZIP)</Button>
+              </Link>
+            </div>
+          )}
 
           {learnerId && termId && (
             <>
@@ -110,12 +146,31 @@ export default function NurseryReportsPage() {
         </CardContent>
       </Card>
 
-      {learnerId && termId && (
+      {learnerId && termId && !bulkPreview && (
         <Card>
           <CardHeader><CardTitle className="flex items-center gap-2"><Eye className="h-4 w-4" />Live Preview</CardTitle></CardHeader>
           <CardContent>
             <div className="overflow-auto border rounded p-4 bg-muted/20">
               <NurseryReportSheet learnerId={learnerId} termId={termId} />
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {bulkPreview && classId && termId && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2"><Users className="h-4 w-4" />Bulk Preview — {filteredLearners.length} learner(s)</CardTitle>
+            <CardDescription>Scroll to review every report before printing or exporting.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-auto border rounded p-4 bg-muted/20 space-y-6 max-h-[80vh]">
+              {filteredLearners.map((l) => (
+                <div key={l.id}>
+                  <div className="text-xs text-muted-foreground mb-2 font-semibold">{l.full_name}</div>
+                  <NurseryReportSheet learnerId={l.id} termId={termId} />
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>

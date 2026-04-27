@@ -36,6 +36,7 @@ import NurseryLearnersPage from "./pages/nursery/NurseryLearnersPage";
 import NurseryAssessmentPage from "./pages/nursery/NurseryAssessmentPage";
 import NurseryReportsPage from "./pages/nursery/NurseryReportsPage";
 import PrintNurseryReportCard from "./pages/PrintNurseryReportCard";
+import BulkNurseryReportCardsPage from "./pages/BulkNurseryReportCardsPage";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -88,6 +89,7 @@ const App = () => (
             <Route path="/nursery/assessment" element={<Protected><NurseryAssessmentPage /></Protected>} />
             <Route path="/nursery/reports" element={<Protected><NurseryReportsPage /></Protected>} />
             <Route path="/print/nursery/:learnerId/:termId" element={<RequireAdmin><PrintNurseryReportCard /></RequireAdmin>} />
+            <Route path="/print/nursery-bulk/:termId/:classId" element={<RequireAdmin><BulkNurseryReportCardsPage /></RequireAdmin>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
