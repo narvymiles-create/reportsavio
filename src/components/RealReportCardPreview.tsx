@@ -96,6 +96,42 @@ export function RealReportCardPreview() {
             </tbody>
           </table>
 
+          {/* BOT table */}
+          {(["BEGINNING OF TERM EXAMS", "MID-TERM EXAMS"] as const).map(label => (
+            <div key={label} className="rc-phase-section" data-subjects={5 as any}>
+              <div className="rc-section-label">{label}</div>
+              <table className="rc-phase" data-subjects={5 as any}>
+                <thead>
+                  <tr>
+                    <th className="rc-phase-rowlabel">SUBJECTS</th>
+                    {["ENG","MTC","SCI","SST","RE"].map(c => <th key={c}>{c}</th>)}
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td className="rc-phase-rowlabel">MARKS</td>
+                    {[0,1,2,3,4].map(i => <td key={i}></td>)}
+                  </tr>
+                  <tr>
+                    <td className="rc-phase-rowlabel">GRADE</td>
+                    {[0,1,2,3,4].map(i => <td key={i}></td>)}
+                  </tr>
+                </tbody>
+              </table>
+              <table className="rc-phase-summary">
+                <tbody>
+                  <tr>
+                    <td><span className="rc-ps-label">TOTAL MARKS:</span> <span className="rc-ps-val"></span></td>
+                    <td><span className="rc-ps-label">AVERAGE:</span> <span className="rc-ps-val"></span></td>
+                    <td><span className="rc-ps-label">POSITION:</span> <span className="rc-ps-val"></span></td>
+                    <td><span className="rc-ps-label">AGGREGATES:</span> <span className="rc-ps-val"></span></td>
+                    <td><span className="rc-ps-label">DIVISION:</span> <span className="rc-ps-val"></span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          ))}
+
           {/* EOT table (representative) */}
           <div className="rc-eot-section" data-subjects={5 as any}>
             <div className="rc-section-label">END OF TERM EXAMS</div>
