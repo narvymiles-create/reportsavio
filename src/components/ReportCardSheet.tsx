@@ -261,6 +261,20 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
     return missing;
   };
 
+  // Detect if learner has F9 in ENG or MTC for a phase
+  const hasF9InEngOrMath = (phase: "bot" | "mid" | "eot") => {
+    for (const s of orderedSubjects) {
+      const tag = isCriticalCoreSubject(s.name);
+      if (!tag) continue;
+      const m = marksBySubject.get(s.id);
+      const v = m?.[phase];
+      if (v == null || v === "" || isNaN(Number(v))) continue;
+      const g = gradeFor(Number(v), bands);
+      if (g?.grade === "F9") return true;
+    }
+    return false;
+  };
+
   const phaseInfo = (phase: "bot" | "mid" | "eot", aggregate: number, hasData: boolean) => {
     const lp = livePhase[phase];
     const position = lp.positionMap.get(learnerId) ?? null;
@@ -269,7 +283,9 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
     if (hasData && coreCountValid) {
       const missing = missingCoreCount(phase);
       // RULE: missing core subjects → Division = "X" (overrides aggregate-based division)
-      division = missing > 0 ? "X" : calculateDivision(aggregate);
+      const base = missing > 0 ? "X" : calculateDivision(aggregate);
+      // RULE: F9 in ENG or MTC → push division one level worse (not for X/U)
+      division = applyF9Override(base, hasF9InEngOrMath(phase));
     }
     return { position, classSize, division };
   };
