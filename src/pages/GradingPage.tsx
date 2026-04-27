@@ -222,7 +222,7 @@ export default function GradingPage() {
         </CardHeader>
         <CardContent>
           {divisions.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-6 text-center">No divisions yet. Seed defaults for the standard Division I–IV scheme.</p>
+            <p className="text-sm text-muted-foreground py-6 text-center">No divisions yet. Seed defaults for the standard 1–4/U scheme.</p>
           ) : (
             <Table>
               <TableHeader><TableRow><TableHead>Division</TableHead><TableHead>Aggregate Range</TableHead><TableHead>Description</TableHead><TableHead className="w-24"></TableHead></TableRow></TableHeader>
