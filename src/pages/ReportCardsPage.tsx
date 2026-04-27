@@ -306,8 +306,8 @@ export default function ReportCardsPage() {
                         {r ? (
                           <div className="inline-flex items-center gap-1 justify-end">
                             <IconAction icon={Eye} label="View" asChild href={printUrl} target="_blank" />
-                            <IconAction icon={Printer} label="Print" asChild href={printUrl} target="_blank" />
-                            <IconAction icon={Download} label="Download" asChild href={printUrl} target="_blank" />
+                            <IconAction icon={Printer} label="Print" asChild href={`${printUrl}?mode=print`} target="_blank" />
+                            <IconAction icon={Download} label="Download" asChild href={`${printUrl}?mode=download`} target="_blank" />
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button size="icon" variant="ghost" className="h-8 w-8 inline-flex lg:hidden" onClick={() => { setSingleLearnerId(l.id); generateSingle(); }} title="Re-generate" aria-label="Edit / Regenerate">
