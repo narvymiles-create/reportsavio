@@ -132,19 +132,18 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
   const coreCountValid = coreSubjects.length === 4;
 
   // Per-row computed values (live)
-  type RowCalc = { total: number; ave: number; agg: number; div: string; subjectGrades: Record<string, string | null> };
+  type RowCalc = { total: number; ave: number; agg: number; div: string; coreMissing: number; subjectGrades: Record<string, string | null> };
   const rowCalcs = useMemo(() => {
     const out = new Map<string, RowCalc>();
     for (const l of filteredLearners) {
       const subjectGrades: Record<string, string | null> = {};
-      let total = 0; let count = 0; let agg = 0; let coreEntered = 0;
+      let total = 0; let count = 0; let agg = 0; let coreEntered = 0; let coreMissing = 0;
       for (const s of subjects) {
         const m = marks[`${l.id}|${s.id}`];
         const v = m?.[exam] ?? null;
         if (v != null && !isNaN(v)) {
           total += v; count += 1;
           const band = gradeFor(v, bands);
-          // Only core subjects get a displayed grade and contribute to AGG
           if (s.is_core) {
             subjectGrades[s.id] = band?.grade ?? null;
             if (band?.points != null) agg += band.points;
@@ -153,15 +152,26 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
             subjectGrades[s.id] = null;
           }
         } else {
+          if (s.is_core) coreMissing += 1;
           subjectGrades[s.id] = null;
         }
       }
       const ave = count ? Math.round((total / count) * 100) / 100 : 0;
-      const canAgg = coreCountValid && coreEntered === 4;
+      // Division logic mirrors report card:
+      // - If config invalid (≠4 core subjects) → blank
+      // - If at least one core has marks but some core is missing → "X"
+      // - If all 4 core subjects have marks → calculateDivision(agg)
+      // - If no core subjects entered at all → blank
+      let div = "";
+      if (coreCountValid) {
+        if (coreEntered === 4) div = calculateDivision(agg);
+        else if (coreEntered > 0 && coreMissing > 0) div = "X";
+      }
       out.set(l.id, {
         total, ave,
-        agg: canAgg ? agg : 0,
-        div: canAgg ? calculateDivision(agg) : "—",
+        agg: coreEntered > 0 ? agg : 0,
+        div,
+        coreMissing,
         subjectGrades,
       });
     }
