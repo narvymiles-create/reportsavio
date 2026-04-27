@@ -338,7 +338,9 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
           <tr>
             <td><span className="rc-ps-label">TOTAL MARKS:</span> <span className="rc-ps-val">{sum.total || ""}</span></td>
             <td><span className="rc-ps-label">AVERAGE:</span> <span className="rc-ps-val">{sum.avg || ""}</span></td>
-            <td><span className="rc-ps-label">POSITION:</span> <span className="rc-ps-val">{info.position && info.classSize ? `${info.position}/${info.classSize}` : ""}</span></td>
+            {flags.show_position && (
+              <td><span className="rc-ps-label">POSITION:</span> <span className="rc-ps-val">{info.position && info.classSize ? `${info.position}/${info.classSize}` : ""}</span></td>
+            )}
             <td><span className="rc-ps-label">AGGREGATES:</span> <span className="rc-ps-val">{coreCountValid && hasData ? sum.aggregate : ""}</span></td>
             <td><span className="rc-ps-label">DIVISION:</span> <span className="rc-ps-val">{info.division}</span></td>
           </tr>
