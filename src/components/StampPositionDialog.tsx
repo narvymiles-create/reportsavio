@@ -42,10 +42,12 @@ type CoreProps = {
   onSaved: (s: StampSettings) => void;
   /** Optional: called after save (e.g. close the dialog wrapper). */
   afterSave?: () => void;
+  /** "stack" (default) renders preview above controls; "split" renders preview left, controls right (no scroll). */
+  layout?: "stack" | "split";
 };
 
 /** The stamp settings UI body, can be embedded inline on a page or inside a dialog. */
-export function StampPositionPanel({ schoolId, stampUrl, initial, onSaved, afterSave }: CoreProps) {
+export function StampPositionPanel({ schoolId, stampUrl, initial, onSaved, afterSave, layout = "stack" }: CoreProps) {
   const [s, setS] = useState<StampSettings>({ ...DEFAULTS, ...initial });
   const [saving, setSaving] = useState(false);
   const previewRef = useRef<HTMLDivElement>(null);
