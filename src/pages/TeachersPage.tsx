@@ -58,8 +58,9 @@ function autoInitials(name: string): string {
 
 export default function TeachersPage() {
   const { module } = useReportModule();
-  const section = module === "nursery" ? "nursery" : "primary";
-  const classesTable = module === "nursery" ? "nursery_classes" : "classes";
+  const isNursery = module === "nursery";
+  const section = isNursery ? "nursery" : "primary";
+  const classesTable = isNursery ? "nursery_classes" : "classes";
   const [loading, setLoading] = useState(true);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [classes, setClasses] = useState<ClassRow[]>([]);
@@ -138,10 +139,10 @@ export default function TeachersPage() {
     const fd = new FormData(e.currentTarget);
     const parsed = schema.safeParse({
       full_name: formName,
-      role: fd.get("role"),
-      initials: formInitials,
-      email: fd.get("email"),
-      phone: fd.get("phone"),
+      role: isNursery ? "class_teacher" : fd.get("role"),
+      initials: isNursery ? "" : formInitials,
+      email: isNursery ? "" : fd.get("email"),
+      phone: isNursery ? "" : fd.get("phone"),
     });
     if (!parsed.success) {
       toast({
@@ -153,9 +154,9 @@ export default function TeachersPage() {
     }
     const payload = {
       ...parsed.data,
-      initials: parsed.data.initials || autoInitials(parsed.data.full_name) || null,
-      email: parsed.data.email || null,
-      phone: parsed.data.phone || null,
+      initials: isNursery ? null : (parsed.data.initials || autoInitials(parsed.data.full_name) || null),
+      email: isNursery ? null : (parsed.data.email || null),
+      phone: isNursery ? null : (parsed.data.phone || null),
     };
     setSubmitting(true);
     let error;
