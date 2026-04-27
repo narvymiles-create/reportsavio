@@ -290,38 +290,44 @@ export default function TeachersPage() {
                 <Label htmlFor="full_name">Full name *</Label>
                 <Input id="full_name" name="full_name" value={formName} onChange={(e) => onNameChange(e.target.value)} required maxLength={150} placeholder="e.g. Mary Ann Smith" />
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label htmlFor="role">Role *</Label>
-                  <Select name="role" defaultValue={editing?.role ?? "subject_teacher"}>
-                    <SelectTrigger id="role"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="class_teacher">Class teacher</SelectItem>
-                      <SelectItem value="subject_teacher">Subject teacher</SelectItem>
-                      <SelectItem value="head_teacher">Head teacher</SelectItem>
-                    </SelectContent>
-                  </Select>
+              {!isNursery && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="role">Role *</Label>
+                    <Select name="role" defaultValue={editing?.role ?? "subject_teacher"}>
+                      <SelectTrigger id="role"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="class_teacher">Class teacher</SelectItem>
+                        <SelectItem value="subject_teacher">Subject teacher</SelectItem>
+                        <SelectItem value="head_teacher">Head teacher</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="initials">Initials (auto)</Label>
+                    <Input
+                      id="initials"
+                      name="initials"
+                      value={formInitials}
+                      onChange={(e) => { setFormInitials(e.target.value.toUpperCase()); setInitialsTouched(true); }}
+                      maxLength={20}
+                      placeholder="e.g. M.A.S"
+                    />
+                  </div>
                 </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="initials">Initials (auto)</Label>
-                  <Input
-                    id="initials"
-                    name="initials"
-                    value={formInitials}
-                    onChange={(e) => { setFormInitials(e.target.value.toUpperCase()); setInitialsTouched(true); }}
-                    maxLength={20}
-                    placeholder="e.g. M.A.S"
-                  />
-                </div>
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" name="email" type="email" defaultValue={editing?.email ?? ""} maxLength={200} />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="phone">Phone</Label>
-                <Input id="phone" name="phone" defaultValue={editing?.phone ?? ""} maxLength={50} />
-              </div>
+              )}
+              {!isNursery && (
+                <>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="email">Email</Label>
+                    <Input id="email" name="email" type="email" defaultValue={editing?.email ?? ""} maxLength={200} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="phone">Phone</Label>
+                    <Input id="phone" name="phone" defaultValue={editing?.phone ?? ""} maxLength={50} />
+                  </div>
+                </>
+              )}
               <DialogFooter>
                 <Button type="submit" disabled={submitting}>
                   {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
