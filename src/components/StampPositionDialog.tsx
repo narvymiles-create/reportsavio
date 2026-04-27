@@ -5,6 +5,7 @@ import { Slider } from "@/components/ui/slider";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Loader2, RotateCcw, Save, Move } from "lucide-react";
+import { ReportCardMiniPreview } from "@/components/ReportCardMiniPreview";
 
 export type StampSettings = {
   stamp_x: number;          // % of preview width (0-100), center of stamp
@@ -123,11 +124,8 @@ export function StampPositionPanel({ schoolId, stampUrl, initial, onSaved, after
         className="relative w-full bg-white border rounded-md select-none touch-none overflow-hidden"
         style={{ aspectRatio: "210 / 297" }}
       >
-        <div className="absolute inset-x-3 top-3 h-6 bg-muted rounded-sm flex items-center justify-center text-[10px] text-muted-foreground">SCHOOL HEADER</div>
-        <div className="absolute inset-x-3 top-12 h-4 bg-muted/70 rounded-sm flex items-center justify-center text-[9px] text-muted-foreground">Student Info</div>
-        <div className="absolute inset-x-3 top-[42%] h-5 bg-muted rounded-sm flex items-center justify-center text-[9px] text-muted-foreground">Performance Table</div>
-        <div className="absolute inset-x-3 top-[55%] h-5 bg-muted rounded-sm flex items-center justify-center text-[9px] text-muted-foreground">Comments / Signatures</div>
-        <div className="absolute inset-x-3 bottom-3 h-4 bg-muted/70 rounded-sm flex items-center justify-center text-[9px] text-muted-foreground">Footer</div>
+        {/* real report card preview as the background */}
+        <ReportCardMiniPreview />
 
         {stampUrl ? (
           <div
