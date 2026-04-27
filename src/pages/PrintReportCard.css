@@ -239,21 +239,22 @@ table.rc-phase-summary {
 }
 table.rc-phase-summary td {
   border: 1px solid #111;
-  padding: 4px 6px;
+  padding: 3px 4px;
   text-align: center;
   height: 20px;
-  white-space: nowrap;
+  white-space: normal;
   overflow: hidden;
-  text-overflow: ellipsis;
+  font-size: 9pt;
+  line-height: 1.15;
 }
-.rc-ps-label { font-weight: 700; white-space: nowrap; }
+.rc-ps-label { font-weight: 700; white-space: nowrap; font-size: 9pt; }
 .rc-ps-val {
   display: inline-block;
-  min-width: 30px;
-  padding: 0 4px;
+  min-width: 18px;
+  padding: 0 2px;
   text-align: center;
   white-space: nowrap;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 /* ---------- EOT TABLE ---------- */
