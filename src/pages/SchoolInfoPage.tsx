@@ -190,8 +190,8 @@ export default function SchoolInfoPage() {
     }
     setUploadingStamp(true);
     try {
-      // Strip white background → transparent PNG, auto-crop
-      const processed = await processSignatureFile(file, { whiteThreshold: 235 });
+      // Strip white background → transparent PNG, auto-crop. Preserves stamp color.
+      const processed = await processStampFile(file, { whiteThreshold: 230 });
       const path = `stamp-${info.id}.png`;
       const { error: upErr } = await supabase.storage
         .from("school-assets")
