@@ -201,6 +201,9 @@ export function WatermarkPanel({ schoolId, watermarkUrl, initial, onSaved, onUpl
           <Label htmlFor="wm-enable" className="text-sm">Enable watermark</Label>
         </div>
       </div>
+      <p className="text-xs text-amber-600 dark:text-amber-400">
+        ⚠ Please remove the background BEFORE uploading (use a transparent PNG). Your image is uploaded exactly as provided.
+      </p>
 
       {/* A4-ratio preview */}
       <div
