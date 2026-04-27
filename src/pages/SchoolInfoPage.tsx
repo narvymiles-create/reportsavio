@@ -10,7 +10,7 @@ import { toast } from "@/hooks/use-toast";
 import { Loader2, Upload, Image as ImageIcon, Stamp, Settings2, Droplet } from "lucide-react";
 import { StampPositionDialog, StampPositionPanel } from "@/components/StampPositionDialog";
 import { WatermarkPanel } from "@/components/WatermarkPanel";
-import { processSignatureFile } from "@/lib/signatureProcessing";
+import { processStampFile } from "@/lib/signatureProcessing";
 
 const schema = z.object({
   name: z.string().trim().min(1).max(200),
@@ -190,8 +190,8 @@ export default function SchoolInfoPage() {
     }
     setUploadingStamp(true);
     try {
-      // Strip white background → transparent PNG, auto-crop
-      const processed = await processSignatureFile(file, { whiteThreshold: 235 });
+      // Strip white background → transparent PNG, auto-crop. Preserves stamp color.
+      const processed = await processStampFile(file, { whiteThreshold: 230 });
       const path = `stamp-${info.id}.png`;
       const { error: upErr } = await supabase.storage
         .from("school-assets")

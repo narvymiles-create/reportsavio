@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Loader2, RotateCcw, Save, Upload, Droplet } from "lucide-react";
-import { processSignatureFile } from "@/lib/signatureProcessing";
+import { processStampFile } from "@/lib/signatureProcessing";
 
 export type WatermarkSettings = {
   watermark_enabled: boolean;
@@ -24,6 +24,18 @@ export const WATERMARK_DEFAULTS: WatermarkSettings = {
   watermark_scale: 1.0,
   watermark_opacity: 0.3,
   watermark_mode: "custom",
+};
+
+const POSITION_PRESETS: Record<string, { x: number; y: number; label: string }> = {
+  "top-left":      { x: 20, y: 20, label: "Top Left" },
+  "top-center":    { x: 50, y: 20, label: "Top Center" },
+  "top-right":     { x: 80, y: 20, label: "Top Right" },
+  "center-left":   { x: 20, y: 50, label: "Center Left" },
+  "center":        { x: 50, y: 50, label: "Center" },
+  "center-right":  { x: 80, y: 50, label: "Center Right" },
+  "bottom-left":   { x: 20, y: 80, label: "Bottom Left" },
+  "bottom-center": { x: 50, y: 80, label: "Bottom Center" },
+  "bottom-right":  { x: 80, y: 80, label: "Bottom Right" },
 };
 
 type Props = {
@@ -56,7 +68,7 @@ export function WatermarkPanel({ schoolId, watermarkUrl, initial, onSaved, onUpl
     }
     setUploading(true);
     try {
-      const processed = await processSignatureFile(file, { whiteThreshold: 235, maxSize: 1600 });
+      const processed = await processStampFile(file, { whiteThreshold: 230, maxSize: 1600 });
       const path = `watermark-${schoolId}.png`;
       const { error: upErr } = await supabase.storage
         .from("school-assets")
@@ -212,6 +224,40 @@ export function WatermarkPanel({ schoolId, watermarkUrl, initial, onSaved, onUpl
             Upload a watermark image to begin
           </div>
         )}
+      </div>
+
+      {/* Quick Position Presets */}
+      <div className="space-y-2">
+        <div className="text-xs font-medium">Quick Position Presets</div>
+        <div className="grid grid-cols-3 gap-2">
+          {Object.entries(POSITION_PRESETS).map(([k, p]) => {
+            const active =
+              s.watermark_mode === "custom" &&
+              Math.abs(s.watermark_x - p.x) < 0.5 &&
+              Math.abs(s.watermark_y - p.y) < 0.5;
+            return (
+              <Button
+                key={k}
+                type="button"
+                size="sm"
+                variant={active ? "default" : "outline"}
+                onClick={() =>
+                  setS(prev => ({
+                    ...prev,
+                    watermark_mode: "custom",
+                    watermark_x: p.x,
+                    watermark_y: p.y,
+                  }))
+                }
+              >
+                {p.label}
+              </Button>
+            );
+          })}
+        </div>
+        <p className="text-[11px] text-muted-foreground">
+          Tap a preset to snap. Switches to Custom mode automatically.
+        </p>
       </div>
 
       {/* Mode */}
