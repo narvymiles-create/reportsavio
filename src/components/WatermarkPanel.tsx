@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Loader2, RotateCcw, Save, Upload, Droplet } from "lucide-react";
-import { processStampFile } from "@/lib/signatureProcessing";
+import { ReportCardMiniPreview } from "@/components/ReportCardMiniPreview";
 
 export type WatermarkSettings = {
   watermark_enabled: boolean;
@@ -68,14 +68,15 @@ export function WatermarkPanel({ schoolId, watermarkUrl, initial, onSaved, onUpl
     }
     setUploading(true);
     try {
-      const processed = await processStampFile(file, { whiteThreshold: 230, maxSize: 1600 });
-      const path = `watermark-${schoolId}.png`;
+      // Upload watermark exactly as provided (no auto background removal).
+      const ext = (file.name.split(".").pop() || "png").toLowerCase();
+      const path = `watermark-${schoolId}.${ext}`;
       const { error: upErr } = await supabase.storage
         .from("school-assets")
-        .upload(path, processed, { upsert: true, contentType: "image/png" });
+        .upload(path, file, { upsert: true, contentType: file.type || "image/png" });
       if (upErr) throw upErr;
       await supabase.from("school_info" as any).update({ watermark_path: path }).eq("id", schoolId);
-      toast({ title: "Watermark uploaded", description: "Background removed automatically." });
+      toast({ title: "Watermark uploaded", description: "Your image is saved as-is." });
       onUploaded();
     } catch (err: any) {
       toast({ title: "Upload failed", description: err.message, variant: "destructive" });
