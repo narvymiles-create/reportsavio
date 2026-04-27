@@ -32,11 +32,11 @@ function SignatureCell({ path, onChange, kind }: { path: string | null; onChange
     return () => { cancelled = true; };
   }, [path]);
 
-  const persist = async (blob: Blob) => {
+  const persist = async (blob: Blob, ext = "png", contentType = "image/png") => {
     setBusy(true);
     try {
-      const newPath = `${kind}/${crypto.randomUUID()}.png`;
-      const { error } = await supabase.storage.from("signatures").upload(newPath, blob, { upsert: false, contentType: "image/png" });
+      const newPath = `${kind}/${crypto.randomUUID()}.${ext}`;
+      const { error } = await supabase.storage.from("signatures").upload(newPath, blob, { upsert: false, contentType });
       if (error) throw error;
       if (path) await supabase.storage.from("signatures").remove([path]);
       await onChange(newPath);
@@ -57,10 +57,13 @@ function SignatureCell({ path, onChange, kind }: { path: string | null; onChange
     }
     setBusy(true);
     try {
-      const processed = await processSignatureFile(file);
-      await persist(processed);
+      // Upload the signature AS-IS, preserving its original background.
+      // For best results users should remove the background before uploading (PNG with transparency).
+      const ext = (file.name.split(".").pop() || "png").toLowerCase();
+      const safeExt = ["png", "jpg", "jpeg", "webp"].includes(ext) ? ext : "png";
+      await persist(file, safeExt, file.type || "image/png");
     } catch (e: any) {
-      toast({ title: "Processing failed", description: e.message, variant: "destructive" });
+      toast({ title: "Upload failed", description: e.message, variant: "destructive" });
       setBusy(false);
     }
   };
@@ -192,7 +195,11 @@ export default function SignaturesPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold">{isNursery ? "Nursery Signatures" : "Signatures"}</h1>
-        <p className="text-muted-foreground">Upload an image OR draw directly. Backgrounds are removed and signatures auto-cropped & scaled for the report card.</p>
+        <p className="text-muted-foreground">Upload an image OR draw directly. Uploaded signatures are saved exactly as provided — their original background is preserved.</p>
+      </div>
+
+      <div className="rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 p-3 text-sm text-amber-900 dark:text-amber-200">
+        <strong>Reminder:</strong> Please remove the background from your signature image <em>before</em> uploading (use a transparent PNG). The signature will be placed on the report card with whatever background it has.
       </div>
 
       <Tabs defaultValue="head">
