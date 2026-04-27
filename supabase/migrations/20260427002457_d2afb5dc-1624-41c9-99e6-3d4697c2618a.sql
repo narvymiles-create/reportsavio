@@ -1,0 +1,1 @@
+ALTER TABLE public.nursery_classes ADD COLUMN IF NOT EXISTS class_signature_path text;

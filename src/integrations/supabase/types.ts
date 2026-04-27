@@ -370,6 +370,7 @@ export type Database = {
       }
       nursery_classes: {
         Row: {
+          class_signature_path: string | null
           class_teacher_id: string | null
           created_at: string
           id: string
@@ -379,6 +380,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          class_signature_path?: string | null
           class_teacher_id?: string | null
           created_at?: string
           id?: string
@@ -388,6 +390,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          class_signature_path?: string | null
           class_teacher_id?: string | null
           created_at?: string
           id?: string
