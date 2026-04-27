@@ -44,9 +44,12 @@ type Props = {
   initial: Partial<WatermarkSettings>;
   onSaved: (s: WatermarkSettings & { watermark_path?: string | null }) => void;
   onUploaded: () => void; // reload signed url
+  /** "stack" (default) renders preview above controls; "split" renders preview left, controls right. */
+  layout?: "stack" | "split";
 };
 
-export function WatermarkPanel({ schoolId, watermarkUrl, initial, onSaved, onUploaded }: Props) {
+export function WatermarkPanel({ schoolId, watermarkUrl, initial, onSaved, onUploaded, layout = "stack" }: Props) {
+  const isSplit = layout === "split";
   const [s, setS] = useState<WatermarkSettings>({ ...WATERMARK_DEFAULTS, ...initial });
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
