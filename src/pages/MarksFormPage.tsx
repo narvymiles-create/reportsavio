@@ -7,7 +7,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
 import { Loader2, Save, Printer, Download, Upload, FileSpreadsheet, FileText, FileDown } from "lucide-react";
-import { computeTotal, gradeFor, divisionFor, type GradeBand, type DivisionRule } from "@/lib/grading";
+import { calculateDivision, computeTotal, gradeFor, type GradeBand } from "@/lib/grading";
 import * as XLSX from "xlsx";
 import Papa from "papaparse";
 import jsPDF from "jspdf";
@@ -42,7 +42,6 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
   const [learners, setLearners] = useState<Learner[]>([]);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [bands, setBands] = useState<GradeBand[]>([]);
-  const [divRules, setDivRules] = useState<DivisionRule[]>([]);
   const [school, setSchool] = useState<{ name: string } | null>(null);
 
   const [termId, setTermId] = useState("");
@@ -59,13 +58,12 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
 
   useEffect(() => {
     (async () => {
-      const [t, c, s, te, gb, dr, si] = await Promise.all([
+      const [t, c, s, te, gb, si] = await Promise.all([
         supabase.from("terms").select("id,name,year,is_current").order("year", { ascending: false }).order("name"),
         supabase.from("classes").select("id,name").order("sort_order").order("name"),
         supabase.from("streams").select("id,class_id,name").order("name"),
         supabase.from("teachers").select("id,initials"),
         supabase.from("grading_scales").select("grade,points,min_mark,max_mark,remark").order("sort_order"),
-        supabase.from("division_rules").select("division,min_aggregate,max_aggregate").order("sort_order"),
         supabase.from("school_info").select("name").eq("is_active", true).maybeSingle(),
       ]);
       setTerms((t.data ?? []) as Term[]);
@@ -73,7 +71,6 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
       setStreams((s.data ?? []) as Stream[]);
       setTeachers((te.data ?? []) as Teacher[]);
       setBands((gb.data ?? []) as GradeBand[]);
-      setDivRules((dr.data ?? []) as DivisionRule[]);
       setSchool((si.data as any) ?? null);
       const current = (t.data ?? []).find((x: any) => x.is_current);
       if (current) setTermId(current.id);
@@ -164,12 +161,12 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
       out.set(l.id, {
         total, ave,
         agg: canAgg ? agg : 0,
-        div: canAgg ? divisionFor(agg, divRules) : "—",
+        div: canAgg ? calculateDivision(agg) : "—",
         subjectGrades,
       });
     }
     return out;
-  }, [filteredLearners, subjects, marks, bands, divRules, exam, coreCountValid]);
+  }, [filteredLearners, subjects, marks, bands, exam, coreCountValid]);
 
   // Position ranking by total desc (ties share)
   const positions = useMemo(() => {
