@@ -180,9 +180,8 @@ export function WatermarkPanel({ schoolId, watermarkUrl, initial, onSaved, onUpl
     );
   };
 
-  return (
-    <div className="space-y-4">
-      {/* Upload */}
+  const uploadBlock = (
+    <>
       <div className="flex items-center gap-3 flex-wrap">
         <input
           ref={fileRef}
@@ -207,28 +206,31 @@ export function WatermarkPanel({ schoolId, watermarkUrl, initial, onSaved, onUpl
       <p className="text-xs text-amber-600 dark:text-amber-400">
         ⚠ Please remove the background BEFORE uploading (use a transparent PNG). Your image is uploaded exactly as provided.
       </p>
+    </>
+  );
 
-      {/* A4-ratio preview */}
-      <div
-        ref={previewRef}
-        className="relative w-full bg-white border rounded-md select-none touch-none overflow-hidden"
-        style={{ aspectRatio: "210 / 297" }}
-      >
-        {/* watermark layer (behind) */}
-        <div className="absolute inset-0" style={{ zIndex: 0 }}>
-          {renderWatermark()}
-        </div>
-        {/* real report card preview layer (above watermark) */}
-        <div className="absolute inset-0" style={{ zIndex: 2 }}>
-          <ReportCardMiniPreview />
-        </div>
-        {!watermarkUrl && (
-          <div className="absolute inset-0 flex items-center justify-center text-xs text-muted-foreground bg-background/40 z-10">
-            Upload a watermark image to begin
-          </div>
-        )}
+  const previewBlock = (
+    <div
+      ref={previewRef}
+      className="relative w-full bg-white border rounded-md select-none touch-none overflow-hidden"
+      style={{ aspectRatio: "210 / 297" }}
+    >
+      <div className="absolute inset-0" style={{ zIndex: 0 }}>
+        {renderWatermark()}
       </div>
+      <div className="absolute inset-0" style={{ zIndex: 2 }}>
+        <ReportCardMiniPreview />
+      </div>
+      {!watermarkUrl && (
+        <div className="absolute inset-0 flex items-center justify-center text-xs text-muted-foreground bg-background/40 z-10">
+          Upload a watermark image to begin
+        </div>
+      )}
+    </div>
+  );
 
+  const controlsBlock = (
+    <div className="space-y-4">
       {/* Quick Position Presets */}
       <div className="space-y-2">
         <div className="text-xs font-medium">Quick Position Presets</div>
@@ -323,4 +325,25 @@ export function WatermarkPanel({ schoolId, watermarkUrl, initial, onSaved, onUpl
       </div>
     </div>
   );
+
+  if (isSplit) {
+    return (
+      <div className="space-y-4">
+        {uploadBlock}
+        <div className="grid grid-cols-1 md:grid-cols-[minmax(200px,260px)_1fr] gap-6 items-start">
+          {previewBlock}
+          {controlsBlock}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {uploadBlock}
+      {previewBlock}
+      {controlsBlock}
+    </div>
+  );
 }
+
