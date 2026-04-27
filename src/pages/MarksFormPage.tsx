@@ -307,8 +307,8 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
         calc && calc.total > 0 ? calc.total : "",
         calc && calc.total > 0 ? calc.ave : "",
         pos > 0 ? pos : "",
-        calc && calc.total > 0 ? calc.agg : "",
-        calc && calc.total > 0 ? calc.div : "",
+        calc && calc.agg > 0 ? calc.agg : "",
+        calc && calc.div ? calc.div : "",
       ];
     });
     return { headers, rows };
