@@ -8,8 +8,15 @@ import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
-import { Loader2, Pencil, Plus, Trash2 } from "lucide-react";
-import { DEFAULT_LEARNER_FIELDS, type LearnerFieldFlags } from "@/hooks/useLearnerFieldSettings";
+import { Loader2, Pencil, Plus, Trash2, ArrowUp, ArrowDown, ListOrdered } from "lucide-react";
+import {
+  DEFAULT_LEARNER_FIELDS,
+  DEFAULT_LEARNER_INFO_ORDER,
+  LEARNER_INFO_LABELS,
+  normalizeOrder,
+  type LearnerFieldFlags,
+  type LearnerInfoFieldKey,
+} from "@/hooks/useLearnerFieldSettings";
 
 type House = { id: string; name: string; color: string | null; sort_order: number };
 
@@ -24,6 +31,9 @@ export default function SettingsPage() {
   const [loadingFlags, setLoadingFlags] = useState(true);
   const [savingFlags, setSavingFlags] = useState(false);
 
+  const [order, setOrder] = useState<LearnerInfoFieldKey[]>(DEFAULT_LEARNER_INFO_ORDER);
+  const [savingOrder, setSavingOrder] = useState(false);
+
   const loadHouses = async () => {
     setLoadingHouses(true);
     const { data } = await supabase.from("houses" as any).select("*").order("sort_order").order("name");
@@ -32,16 +42,39 @@ export default function SettingsPage() {
   };
   const loadFlags = async () => {
     setLoadingFlags(true);
-    const { data } = await supabase
-      .from("system_settings" as any)
-      .select("value")
-      .eq("key", "learner_fields")
-      .maybeSingle();
-    if (data && (data as any).value) {
-      setFlags({ ...DEFAULT_LEARNER_FIELDS, ...((data as any).value as Partial<LearnerFieldFlags>) });
+    const [{ data: f }, { data: o }] = await Promise.all([
+      supabase.from("system_settings" as any).select("value").eq("key", "learner_fields").maybeSingle(),
+      supabase.from("system_settings" as any).select("value").eq("key", "learner_info_order").maybeSingle(),
+    ]);
+    if (f && (f as any).value) {
+      setFlags({ ...DEFAULT_LEARNER_FIELDS, ...((f as any).value as Partial<LearnerFieldFlags>) });
+    }
+    if (o && Array.isArray((o as any).value)) {
+      setOrder(normalizeOrder((o as any).value as LearnerInfoFieldKey[]));
     }
     setLoadingFlags(false);
   };
+
+  const saveOrder = async (next: LearnerInfoFieldKey[]) => {
+    setOrder(next);
+    setSavingOrder(true);
+    // upsert in case the row doesn't exist yet
+    const { error } = await supabase
+      .from("system_settings" as any)
+      .upsert({ key: "learner_info_order", value: next as any }, { onConflict: "key" });
+    setSavingOrder(false);
+    if (error) toast({ title: "Save failed", description: error.message, variant: "destructive" });
+  };
+
+  const moveItem = (index: number, dir: -1 | 1) => {
+    const next = [...order];
+    const j = index + dir;
+    if (j < 0 || j >= next.length) return;
+    [next[index], next[j]] = [next[j], next[index]];
+    saveOrder(next);
+  };
+
+  const resetOrder = () => saveOrder(DEFAULT_LEARNER_INFO_ORDER);
 
   useEffect(() => { loadHouses(); loadFlags(); }, []);
 
