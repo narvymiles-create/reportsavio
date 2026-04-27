@@ -223,8 +223,10 @@ export function NurseryReportSheet({ learnerId, termId, onReady, pageBreak }: Pr
             <div className="nrc-comment-body nrc-write">{report.class_teacher_comment}</div>
             <div className="nrc-sign">
               <span>Sign:</span>
-              {classSigUrl && <img src={classSigUrl} alt="sig" className="nrc-sig-img" />}
-              <span className="nrc-sig-line" />
+              <span className="nrc-sig-stack">
+                {classSigUrl && <img src={classSigUrl} alt="sig" className="nrc-sig-img" />}
+                <span className="nrc-sig-line" />
+              </span>
               <span className="nrc-sig-name">{classTeacher?.full_name?.toUpperCase() ?? ""}</span>
             </div>
           </div>
