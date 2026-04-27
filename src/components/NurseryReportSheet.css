@@ -216,7 +216,9 @@
   flex: 1;
   font-size: 11pt;
   line-height: 6mm;
-  background-image: linear-gradient(transparent calc(6mm - 1px), #cbd5e1 1px);
+  background-image: linear-gradient(to right, #475569 0 2px, transparent 2px 4px);
+  background-repeat: repeat-x;
+  background-position: left calc(6mm - 1px);
   background-size: 100% 6mm;
   margin: 1mm 0;
   border: none;
