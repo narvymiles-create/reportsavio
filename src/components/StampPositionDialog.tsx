@@ -120,45 +120,42 @@ export function StampPositionPanel({ schoolId, stampUrl, initial, onSaved, after
 
   const isSplit = layout === "split";
 
-  return (
-    <div className={isSplit ? "grid grid-cols-1 md:grid-cols-[minmax(180px,260px)_1fr] gap-6 items-start" : "space-y-4"}>
-      <div className={isSplit ? "space-y-2" : "space-y-4 contents"}>
-      {/* wrapper open for stack mode is just space-y-4 above; split mode wraps preview only */}
-      {/* A4-ratio preview */}
-      <div
-        ref={previewRef}
-        className="relative w-full bg-white border rounded-md select-none touch-none overflow-hidden"
-        style={{ aspectRatio: "210 / 297" }}
-      >
-        {/* real report card preview as the background */}
-        <ReportCardMiniPreview />
+  const previewBlock = (
+    <div
+      ref={previewRef}
+      className="relative w-full bg-white border rounded-md select-none touch-none overflow-hidden"
+      style={{ aspectRatio: "210 / 297" }}
+    >
+      <ReportCardMiniPreview />
+      {stampUrl ? (
+        <div
+          role="button"
+          aria-label="Drag stamp"
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          className="absolute cursor-grab active:cursor-grabbing"
+          style={{
+            left: `${s.stamp_x}%`,
+            top: `${s.stamp_y}%`,
+            width: stampPx,
+            height: stampPx,
+            transform: "translate(-50%, -50%)",
+            opacity: s.stamp_opacity,
+          }}
+        >
+          <img src={stampUrl} alt="stamp" className="w-full h-full object-contain pointer-events-none" draggable={false} />
+        </div>
+      ) : (
+        <div className="absolute inset-0 flex items-center justify-center text-xs text-muted-foreground">
+          Upload a stamp first
+        </div>
+      )}
+    </div>
+  );
 
-        {stampUrl ? (
-          <div
-            role="button"
-            aria-label="Drag stamp"
-            onPointerDown={onPointerDown}
-            onPointerMove={onPointerMove}
-            onPointerUp={onPointerUp}
-            className="absolute cursor-grab active:cursor-grabbing"
-            style={{
-              left: `${s.stamp_x}%`,
-              top: `${s.stamp_y}%`,
-              width: stampPx,
-              height: stampPx,
-              transform: "translate(-50%, -50%)",
-              opacity: s.stamp_opacity,
-            }}
-          >
-            <img src={stampUrl} alt="stamp" className="w-full h-full object-contain pointer-events-none" draggable={false} />
-          </div>
-        ) : (
-          <div className="absolute inset-0 flex items-center justify-center text-xs text-muted-foreground">
-            Upload a stamp first
-          </div>
-        )}
-      </div>
-
+  const controlsBlock = (
+    <div className="space-y-4">
       {/* Presets */}
       <div className="space-y-2">
         <div className="text-xs font-medium">Quick Position Presets</div>
@@ -238,6 +235,22 @@ export function StampPositionPanel({ schoolId, stampUrl, initial, onSaved, after
           Save Position for All Reports
         </Button>
       </div>
+    </div>
+  );
+
+  if (isSplit) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-[minmax(200px,260px)_1fr] gap-6 items-start">
+        {previewBlock}
+        {controlsBlock}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {previewBlock}
+      {controlsBlock}
     </div>
   );
 }
