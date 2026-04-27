@@ -283,11 +283,11 @@ export default function SubjectsPage() {
                 </div>
                 {(() => {
                   const cls = classes.find(c => c.id === formClassId);
-                  if (!cls?.level) return null;
-                  const used = coreCountForLevel(cls.level, editing?.id);
+                  if (!cls) return null;
+                  const used = coreCountForClass(formClassId, editing?.id);
                   return (
                     <p className="text-xs text-muted-foreground">
-                      Core subjects used in {cls.level} level: <span className="font-medium">{used}/4</span>
+                      Core subjects used in {cls.name}: <span className="font-medium">{used}/4</span>
                     </p>
                   );
                 })()}
