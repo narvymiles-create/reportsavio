@@ -250,14 +250,27 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
     `MID-TERM data ${midHas ? "loaded" : "MISSING"} | ` +
     `END-TERM data ${eotHas ? "loaded" : "MISSING"}`
   );
+  // Check if any core subject is missing marks for this phase
+  const missingCoreCount = (phase: "bot" | "mid" | "eot") => {
+    let missing = 0;
+    coreSubjectIds.forEach((id) => {
+      const m = marksBySubject.get(id as string);
+      const v = m?.[phase];
+      if (v == null || v === "" || isNaN(Number(v))) missing += 1;
+    });
+    return missing;
+  };
+
   const phaseInfo = (phase: "bot" | "mid" | "eot", aggregate: number, hasData: boolean) => {
     const lp = livePhase[phase];
     const position = lp.positionMap.get(learnerId) ?? null;
     const classSize = classLearnerCount || 0;
-    // Only compute division when this phase actually has marks AND core subjects valid
-    const division = (hasData && coreCountValid)
-      ? calculateDivision(aggregate)
-      : "";
+    let division = "";
+    if (hasData && coreCountValid) {
+      const missing = missingCoreCount(phase);
+      // RULE: missing core subjects → Division = "X" (overrides aggregate-based division)
+      division = missing > 0 ? "X" : calculateDivision(aggregate);
+    }
     return { position, classSize, division };
   };
   const botInfo = phaseInfo("bot", botSum.aggregate, botHas);
@@ -269,9 +282,7 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
 
   // Debug logging — verify per-exam computation
   // eslint-disable-next-line no-console
-  console.log(`[ReportCard ${learnerId}] BOT agg=${botSum.aggregate} div=${botInfo.division} | MID agg=${midSum.aggregate} div=${midInfo.division} | EOT agg=${eotAggregate} div=${eotInfo.division} | coreCountValid=${coreCountValid}`);
-  // eslint-disable-next-line no-console
-  console.log(`[ReportCard ${learnerId}] BOT AGG: ${botSum.aggregate} DIVISION: ${botInfo.division} | MID AGG: ${midSum.aggregate} DIVISION: ${midInfo.division} | EOT AGG: ${eotAggregate} DIVISION: ${eotInfo.division}`);
+  console.log(`[ReportCard ${learnerId}] BOT AGG: ${botSum.aggregate} DIVISION: ${botInfo.division} | MID AGG: ${midSum.aggregate} DIVISION: ${midInfo.division} | EOT AGG: ${eotAggregate} DIVISION: ${eotInfo.division} | missingCoreEOT=${missingCoreCount("eot")}`);
 
   const codeFor = (name: string): string => {
     const n = name.toUpperCase();
@@ -327,7 +338,9 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
           <tr>
             <td><span className="rc-ps-label">TOTAL MARKS:</span> <span className="rc-ps-val">{sum.total || ""}</span></td>
             <td><span className="rc-ps-label">AVERAGE:</span> <span className="rc-ps-val">{sum.avg || ""}</span></td>
-            <td><span className="rc-ps-label">POSITION:</span> <span className="rc-ps-val">{info.position && info.classSize ? `${info.position}/${info.classSize}` : ""}</span></td>
+            {flags.show_position && (
+              <td><span className="rc-ps-label">POSITION:</span> <span className="rc-ps-val">{info.position && info.classSize ? `${info.position}/${info.classSize}` : ""}</span></td>
+            )}
             <td><span className="rc-ps-label">AGGREGATES:</span> <span className="rc-ps-val">{coreCountValid && hasData ? sum.aggregate : ""}</span></td>
             <td><span className="rc-ps-label">DIVISION:</span> <span className="rc-ps-val">{info.division}</span></td>
           </tr>
@@ -497,7 +510,9 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
           <tr>
             <td><span className="rc-ps-label">TOTAL MARKS:</span> <span className="rc-ps-val">{eotTotal || ""}</span></td>
             <td><span className="rc-ps-label">AVERAGE:</span> <span className="rc-ps-val">{eotAvg || ""}</span></td>
-            <td><span className="rc-ps-label">POSITION:</span> <span className="rc-ps-val">{livePosition && liveClassSize ? `${livePosition}/${liveClassSize}` : ""}</span></td>
+            {flags.show_position && (
+              <td><span className="rc-ps-label">POSITION:</span> <span className="rc-ps-val">{livePosition && liveClassSize ? `${livePosition}/${liveClassSize}` : ""}</span></td>
+            )}
             <td><span className="rc-ps-label">AGGREGATES:</span> <span className="rc-ps-val">{coreCountValid && eotHas ? eotAggregate : ""}</span></td>
             <td><span className="rc-ps-label">DIVISION:</span> <span className="rc-ps-val">{liveDivision}</span></td>
           </tr>

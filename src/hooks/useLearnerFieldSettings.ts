@@ -6,6 +6,7 @@ export type LearnerFieldFlags = {
   house: boolean;
   section: boolean;
   pay_code: boolean;
+  show_position: boolean;
 };
 
 export const DEFAULT_LEARNER_FIELDS: LearnerFieldFlags = {
@@ -13,6 +14,7 @@ export const DEFAULT_LEARNER_FIELDS: LearnerFieldFlags = {
   house: true,
   section: true,
   pay_code: true,
+  show_position: true,
 };
 
 export function useLearnerFieldSettings() {
@@ -32,7 +34,24 @@ export function useLearnerFieldSettings() {
       }
       if (active) setLoading(false);
     })();
-    return () => { active = false; };
+
+    // Realtime: pick up changes from Settings page instantly
+    const ch = supabase
+      .channel("learner-field-settings")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "system_settings", filter: "key=eq.learner_fields" },
+        (payload: any) => {
+          const v = payload?.new?.value;
+          if (v) setFlags({ ...DEFAULT_LEARNER_FIELDS, ...(v as Partial<LearnerFieldFlags>) });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      active = false;
+      supabase.removeChannel(ch);
+    };
   }, []);
 
   return { flags, loading };
