@@ -282,18 +282,6 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
     return name.slice(0, 4).toUpperCase();
   };
 
-  const toDivisionFigure = (d: string | null | undefined): string => {
-    if (d == null || d === "") return "";
-    const s = String(d);
-    const arabic = s.match(/\d+/);
-    if (arabic) return arabic[0];
-    const romanMap: Record<string, string> = { I: "1", II: "2", III: "3", IV: "4", V: "5", U: "U", X: "U" };
-    const upper = s.toUpperCase().replace(/[^A-Z]/g, "");
-    const tokens = upper.match(/IV|III|II|I|V|U|X/g);
-    if (tokens && tokens[0] && romanMap[tokens[0]]) return romanMap[tokens[0]];
-    return s;
-  };
-
   const renderPhaseTable = (
     label: string,
     phase: "bot" | "mid",
@@ -339,26 +327,13 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
             <td><span className="rc-ps-label">AVERAGE:</span> <span className="rc-ps-val">{sum.avg || ""}</span></td>
             <td><span className="rc-ps-label">POSITION:</span> <span className="rc-ps-val">{info.position && info.classSize ? `${info.position}/${info.classSize}` : ""}</span></td>
             <td><span className="rc-ps-label">AGGREGATES:</span> <span className="rc-ps-val">{coreCountValid && hasData ? sum.aggregate : ""}</span></td>
-            <td><span className="rc-ps-label">DIVISION:</span> <span className="rc-ps-val">{toDivisionFigure(info.division)}</span></td>
+            <td><span className="rc-ps-label">DIVISION:</span> <span className="rc-ps-val">{info.division}</span></td>
           </tr>
         </tbody>
       </table>
     </div>
     );
   };
-  const divisionFigure = (() => {
-    const d = liveDivision;
-    if (d == null || d === "") return "";
-    const s = String(d);
-    const arabic = s.match(/\d+/);
-    if (arabic) return arabic[0];
-    const romanMap: Record<string, string> = { I: "1", II: "2", III: "3", IV: "4", V: "5", U: "U", X: "U" };
-    const upper = s.toUpperCase().replace(/[^A-Z]/g, "");
-    const tokens = upper.match(/IV|III|II|I|V|U|X/g);
-    if (tokens && tokens[0] && romanMap[tokens[0]]) return romanMap[tokens[0]];
-    return s;
-  })();
-
   const wmEnabled = !!school?.watermark_enabled && !!watermarkUrl;
   const wmMode = (school?.watermark_mode as string) || "custom";
   const wmOpacity = school?.watermark_opacity ?? 0.3;
