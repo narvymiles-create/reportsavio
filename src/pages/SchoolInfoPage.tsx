@@ -189,15 +189,16 @@ export default function SchoolInfoPage() {
     }
     setUploadingStamp(true);
     try {
-      // Strip white background → transparent PNG, auto-crop. Preserves stamp color.
-      const processed = await processStampFile(file, { whiteThreshold: 230 });
-      const path = `stamp-${info.id}.png`;
+      // Upload the stamp EXACTLY as provided — no background removal,
+      // no re-encoding. Preserves whatever transparency the user prepared.
+      const ext = (file.name.split(".").pop() || "png").toLowerCase();
+      const path = `stamp-${info.id}.${ext}`;
       const { error: upErr } = await supabase.storage
         .from("school-assets")
-        .upload(path, processed, { upsert: true, contentType: "image/png" });
+        .upload(path, file, { upsert: true, contentType: file.type || "image/png" });
       if (upErr) throw upErr;
       await supabase.from("school_info" as any).update({ stamp_path: path }).eq("id", info.id);
-      toast({ title: "Stamp uploaded", description: "Background removed automatically." });
+      toast({ title: "Stamp uploaded", description: "Your stamp is saved as-is." });
       load();
     } catch (err: any) {
       toast({ title: "Upload failed", description: err.message, variant: "destructive" });
