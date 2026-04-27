@@ -128,15 +128,12 @@ export default function SubjectsPage() {
       return;
     }
 
-    // Client-side core limit check
+    // Client-side core limit check (per class)
     if (parsed.data.is_core) {
-      const cls = classes.find(c => c.id === parsed.data.class_id);
-      if (cls?.level) {
-        const count = coreCountForLevel(cls.level, editing?.id);
-        if (count >= 4) {
-          toast({ title: "Limit reached", description: "Only 4 core subjects are allowed per level", variant: "destructive" });
-          return;
-        }
+      const count = coreCountForClass(parsed.data.class_id, editing?.id);
+      if (count >= 4) {
+        toast({ title: "Limit reached", description: "Only 4 core subjects allowed for this class", variant: "destructive" });
+        return;
       }
     }
 
