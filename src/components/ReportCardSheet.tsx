@@ -253,19 +253,26 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
     `MID-TERM data ${midHas ? "loaded" : "MISSING"} | ` +
     `END-TERM data ${eotHas ? "loaded" : "MISSING"}`
   );
-  const phaseInfo = (phase: "bot" | "mid" | "eot", aggregate: number) => {
+  const phaseInfo = (phase: "bot" | "mid" | "eot", aggregate: number, hasData: boolean) => {
     const lp = livePhase[phase];
     const position = lp.positionMap.get(learnerId) ?? null;
     const classSize = classLearnerCount || 0;
-    const division = (aggregate > 0 && divRules.length) ? divisionFor(aggregate, divRules) : "";
+    // Only compute division when this phase actually has marks AND core subjects valid
+    const division = (hasData && coreCountValid && divRules.length)
+      ? divisionFor(aggregate, divRules)
+      : "";
     return { position, classSize, division };
   };
-  const botInfo = phaseInfo("bot", botSum.aggregate);
-  const midInfo = phaseInfo("mid", midSum.aggregate);
-  const eotInfo = phaseInfo("eot", eotAggregate);
+  const botInfo = phaseInfo("bot", botSum.aggregate, botHas);
+  const midInfo = phaseInfo("mid", midSum.aggregate, midHas);
+  const eotInfo = phaseInfo("eot", eotAggregate, eotHas);
   const livePosition = eotInfo.position;
   const liveClassSize = eotInfo.classSize;
   const liveDivision = eotInfo.division;
+
+  // Debug logging — verify per-exam computation
+  // eslint-disable-next-line no-console
+  console.log(`[ReportCard ${learnerId}] BOT agg=${botSum.aggregate} div=${botInfo.division} | MID agg=${midSum.aggregate} div=${midInfo.division} | EOT agg=${eotAggregate} div=${eotInfo.division} | coreCountValid=${coreCountValid}`);
 
   const codeFor = (name: string): string => {
     const n = name.toUpperCase();
