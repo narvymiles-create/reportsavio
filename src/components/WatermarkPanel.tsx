@@ -226,6 +226,40 @@ export function WatermarkPanel({ schoolId, watermarkUrl, initial, onSaved, onUpl
         )}
       </div>
 
+      {/* Quick Position Presets */}
+      <div className="space-y-2">
+        <div className="text-xs font-medium">Quick Position Presets</div>
+        <div className="grid grid-cols-3 gap-2">
+          {Object.entries(POSITION_PRESETS).map(([k, p]) => {
+            const active =
+              s.watermark_mode === "custom" &&
+              Math.abs(s.watermark_x - p.x) < 0.5 &&
+              Math.abs(s.watermark_y - p.y) < 0.5;
+            return (
+              <Button
+                key={k}
+                type="button"
+                size="sm"
+                variant={active ? "default" : "outline"}
+                onClick={() =>
+                  setS(prev => ({
+                    ...prev,
+                    watermark_mode: "custom",
+                    watermark_x: p.x,
+                    watermark_y: p.y,
+                  }))
+                }
+              >
+                {p.label}
+              </Button>
+            );
+          })}
+        </div>
+        <p className="text-[11px] text-muted-foreground">
+          Tap a preset to snap. Switches to Custom mode automatically.
+        </p>
+      </div>
+
       {/* Mode */}
       <div className="space-y-2">
         <div className="text-xs font-medium">Coverage Mode</div>
