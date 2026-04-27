@@ -138,6 +138,7 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
     for (const l of filteredLearners) {
       const subjectGrades: Record<string, string | null> = {};
       let total = 0; let count = 0; let agg = 0; let coreEntered = 0; let coreMissing = 0;
+      let hasF9InEngOrMath = false;
       for (const s of subjects) {
         const m = marks[`${l.id}|${s.id}`];
         const v = m?.[exam] ?? null;
@@ -151,6 +152,10 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
           } else {
             subjectGrades[s.id] = null;
           }
+          // F9-in-ENG/MTC override detection
+          if (band?.grade === "F9" && isCriticalCoreSubject(s.name)) {
+            hasF9InEngOrMath = true;
+          }
         } else {
           if (s.is_core) coreMissing += 1;
           subjectGrades[s.id] = null;
@@ -161,11 +166,12 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
       // - If config invalid (≠4 core subjects) → blank
       // - If at least one core has marks but some core is missing → "X"
       // - If all 4 core subjects have marks → calculateDivision(agg)
-      // - If no core subjects entered at all → blank
+      // - F9 in ENG or MTC → push division ONE level worse (skipped for X/U)
       let div = "";
       if (coreCountValid) {
         if (coreEntered === 4) div = calculateDivision(agg);
         else if (coreEntered > 0 && coreMissing > 0) div = "X";
+        div = applyF9Override(div, hasF9InEngOrMath);
       }
       out.set(l.id, {
         total, ave,
