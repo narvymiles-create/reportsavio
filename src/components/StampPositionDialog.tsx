@@ -42,10 +42,12 @@ type CoreProps = {
   onSaved: (s: StampSettings) => void;
   /** Optional: called after save (e.g. close the dialog wrapper). */
   afterSave?: () => void;
+  /** "stack" (default) renders preview above controls; "split" renders preview left, controls right (no scroll). */
+  layout?: "stack" | "split";
 };
 
 /** The stamp settings UI body, can be embedded inline on a page or inside a dialog. */
-export function StampPositionPanel({ schoolId, stampUrl, initial, onSaved, afterSave }: CoreProps) {
+export function StampPositionPanel({ schoolId, stampUrl, initial, onSaved, afterSave, layout = "stack" }: CoreProps) {
   const [s, setS] = useState<StampSettings>({ ...DEFAULTS, ...initial });
   const [saving, setSaving] = useState(false);
   const previewRef = useRef<HTMLDivElement>(null);
@@ -116,43 +118,44 @@ export function StampPositionPanel({ schoolId, stampUrl, initial, onSaved, after
 
   const stampPx = 90 * s.stamp_size;
 
-  return (
+  const isSplit = layout === "split";
+
+  const previewBlock = (
+    <div
+      ref={previewRef}
+      className="relative w-full bg-white border rounded-md select-none touch-none overflow-hidden"
+      style={{ aspectRatio: "210 / 297" }}
+    >
+      <ReportCardMiniPreview />
+      {stampUrl ? (
+        <div
+          role="button"
+          aria-label="Drag stamp"
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          className="absolute cursor-grab active:cursor-grabbing"
+          style={{
+            left: `${s.stamp_x}%`,
+            top: `${s.stamp_y}%`,
+            width: stampPx,
+            height: stampPx,
+            transform: "translate(-50%, -50%)",
+            opacity: s.stamp_opacity,
+          }}
+        >
+          <img src={stampUrl} alt="stamp" className="w-full h-full object-contain pointer-events-none" draggable={false} />
+        </div>
+      ) : (
+        <div className="absolute inset-0 flex items-center justify-center text-xs text-muted-foreground">
+          Upload a stamp first
+        </div>
+      )}
+    </div>
+  );
+
+  const controlsBlock = (
     <div className="space-y-4">
-      {/* A4-ratio preview */}
-      <div
-        ref={previewRef}
-        className="relative w-full bg-white border rounded-md select-none touch-none overflow-hidden"
-        style={{ aspectRatio: "210 / 297" }}
-      >
-        {/* real report card preview as the background */}
-        <ReportCardMiniPreview />
-
-        {stampUrl ? (
-          <div
-            role="button"
-            aria-label="Drag stamp"
-            onPointerDown={onPointerDown}
-            onPointerMove={onPointerMove}
-            onPointerUp={onPointerUp}
-            className="absolute cursor-grab active:cursor-grabbing"
-            style={{
-              left: `${s.stamp_x}%`,
-              top: `${s.stamp_y}%`,
-              width: stampPx,
-              height: stampPx,
-              transform: "translate(-50%, -50%)",
-              opacity: s.stamp_opacity,
-            }}
-          >
-            <img src={stampUrl} alt="stamp" className="w-full h-full object-contain pointer-events-none" draggable={false} />
-          </div>
-        ) : (
-          <div className="absolute inset-0 flex items-center justify-center text-xs text-muted-foreground">
-            Upload a stamp first
-          </div>
-        )}
-      </div>
-
       {/* Presets */}
       <div className="space-y-2">
         <div className="text-xs font-medium">Quick Position Presets</div>
@@ -232,6 +235,22 @@ export function StampPositionPanel({ schoolId, stampUrl, initial, onSaved, after
           Save Position for All Reports
         </Button>
       </div>
+    </div>
+  );
+
+  if (isSplit) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-[minmax(200px,260px)_1fr] gap-6 items-start">
+        {previewBlock}
+        {controlsBlock}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {previewBlock}
+      {controlsBlock}
     </div>
   );
 }
