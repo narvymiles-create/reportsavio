@@ -240,6 +240,50 @@ export default function SettingsPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* SECTION C: LEARNER INFO LABEL ORDER */}
+      <Card>
+        <CardHeader className="flex flex-row items-start justify-between gap-2">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <ListOrdered className="h-4 w-4" /> Learner Info Order on Report Card
+            </CardTitle>
+            <CardDescription>
+              Drag-style ordering: use the arrows to set the order of labels (Name, Class, House, etc.) shown on the report card. Changes apply to all reports in real time.
+            </CardDescription>
+          </div>
+          <Button size="sm" variant="outline" onClick={resetOrder} disabled={savingOrder}>
+            Reset to default
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {loadingFlags ? (
+            <div className="flex justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>
+          ) : (
+            <div className="divide-y border rounded-md">
+              {order.map((k, i) => (
+                <div key={k} className="flex items-center justify-between gap-3 px-3 py-2">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs font-mono w-6 text-center bg-muted rounded px-1 py-0.5">{i + 1}</span>
+                    <span className="font-medium">{LEARNER_INFO_LABELS[k]}</span>
+                  </div>
+                  <div className="flex gap-1">
+                    <Button size="icon" variant="ghost" disabled={i === 0 || savingOrder} onClick={() => moveItem(i, -1)} aria-label="Move up">
+                      <ArrowUp className="h-4 w-4" />
+                    </Button>
+                    <Button size="icon" variant="ghost" disabled={i === order.length - 1 || savingOrder} onClick={() => moveItem(i, 1)} aria-label="Move down">
+                      <ArrowDown className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          <p className="text-xs text-muted-foreground mt-2">
+            Note: Hidden fields (toggled off above) will be skipped automatically. The chosen order fills the report card grid left-to-right, top-to-bottom.
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 }
