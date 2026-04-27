@@ -142,21 +142,20 @@ export function NurseryReportSheet({ learnerId, termId, onReady, pageBreak }: Pr
 
   return (
     <div className="nrc-page" style={{ ...rowHeightStyle, ...(pageBreak ? { pageBreakAfter: "always" } : {}) }}>
-      {watermarkUrl && (school?.watermark_enabled !== false) && (
-        <img
-          src={watermarkUrl}
-          alt=""
-          className="nrc-watermark"
-          style={{
-            left: `${school?.watermark_x ?? 50}%`,
-            top: `${school?.watermark_y ?? 50}%`,
-            opacity: school?.watermark_opacity ?? 0.15,
-            transform: `translate(-50%,-50%) scale(${school?.watermark_scale ?? 1})`,
-          }}
-        />
-      )}
-
       <div className="nrc-frame">
+        {watermarkUrl && (school?.watermark_enabled !== false) && (
+          <img
+            src={watermarkUrl}
+            alt=""
+            className="nrc-watermark"
+            style={{
+              left: `${school?.watermark_x ?? 50}%`,
+              top: `${school?.watermark_y ?? 50}%`,
+              opacity: school?.watermark_opacity ?? 0.15,
+              transform: `translate(-50%,-50%) scale(${school?.watermark_scale ?? 1})`,
+            }}
+          />
+        )}
         {/* Header */}
         <div className="nrc-header">
           <div className="nrc-logo-box">
