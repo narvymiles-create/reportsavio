@@ -215,11 +215,13 @@ export function WatermarkPanel({ schoolId, watermarkUrl, initial, onSaved, onUpl
       className="relative w-full bg-white border rounded-md select-none touch-none overflow-hidden"
       style={{ aspectRatio: "210 / 297" }}
     >
+      {/* Report card sits at the bottom */}
       <div className="absolute inset-0" style={{ zIndex: 0 }}>
-        {renderWatermark()}
-      </div>
-      <div className="absolute inset-0" style={{ zIndex: 2 }}>
         <RealReportCardPreview />
+      </div>
+      {/* Watermark overlays the report card so it's visible (matches print output) */}
+      <div className="absolute inset-0 pointer-events-auto" style={{ zIndex: 2 }}>
+        {renderWatermark()}
       </div>
       {!watermarkUrl && (
         <div className="absolute inset-0 flex items-center justify-center text-xs text-muted-foreground bg-background/40 z-10">
