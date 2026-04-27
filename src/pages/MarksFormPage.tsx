@@ -653,7 +653,7 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
                   <tr key={`pad-${i}`} className="pad-row">
                     <td className="col-name">&nbsp;</td>
                     {subjects.map(s => <td key={s.id} className="col-sub">&nbsp;</td>)}
-                    <td></td><td></td><td></td><td></td><td></td><td></td>
+                    <td></td><td></td><td></td><td></td><td></td>
                   </tr>
                 ))}
               </tbody>
