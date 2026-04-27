@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Loader2, RotateCcw, Save, Upload, Droplet } from "lucide-react";
-import { processSignatureFile } from "@/lib/signatureProcessing";
+import { processStampFile } from "@/lib/signatureProcessing";
 
 export type WatermarkSettings = {
   watermark_enabled: boolean;
@@ -56,7 +56,7 @@ export function WatermarkPanel({ schoolId, watermarkUrl, initial, onSaved, onUpl
     }
     setUploading(true);
     try {
-      const processed = await processSignatureFile(file, { whiteThreshold: 235, maxSize: 1600 });
+      const processed = await processStampFile(file, { whiteThreshold: 230, maxSize: 1600 });
       const path = `watermark-${schoolId}.png`;
       const { error: upErr } = await supabase.storage
         .from("school-assets")
