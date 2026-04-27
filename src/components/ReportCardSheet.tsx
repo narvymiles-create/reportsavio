@@ -51,7 +51,7 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
   const [classLearnerCount, setClassLearnerCount] = useState<number>(0);
   const [teachersById, setTeachersById] = useState<Record<string, Anything>>({});
   const [reloadKey, setReloadKey] = useState(0);
-  const { flags } = useLearnerFieldSettings();
+  const { flags, order } = useLearnerFieldSettings();
 
   useEffect(() => {
     if (!learnerId || !termId) return;
@@ -446,48 +446,59 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
         LEARNER&rsquo;S ASSESSMENT REPORT CARD TERM &ndash; {term.name?.toUpperCase()} {term.year}
       </div>
 
-      <table className="rc-student" cellSpacing={0} cellPadding={0}>
-        <tbody>
-          <tr>
-            <td><span className="rc-lbl">NAME:</span> <span className="rc-fill">{learner.full_name ?? ""}</span></td>
-            {flags.stream
-              ? <td><span className="rc-lbl">STREAM:</span> <span className="rc-fill">{stream?.name ?? ""}</span></td>
-              : <td />}
-            {flags.house
-              ? <td><span className="rc-lbl">HOUSE:</span> <span className="rc-fill">{learner.house ?? ""}</span></td>
-              : <td />}
-          </tr>
-          <tr>
-            {flags.section
-              ? <td><span className="rc-lbl">SECTION:</span> <span className="rc-fill">{learner.section ?? ""}</span></td>
-              : <td />}
-            <td><span className="rc-lbl">AGE:</span> <span className="rc-fill">{learner.age ?? ""}</span></td>
-            <td><span className="rc-lbl">SEX:</span> <span className="rc-fill">{learner.sex ?? ""}</span></td>
-          </tr>
-          <tr>
-            <td>
-              <span className="rc-lbl">
-                {learner.active_reg_type === "LIN" ? "LIN NO.:" :
-                 learner.active_reg_type === "REG" ? "REG NO.:" : "INDEX NO.:"}
-              </span>{" "}
-              <span className="rc-fill">
-                {learner.active_reg_type === "LIN" ? (learner.lin_no ?? "") :
-                 learner.active_reg_type === "REG" ? (learner.reg_no ?? "") :
-                 (learner.index_no ?? "")}
-              </span>
-            </td>
-            <td />
-            <td />
-          </tr>
-          <tr>
-            <td><span className="rc-lbl">CLASS:</span> <span className="rc-fill">{klass?.name ?? ""}</span></td>
-            {flags.pay_code
-              ? <td><span className="rc-lbl">PAY CODE:</span> <span className="rc-fill">{learner.pay_code ?? ""}</span></td>
-              : <td />}
-            <td />
-          </tr>
-        </tbody>
-      </table>
+      {(() => {
+        // Build label/value cells in the configured order, skipping fields disabled by flags.
+        const regLabel =
+          learner.active_reg_type === "LIN" ? "LIN NO.:" :
+          learner.active_reg_type === "REG" ? "REG NO.:" : "INDEX NO.:";
+        const regValue =
+          learner.active_reg_type === "LIN" ? (learner.lin_no ?? "") :
+          learner.active_reg_type === "REG" ? (learner.reg_no ?? "") :
+          (learner.index_no ?? "");
+
+        const cellMap: Record<string, { enabled: boolean; label: string; value: string }> = {
+          name:     { enabled: true,          label: "NAME:",     value: learner.full_name ?? "" },
+          stream:   { enabled: !!flags.stream,   label: "STREAM:",   value: stream?.name ?? "" },
+          house:    { enabled: !!flags.house,    label: "HOUSE:",    value: learner.house ?? "" },
+          section:  { enabled: !!flags.section,  label: "SECTION:",  value: learner.section ?? "" },
+          age:      { enabled: true,          label: "AGE:",      value: learner.age != null ? String(learner.age) : "" },
+          sex:      { enabled: true,          label: "SEX:",      value: learner.sex ?? "" },
+          reg:      { enabled: true,          label: regLabel,    value: String(regValue) },
+          class:    { enabled: true,          label: "CLASS:",    value: klass?.name ?? "" },
+          pay_code: { enabled: !!flags.pay_code, label: "PAY CODE:", value: learner.pay_code ?? "" },
+        };
+
+        const visible = order
+          .map(k => ({ key: k, ...cellMap[k] }))
+          .filter(c => c?.enabled);
+
+        // Pad to a multiple of 3 so the 3-column grid stays balanced.
+        const padded = [...visible];
+        while (padded.length % 3 !== 0) padded.push(null as any);
+
+        const rows: Array<Array<{ key: string; label: string; value: string } | null>> = [];
+        for (let i = 0; i < padded.length; i += 3) rows.push(padded.slice(i, i + 3));
+
+        return (
+          <table className="rc-student" cellSpacing={0} cellPadding={0}>
+            <tbody>
+              {rows.map((row, ri) => (
+                <tr key={ri}>
+                  {row.map((c, ci) => c
+                    ? (
+                      <td key={c.key}>
+                        <span className="rc-lbl">{c.label}</span>{" "}
+                        <span className="rc-fill">{c.value}</span>
+                      </td>
+                    )
+                    : <td key={`empty-${ri}-${ci}`} />
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        );
+      })()}
 
       {renderPhaseTable("BEGINNING OF TERM EXAMS", "bot", botSum, botInfo, botHas)}
       {renderPhaseTable("MID-TERM EXAMS", "mid", midSum, midInfo, midHas)}
