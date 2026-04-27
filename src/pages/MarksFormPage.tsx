@@ -373,7 +373,7 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
     y += 14;
     doc.setFontSize(10); doc.text("SUMMARY", 40, y); y += 14;
     doc.setFontSize(9);
-    doc.text(`DIV1: ${divSummary["1"] || 0}   DIV2: ${divSummary["2"] || 0}   DIV3: ${divSummary["3"] || 0}   DIV4: ${divSummary["4"] || 0}   U: ${divSummary.U || 0}`, 40, y);
+    doc.text(`DIV1: ${divSummary["1"] || 0}   DIV2: ${divSummary["2"] || 0}   DIV3: ${divSummary["3"] || 0}   DIV4: ${divSummary["4"] || 0}   DIV X: ${divSummary.X || 0}   U: ${divSummary.U || 0}`, 40, y);
     doc.save(`${baseFileName()}.pdf`);
   };
 
