@@ -7,7 +7,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
 import { Loader2, Save, Printer, Download, Upload, FileSpreadsheet, FileText, FileDown } from "lucide-react";
-import { calculateDivision, computeTotal, gradeFor, type GradeBand } from "@/lib/grading";
+import { calculateDivision, computeTotal, gradeFor, applyF9Override, isCriticalCoreSubject, type GradeBand } from "@/lib/grading";
 import * as XLSX from "xlsx";
 import Papa from "papaparse";
 import jsPDF from "jspdf";
