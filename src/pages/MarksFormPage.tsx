@@ -643,8 +643,8 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
                       <td>{calc && calc.total > 0 ? calc.total : ""}</td>
                       <td>{calc && calc.total > 0 ? calc.ave : ""}</td>
                       <td>{pos > 0 ? pos : ""}</td>
-                      <td>{calc && calc.total > 0 ? calc.agg : ""}</td>
-                      <td>{calc && calc.total > 0 ? calc.div : ""}</td>
+                      <td>{calc && calc.agg > 0 ? calc.agg : ""}</td>
+                      <td>{calc?.div || ""}</td>
                     </tr>
                   );
                 })}
