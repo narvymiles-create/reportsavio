@@ -217,7 +217,8 @@
 }
 .nrc-sign { display: flex; align-items: center; gap: 2mm; font-size: 10pt; }
 .nrc-sig-img { height: 8mm; max-width: 30mm; object-fit: contain; }
-.nrc-sig-line { flex: 1; border-bottom: 1px dotted #475569; height: 1px; }
+.nrc-sig-line { flex: 0 1 12mm; border-bottom: 1px dotted #475569; height: 1px; }
+.nrc-sig-name { font-weight: 700; text-transform: uppercase; font-size: 9pt; white-space: nowrap; }
 
 /* Footer */
 .nrc-footer {
