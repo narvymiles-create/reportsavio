@@ -57,10 +57,13 @@ function SignatureCell({ path, onChange, kind }: { path: string | null; onChange
     }
     setBusy(true);
     try {
-      const processed = await processSignatureFile(file);
-      await persist(processed);
+      // Upload the signature AS-IS, preserving its original background.
+      // For best results users should remove the background before uploading (PNG with transparency).
+      const ext = (file.name.split(".").pop() || "png").toLowerCase();
+      const safeExt = ["png", "jpg", "jpeg", "webp"].includes(ext) ? ext : "png";
+      await persist(file, safeExt, file.type || "image/png");
     } catch (e: any) {
-      toast({ title: "Processing failed", description: e.message, variant: "destructive" });
+      toast({ title: "Upload failed", description: e.message, variant: "destructive" });
       setBusy(false);
     }
   };
