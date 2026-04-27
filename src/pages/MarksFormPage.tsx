@@ -193,12 +193,13 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
 
   // Division summary counts
   const divSummary = useMemo(() => {
-    const counts: Record<"1" | "2" | "3" | "4" | "U", number> = { "1": 0, "2": 0, "3": 0, "4": 0, U: 0 };
+    const counts: Record<"1" | "2" | "3" | "4" | "X" | "U", number> = { "1": 0, "2": 0, "3": 0, "4": 0, X: 0, U: 0 };
     for (const l of filteredLearners) {
       const c = rowCalcs.get(l.id);
-      if (!c || c.total === 0) continue;
-      const key = c.div === "1" || c.div === "2" || c.div === "3" || c.div === "4" ? c.div : "U";
-      counts[key] = (counts[key] ?? 0) + 1;
+      if (!c || !c.div) continue;
+      if (c.div === "1" || c.div === "2" || c.div === "3" || c.div === "4" || c.div === "X" || c.div === "U") {
+        counts[c.div] = (counts[c.div] ?? 0) + 1;
+      }
     }
     return counts;
   }, [filteredLearners, rowCalcs]);
