@@ -95,10 +95,9 @@ export default function SubjectsPage() {
     setOpen(true);
   };
 
-  const coreCountForLevel = (level: string | null | undefined, excludeId?: string) => {
-    if (!level) return 0;
-    const classIds = new Set(classes.filter(c => c.level === level).map(c => c.id));
-    return subjects.filter(s => s.is_core && classIds.has(s.class_id) && s.id !== excludeId).length;
+  const coreCountForClass = (classId: string | null | undefined, excludeId?: string) => {
+    if (!classId) return 0;
+    return subjects.filter(s => s.is_core && s.class_id === classId && s.id !== excludeId).length;
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -129,15 +128,12 @@ export default function SubjectsPage() {
       return;
     }
 
-    // Client-side core limit check
+    // Client-side core limit check (per class)
     if (parsed.data.is_core) {
-      const cls = classes.find(c => c.id === parsed.data.class_id);
-      if (cls?.level) {
-        const count = coreCountForLevel(cls.level, editing?.id);
-        if (count >= 4) {
-          toast({ title: "Limit reached", description: "Only 4 core subjects are allowed per level", variant: "destructive" });
-          return;
-        }
+      const count = coreCountForClass(parsed.data.class_id, editing?.id);
+      if (count >= 4) {
+        toast({ title: "Limit reached", description: "Only 4 core subjects allowed for this class", variant: "destructive" });
+        return;
       }
     }
 
@@ -161,7 +157,7 @@ export default function SubjectsPage() {
     setSubmitting(false);
     if (error) {
       const msg = /Only 4 core/i.test(error.message)
-        ? "Only 4 core subjects are allowed per level"
+        ? "Only 4 core subjects allowed for this class"
         : error.message;
       toast({ title: "Save failed", description: msg, variant: "destructive" });
     } else {
@@ -203,7 +199,7 @@ export default function SubjectsPage() {
       <div className="flex items-end justify-between gap-2 flex-wrap">
         <div>
           <h1 className="text-3xl font-bold">Subjects</h1>
-          <p className="text-muted-foreground">Add subjects per class. Mark up to 4 core subjects per level for aggregate calculation.</p>
+          <p className="text-muted-foreground">Add subjects per class. Mark up to 4 core subjects per class for aggregate calculation.</p>
         </div>
         <div className="flex gap-2">
           {classFilter !== "all" && (
@@ -287,11 +283,11 @@ export default function SubjectsPage() {
                 </div>
                 {(() => {
                   const cls = classes.find(c => c.id === formClassId);
-                  if (!cls?.level) return null;
-                  const used = coreCountForLevel(cls.level, editing?.id);
+                  if (!cls) return null;
+                  const used = coreCountForClass(formClassId, editing?.id);
                   return (
                     <p className="text-xs text-muted-foreground">
-                      Core subjects used in {cls.level} level: <span className="font-medium">{used}/4</span>
+                      Core subjects used in {cls.name}: <span className="font-medium">{used}/4</span>
                     </p>
                   );
                 })()}
