@@ -3,12 +3,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { nurseryPublicUrl } from "@/lib/nurseryStorage";
 import "./NurseryReportSheet.css";
 
-type Props = { learnerId: string; termId: string };
+type Props = { learnerId: string; termId: string; onReady?: () => void; pageBreak?: boolean };
 
 type Area = { id: string; name: string; image_path: string | null; sort_order: number };
 type GC = { grade: string; label: string; color: string };
 
-export function NurseryReportSheet({ learnerId, termId }: Props) {
+export function NurseryReportSheet({ learnerId, termId, onReady, pageBreak }: Props) {
   const [school, setSchool] = useState<any>(null);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [stampUrl, setStampUrl] = useState<string | null>(null);
@@ -90,6 +90,21 @@ export function NurseryReportSheet({ learnerId, termId }: Props) {
       // Report card comments
       const { data: rc } = await supabase.from("nursery_report_cards" as any).select("*").eq("learner_id", learnerId).eq("term_id", termId).maybeSingle();
       if (rc) setReport({ class_teacher_comment: (rc as any).class_teacher_comment ?? "", head_teacher_comment: (rc as any).head_teacher_comment ?? "" });
+
+      // Class teacher signature from class record (preferred over teacher record signature)
+      // already loaded above via teacher; if class has its own signature, prefer it
+      // (load using cls fetched above)
+      try {
+        const { data: c2 } = await supabase.from("nursery_classes" as any).select("class_signature_path").eq("id", (l as any)?.class_id).maybeSingle();
+        const csp = (c2 as any)?.class_signature_path;
+        if (csp) {
+          const { data: u } = await supabase.storage.from("signatures").createSignedUrl(csp, 3600);
+          if (u?.signedUrl) setClassSigUrl(u.signedUrl);
+        }
+      } catch {}
+
+      // Signal ready for bulk renderers
+      setTimeout(() => onReady?.(), 300);
     })();
   }, [learnerId, termId]);
 
@@ -126,7 +141,7 @@ export function NurseryReportSheet({ learnerId, termId }: Props) {
   }, [areas.length]);
 
   return (
-    <div className="nrc-page" style={rowHeightStyle}>
+    <div className="nrc-page" style={{ ...rowHeightStyle, ...(pageBreak ? { pageBreakAfter: "always" } : {}) }}>
       {watermarkUrl && (school?.watermark_enabled !== false) && (
         <img
           src={watermarkUrl}
