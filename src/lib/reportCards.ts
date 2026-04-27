@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { computeTotal, divisionFor, gradeFor, type DivisionRule, type GradeBand } from "./grading";
+import { calculateDivision, computeTotal, gradeFor, type GradeBand } from "./grading";
 
 type Audience = "class_teacher" | "head_teacher";
 type Tpl = { audience: Audience; min_average: number; max_average: number; text: string };
@@ -29,9 +29,8 @@ function pickComment(tpls: Tpl[], audience: Audience, average: number, name: str
 /** Compute & upsert report cards for every learner in a class for a given term.
  *  Returns the per-learner summaries with positions. */
 export async function generateClassReports(termId: string, classId: string): Promise<GeneratedRow[]> {
-  const [bandsRes, divsRes, tplsRes, learnersRes, marksRes, subjectsRes] = await Promise.all([
+  const [bandsRes, tplsRes, learnersRes, marksRes, subjectsRes] = await Promise.all([
     supabase.from("grading_scales").select("grade,points,min_mark,max_mark,remark").order("sort_order"),
-    supabase.from("division_rules").select("division,min_aggregate,max_aggregate").order("sort_order"),
     supabase.from("comment_templates").select("audience,min_average,max_average,text"),
     supabase.from("learners").select("id,full_name,class_id").eq("class_id", classId),
     supabase.from("marks").select("learner_id,subject_id,total,points").eq("term_id", termId),
@@ -39,7 +38,6 @@ export async function generateClassReports(termId: string, classId: string): Pro
   ]);
 
   const bands = (bandsRes.data ?? []) as GradeBand[];
-  const rules = (divsRes.data ?? []) as DivisionRule[];
   const tpls = (tplsRes.data ?? []) as Tpl[];
   const learners = (learnersRes.data ?? []) as { id: string; full_name: string }[];
   const subjectIds = new Set((subjectsRes.data ?? []).map((s: any) => s.id));
@@ -87,7 +85,7 @@ export async function generateClassReports(termId: string, classId: string): Pro
     aggregate: s.aggregate,
     position: positionMap.get(s.learner_id) ?? classSize,
     class_size: classSize,
-    division: divisionFor(s.aggregate, rules),
+    division: calculateDivision(s.aggregate),
     class_teacher_comment: pickComment(tpls, "class_teacher", s.average, s.name),
     head_teacher_comment: pickComment(tpls, "head_teacher", s.average, s.name),
   }));

@@ -7,7 +7,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
 import { Loader2, Save, Printer, Download, Upload, FileSpreadsheet, FileText, FileDown } from "lucide-react";
-import { computeTotal, gradeFor, divisionFor, type GradeBand, type DivisionRule } from "@/lib/grading";
+import { calculateDivision, computeTotal, gradeFor, type GradeBand } from "@/lib/grading";
 import * as XLSX from "xlsx";
 import Papa from "papaparse";
 import jsPDF from "jspdf";
@@ -42,7 +42,6 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
   const [learners, setLearners] = useState<Learner[]>([]);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [bands, setBands] = useState<GradeBand[]>([]);
-  const [divRules, setDivRules] = useState<DivisionRule[]>([]);
   const [school, setSchool] = useState<{ name: string } | null>(null);
 
   const [termId, setTermId] = useState("");
@@ -59,13 +58,12 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
 
   useEffect(() => {
     (async () => {
-      const [t, c, s, te, gb, dr, si] = await Promise.all([
+      const [t, c, s, te, gb, si] = await Promise.all([
         supabase.from("terms").select("id,name,year,is_current").order("year", { ascending: false }).order("name"),
         supabase.from("classes").select("id,name").order("sort_order").order("name"),
         supabase.from("streams").select("id,class_id,name").order("name"),
         supabase.from("teachers").select("id,initials"),
         supabase.from("grading_scales").select("grade,points,min_mark,max_mark,remark").order("sort_order"),
-        supabase.from("division_rules").select("division,min_aggregate,max_aggregate").order("sort_order"),
         supabase.from("school_info").select("name").eq("is_active", true).maybeSingle(),
       ]);
       setTerms((t.data ?? []) as Term[]);
@@ -73,7 +71,6 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
       setStreams((s.data ?? []) as Stream[]);
       setTeachers((te.data ?? []) as Teacher[]);
       setBands((gb.data ?? []) as GradeBand[]);
-      setDivRules((dr.data ?? []) as DivisionRule[]);
       setSchool((si.data as any) ?? null);
       const current = (t.data ?? []).find((x: any) => x.is_current);
       if (current) setTermId(current.id);
@@ -164,12 +161,12 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
       out.set(l.id, {
         total, ave,
         agg: canAgg ? agg : 0,
-        div: canAgg ? divisionFor(agg, divRules) : "—",
+        div: canAgg ? calculateDivision(agg) : "—",
         subjectGrades,
       });
     }
     return out;
-  }, [filteredLearners, subjects, marks, bands, divRules, exam, coreCountValid]);
+  }, [filteredLearners, subjects, marks, bands, exam, coreCountValid]);
 
   // Position ranking by total desc (ties share)
   const positions = useMemo(() => {
@@ -186,17 +183,11 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
 
   // Division summary counts
   const divSummary = useMemo(() => {
-    const counts: Record<string, number> = { I: 0, II: 0, III: 0, IV: 0, U: 0 };
+    const counts: Record<"1" | "2" | "3" | "4" | "U", number> = { "1": 0, "2": 0, "3": 0, "4": 0, U: 0 };
     for (const l of filteredLearners) {
       const c = rowCalcs.get(l.id);
       if (!c || c.total === 0) continue;
-      // Normalise division label (e.g. "Division I", "DIV 1", "1", "I") -> I/II/III/IV/U
-      const raw = (c.div ?? "").toString().toUpperCase().replace(/DIVISION|DIV|\s|\./g, "");
-      const key = raw === "1" || raw === "I" ? "I"
-        : raw === "2" || raw === "II" ? "II"
-        : raw === "3" || raw === "III" ? "III"
-        : raw === "4" || raw === "IV" ? "IV"
-        : "U";
+      const key = c.div === "1" || c.div === "2" || c.div === "3" || c.div === "4" ? c.div : "U";
       counts[key] = (counts[key] ?? 0) + 1;
     }
     return counts;
@@ -342,7 +333,7 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
     // Summary sheet
     const sumWs = XLSX.utils.aoa_to_sheet([
       ["DIV1", "DIV2", "DIV3", "DIV4", "U"],
-      [divSummary.I || 0, divSummary.II || 0, divSummary.III || 0, divSummary.IV || 0, divSummary.U || 0],
+      [divSummary["1"] || 0, divSummary["2"] || 0, divSummary["3"] || 0, divSummary["4"] || 0, divSummary.U || 0],
     ]);
     XLSX.utils.book_append_sheet(wb, sumWs, "Summary");
     XLSX.writeFile(wb, `${baseFileName()}.xlsx`);
@@ -371,7 +362,7 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
     y += 14;
     doc.setFontSize(10); doc.text("SUMMARY", 40, y); y += 14;
     doc.setFontSize(9);
-    doc.text(`DIV1: ${divSummary.I || 0}   DIV2: ${divSummary.II || 0}   DIV3: ${divSummary.III || 0}   DIV4: ${divSummary.IV || 0}   U: ${divSummary.U || 0}`, 40, y);
+    doc.text(`DIV1: ${divSummary["1"] || 0}   DIV2: ${divSummary["2"] || 0}   DIV3: ${divSummary["3"] || 0}   DIV4: ${divSummary["4"] || 0}   U: ${divSummary.U || 0}`, 40, y);
     doc.save(`${baseFileName()}.pdf`);
   };
 
@@ -673,10 +664,10 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
                 <tbody>
                   <tr>
                     <td>No.</td>
-                    <td>{divSummary.I || ""}</td>
-                    <td>{divSummary.II || ""}</td>
-                    <td>{divSummary.III || ""}</td>
-                    <td>{divSummary.IV || ""}</td>
+                    <td>{divSummary["1"] || ""}</td>
+                    <td>{divSummary["2"] || ""}</td>
+                    <td>{divSummary["3"] || ""}</td>
+                    <td>{divSummary["4"] || ""}</td>
                     <td>{divSummary.U || ""}</td>
                   </tr>
                 </tbody>

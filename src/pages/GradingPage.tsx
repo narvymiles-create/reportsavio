@@ -30,11 +30,11 @@ const DEFAULT_GRADES: Omit<Grade, "id">[] = [
   { grade: "F9", points: 9, min_mark: 0, max_mark: 44, remark: "Fail", sort_order: 9 },
 ];
 const DEFAULT_DIVISIONS: Omit<Division, "id">[] = [
-  { division: "Division I", min_aggregate: 4, max_aggregate: 12, description: "Excellent", sort_order: 1 },
-  { division: "Division II", min_aggregate: 13, max_aggregate: 23, description: "Very Good", sort_order: 2 },
-  { division: "Division III", min_aggregate: 24, max_aggregate: 29, description: "Good", sort_order: 3 },
-  { division: "Division IV", min_aggregate: 30, max_aggregate: 34, description: "Pass", sort_order: 4 },
-  { division: "U", min_aggregate: 35, max_aggregate: 36, description: "Ungraded", sort_order: 5 },
+  { division: "1", min_aggregate: 4, max_aggregate: 12, description: "Excellent", sort_order: 1 },
+  { division: "2", min_aggregate: 13, max_aggregate: 23, description: "Very Good", sort_order: 2 },
+  { division: "3", min_aggregate: 24, max_aggregate: 30, description: "Good", sort_order: 3 },
+  { division: "4", min_aggregate: 31, max_aggregate: 34, description: "Pass", sort_order: 4 },
+  { division: "U", min_aggregate: 35, max_aggregate: 999, description: "Ungraded", sort_order: 5 },
 ];
 
 export default function GradingPage() {
@@ -222,7 +222,7 @@ export default function GradingPage() {
         </CardHeader>
         <CardContent>
           {divisions.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-6 text-center">No divisions yet. Seed defaults for the standard Division I–IV scheme.</p>
+            <p className="text-sm text-muted-foreground py-6 text-center">No divisions yet. Seed defaults for the standard 1–4/U scheme.</p>
           ) : (
             <Table>
               <TableHeader><TableRow><TableHead>Division</TableHead><TableHead>Aggregate Range</TableHead><TableHead>Description</TableHead><TableHead className="w-24"></TableHead></TableRow></TableHeader>

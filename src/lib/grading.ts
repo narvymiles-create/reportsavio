@@ -29,7 +29,14 @@ export function gradeFor(total: number | null, bands: GradeBand[]): GradeBand | 
   return bands.find(b => total >= b.min_mark && total <= b.max_mark) ?? null;
 }
 
-export function divisionFor(aggregate: number, rules: DivisionRule[]): string {
-  const r = rules.find(x => aggregate >= x.min_aggregate && aggregate <= x.max_aggregate);
-  return r?.division ?? "U";
+export function calculateDivision(aggregate: number | null | undefined): string {
+  const agg = Number(aggregate);
+  if (!Number.isFinite(agg)) return "U";
+  if (agg >= 4 && agg <= 12) return "1";
+  if (agg >= 13 && agg <= 23) return "2";
+  if (agg >= 24 && agg <= 30) return "3";
+  if (agg >= 31 && agg <= 34) return "4";
+  return "U";
 }
+
+export const divisionFor = calculateDivision;

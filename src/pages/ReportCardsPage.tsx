@@ -13,6 +13,7 @@ import {
   Download, Eye, FileText, Loader2, Printer, Sparkles, Trash2, UserCheck, Package, FolderArchive,
 } from "lucide-react";
 import { generateClassReports } from "@/lib/reportCards";
+import { calculateDivision } from "@/lib/grading";
 
 type Term = { id: string; name: string; year: number; is_current: boolean };
 type Cls = { id: string; name: string };
@@ -299,7 +300,7 @@ export default function ReportCardsPage() {
                       <TableCell>{r?.total_marks ?? "—"}</TableCell>
                       <TableCell>{r?.average ?? "—"}</TableCell>
                       <TableCell>{r?.aggregate ?? "—"}</TableCell>
-                      <TableCell>{r?.division ? <Badge>{r.division}</Badge> : "—"}</TableCell>
+                      <TableCell>{r?.aggregate != null ? <Badge>{calculateDivision(r.aggregate)}</Badge> : "—"}</TableCell>
                       <TableCell>{r?.position ? `${r.position} / ${r.class_size}` : "—"}</TableCell>
                       <TableCell className="text-right">
                         {r ? (
