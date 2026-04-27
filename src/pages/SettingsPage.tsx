@@ -193,6 +193,7 @@ export default function SettingsPage() {
                 ["house", "House", "Show house dropdown and column"],
                 ["section", "Section", "Show section input and column"],
                 ["pay_code", "Pay Code", "Show pay code input and column"],
+                ["show_position", "Show Position on Report Card", "Display POSITION field on report card preview and print"],
               ] as Array<[keyof LearnerFieldFlags, string, string]>).map(([k, label, desc]) => (
                 <div key={k} className="flex items-center justify-between py-3">
                   <div>
