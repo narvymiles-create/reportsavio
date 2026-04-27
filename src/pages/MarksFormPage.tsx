@@ -669,6 +669,7 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
                     <th>DIV2</th>
                     <th>DIV3</th>
                     <th>DIV4</th>
+                    <th>DIV X</th>
                     <th>U</th>
                   </tr>
                 </thead>
@@ -679,6 +680,7 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
                     <td>{divSummary["2"] || ""}</td>
                     <td>{divSummary["3"] || ""}</td>
                     <td>{divSummary["4"] || ""}</td>
+                    <td>{divSummary.X || ""}</td>
                     <td>{divSummary.U || ""}</td>
                   </tr>
                 </tbody>
