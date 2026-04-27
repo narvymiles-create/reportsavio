@@ -497,7 +497,7 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
             <td><span className="rc-ps-label">AVERAGE:</span> <span className="rc-ps-val">{eotAvg || ""}</span></td>
             <td><span className="rc-ps-label">POSITION:</span> <span className="rc-ps-val">{livePosition && liveClassSize ? `${livePosition}/${liveClassSize}` : ""}</span></td>
             <td><span className="rc-ps-label">AGGREGATES:</span> <span className="rc-ps-val">{coreCountValid && eotHas ? eotAggregate : ""}</span></td>
-            <td><span className="rc-ps-label">DIVISION:</span> <span className="rc-ps-val">{divisionFigure}</span></td>
+            <td><span className="rc-ps-label">DIVISION:</span> <span className="rc-ps-val">{liveDivision}</span></td>
           </tr>
         </tbody>
       </table>
