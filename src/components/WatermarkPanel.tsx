@@ -26,6 +26,18 @@ export const WATERMARK_DEFAULTS: WatermarkSettings = {
   watermark_mode: "custom",
 };
 
+const POSITION_PRESETS: Record<string, { x: number; y: number; label: string }> = {
+  "top-left":      { x: 20, y: 20, label: "Top Left" },
+  "top-center":    { x: 50, y: 20, label: "Top Center" },
+  "top-right":     { x: 80, y: 20, label: "Top Right" },
+  "center-left":   { x: 20, y: 50, label: "Center Left" },
+  "center":        { x: 50, y: 50, label: "Center" },
+  "center-right":  { x: 80, y: 50, label: "Center Right" },
+  "bottom-left":   { x: 20, y: 80, label: "Bottom Left" },
+  "bottom-center": { x: 50, y: 80, label: "Bottom Center" },
+  "bottom-right":  { x: 80, y: 80, label: "Bottom Right" },
+};
+
 type Props = {
   schoolId: string;
   watermarkUrl: string | null;
