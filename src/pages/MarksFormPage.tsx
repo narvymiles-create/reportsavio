@@ -132,19 +132,18 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
   const coreCountValid = coreSubjects.length === 4;
 
   // Per-row computed values (live)
-  type RowCalc = { total: number; ave: number; agg: number; div: string; subjectGrades: Record<string, string | null> };
+  type RowCalc = { total: number; ave: number; agg: number; div: string; coreMissing: number; subjectGrades: Record<string, string | null> };
   const rowCalcs = useMemo(() => {
     const out = new Map<string, RowCalc>();
     for (const l of filteredLearners) {
       const subjectGrades: Record<string, string | null> = {};
-      let total = 0; let count = 0; let agg = 0; let coreEntered = 0;
+      let total = 0; let count = 0; let agg = 0; let coreEntered = 0; let coreMissing = 0;
       for (const s of subjects) {
         const m = marks[`${l.id}|${s.id}`];
         const v = m?.[exam] ?? null;
         if (v != null && !isNaN(v)) {
           total += v; count += 1;
           const band = gradeFor(v, bands);
-          // Only core subjects get a displayed grade and contribute to AGG
           if (s.is_core) {
             subjectGrades[s.id] = band?.grade ?? null;
             if (band?.points != null) agg += band.points;
@@ -153,15 +152,26 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
             subjectGrades[s.id] = null;
           }
         } else {
+          if (s.is_core) coreMissing += 1;
           subjectGrades[s.id] = null;
         }
       }
       const ave = count ? Math.round((total / count) * 100) / 100 : 0;
-      const canAgg = coreCountValid && coreEntered === 4;
+      // Division logic mirrors report card:
+      // - If config invalid (≠4 core subjects) → blank
+      // - If at least one core has marks but some core is missing → "X"
+      // - If all 4 core subjects have marks → calculateDivision(agg)
+      // - If no core subjects entered at all → blank
+      let div = "";
+      if (coreCountValid) {
+        if (coreEntered === 4) div = calculateDivision(agg);
+        else if (coreEntered > 0 && coreMissing > 0) div = "X";
+      }
       out.set(l.id, {
         total, ave,
-        agg: canAgg ? agg : 0,
-        div: canAgg ? calculateDivision(agg) : "—",
+        agg: coreEntered > 0 ? agg : 0,
+        div,
+        coreMissing,
         subjectGrades,
       });
     }
@@ -183,12 +193,13 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
 
   // Division summary counts
   const divSummary = useMemo(() => {
-    const counts: Record<"1" | "2" | "3" | "4" | "U", number> = { "1": 0, "2": 0, "3": 0, "4": 0, U: 0 };
+    const counts: Record<"1" | "2" | "3" | "4" | "X" | "U", number> = { "1": 0, "2": 0, "3": 0, "4": 0, X: 0, U: 0 };
     for (const l of filteredLearners) {
       const c = rowCalcs.get(l.id);
-      if (!c || c.total === 0) continue;
-      const key = c.div === "1" || c.div === "2" || c.div === "3" || c.div === "4" ? c.div : "U";
-      counts[key] = (counts[key] ?? 0) + 1;
+      if (!c || !c.div) continue;
+      if (c.div === "1" || c.div === "2" || c.div === "3" || c.div === "4" || c.div === "X" || c.div === "U") {
+        counts[c.div] = (counts[c.div] ?? 0) + 1;
+      }
     }
     return counts;
   }, [filteredLearners, rowCalcs]);
@@ -296,8 +307,8 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
         calc && calc.total > 0 ? calc.total : "",
         calc && calc.total > 0 ? calc.ave : "",
         pos > 0 ? pos : "",
-        calc && calc.total > 0 ? calc.agg : "",
-        calc && calc.total > 0 ? calc.div : "",
+        calc && calc.agg > 0 ? calc.agg : "",
+        calc && calc.div ? calc.div : "",
       ];
     });
     return { headers, rows };
@@ -332,8 +343,8 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
     XLSX.utils.book_append_sheet(wb, ws, "Marks");
     // Summary sheet
     const sumWs = XLSX.utils.aoa_to_sheet([
-      ["DIV1", "DIV2", "DIV3", "DIV4", "U"],
-      [divSummary["1"] || 0, divSummary["2"] || 0, divSummary["3"] || 0, divSummary["4"] || 0, divSummary.U || 0],
+      ["DIV1", "DIV2", "DIV3", "DIV4", "DIV X", "U"],
+      [divSummary["1"] || 0, divSummary["2"] || 0, divSummary["3"] || 0, divSummary["4"] || 0, divSummary.X || 0, divSummary.U || 0],
     ]);
     XLSX.utils.book_append_sheet(wb, sumWs, "Summary");
     XLSX.writeFile(wb, `${baseFileName()}.xlsx`);
@@ -362,7 +373,7 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
     y += 14;
     doc.setFontSize(10); doc.text("SUMMARY", 40, y); y += 14;
     doc.setFontSize(9);
-    doc.text(`DIV1: ${divSummary["1"] || 0}   DIV2: ${divSummary["2"] || 0}   DIV3: ${divSummary["3"] || 0}   DIV4: ${divSummary["4"] || 0}   U: ${divSummary.U || 0}`, 40, y);
+    doc.text(`DIV1: ${divSummary["1"] || 0}   DIV2: ${divSummary["2"] || 0}   DIV3: ${divSummary["3"] || 0}   DIV4: ${divSummary["4"] || 0}   DIV X: ${divSummary.X || 0}   U: ${divSummary.U || 0}`, 40, y);
     doc.save(`${baseFileName()}.pdf`);
   };
 
@@ -632,8 +643,8 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
                       <td>{calc && calc.total > 0 ? calc.total : ""}</td>
                       <td>{calc && calc.total > 0 ? calc.ave : ""}</td>
                       <td>{pos > 0 ? pos : ""}</td>
-                      <td>{calc && calc.total > 0 ? calc.agg : ""}</td>
-                      <td>{calc && calc.total > 0 ? calc.div : ""}</td>
+                      <td>{calc && calc.agg > 0 ? calc.agg : ""}</td>
+                      <td>{calc?.div || ""}</td>
                     </tr>
                   );
                 })}
@@ -658,6 +669,7 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
                     <th>DIV2</th>
                     <th>DIV3</th>
                     <th>DIV4</th>
+                    <th>DIV X</th>
                     <th>U</th>
                   </tr>
                 </thead>
@@ -668,6 +680,7 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
                     <td>{divSummary["2"] || ""}</td>
                     <td>{divSummary["3"] || ""}</td>
                     <td>{divSummary["4"] || ""}</td>
+                    <td>{divSummary.X || ""}</td>
                     <td>{divSummary.U || ""}</td>
                   </tr>
                 </tbody>
