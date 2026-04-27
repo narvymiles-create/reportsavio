@@ -148,7 +148,7 @@ export default function SignaturesPage() {
     const [s, c, t] = await Promise.all([
       (supabase.from("school_info") as any).select("id,head_teacher_name,head_teacher_signature_path,nursery_head_teacher_name,nursery_head_teacher_signature_path").eq("is_active", true).order("created_at", { ascending: false }).limit(1).maybeSingle(),
       (supabase.from(classesTable) as any).select("id,name,class_signature_path,class_teacher_id").order("sort_order").order("name"),
-      (supabase.from("teachers") as any).select("id,full_name,initials,signature_path").eq("section", section).order("full_name"),
+      (supabase.from("teachers") as any).select("id,full_name,initials,signature_path,section").order("full_name"),
     ]);
     setSchool((s.data as any) ?? null);
     setClasses((c.data ?? []) as Cls[]);
