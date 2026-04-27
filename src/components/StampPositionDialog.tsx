@@ -118,8 +118,12 @@ export function StampPositionPanel({ schoolId, stampUrl, initial, onSaved, after
 
   const stampPx = 90 * s.stamp_size;
 
+  const isSplit = layout === "split";
+
   return (
-    <div className="space-y-4">
+    <div className={isSplit ? "grid grid-cols-1 md:grid-cols-[minmax(180px,260px)_1fr] gap-6 items-start" : "space-y-4"}>
+      <div className={isSplit ? "space-y-2" : "space-y-4 contents"}>
+      {/* wrapper open for stack mode is just space-y-4 above; split mode wraps preview only */}
       {/* A4-ratio preview */}
       <div
         ref={previewRef}
