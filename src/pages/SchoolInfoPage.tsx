@@ -338,25 +338,25 @@ export default function SchoolInfoPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="max-w-xl">
-              <WatermarkPanel
-                schoolId={info.id}
-                watermarkUrl={watermarkUrl}
-                initial={{
-                  watermark_enabled: info.watermark_enabled,
-                  watermark_x: info.watermark_x,
-                  watermark_y: info.watermark_y,
-                  watermark_scale: info.watermark_scale,
-                  watermark_opacity: info.watermark_opacity,
-                  watermark_mode: (info.watermark_mode as any) ?? "custom",
-                }}
-                onSaved={(s) => setInfo({ ...info, ...s })}
-                onUploaded={load}
-              />
-            </div>
+            <WatermarkPanel
+              schoolId={info.id}
+              watermarkUrl={watermarkUrl}
+              layout="split"
+              initial={{
+                watermark_enabled: info.watermark_enabled,
+                watermark_x: info.watermark_x,
+                watermark_y: info.watermark_y,
+                watermark_scale: info.watermark_scale,
+                watermark_opacity: info.watermark_opacity,
+                watermark_mode: (info.watermark_mode as any) ?? "custom",
+              }}
+              onSaved={(s) => setInfo({ ...info, ...s })}
+              onUploaded={load}
+            />
           </CardContent>
         </Card>
       )}
+
 
       <Card>
         <CardHeader>
