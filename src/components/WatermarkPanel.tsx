@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Loader2, RotateCcw, Save, Upload, Droplet } from "lucide-react";
-import { ReportCardMiniPreview } from "@/components/ReportCardMiniPreview";
+import { RealReportCardPreview } from "@/components/RealReportCardPreview";
 
 export type WatermarkSettings = {
   watermark_enabled: boolean;
@@ -219,7 +219,7 @@ export function WatermarkPanel({ schoolId, watermarkUrl, initial, onSaved, onUpl
         {renderWatermark()}
       </div>
       <div className="absolute inset-0" style={{ zIndex: 2 }}>
-        <ReportCardMiniPreview />
+        <RealReportCardPreview />
       </div>
       {!watermarkUrl && (
         <div className="absolute inset-0 flex items-center justify-center text-xs text-muted-foreground bg-background/40 z-10">

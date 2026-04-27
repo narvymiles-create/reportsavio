@@ -5,7 +5,7 @@ import { Slider } from "@/components/ui/slider";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Loader2, RotateCcw, Save, Move } from "lucide-react";
-import { ReportCardMiniPreview } from "@/components/ReportCardMiniPreview";
+import { RealReportCardPreview } from "@/components/RealReportCardPreview";
 
 export type StampSettings = {
   stamp_x: number;          // % of preview width (0-100), center of stamp
@@ -126,7 +126,7 @@ export function StampPositionPanel({ schoolId, stampUrl, initial, onSaved, after
       className="relative w-full bg-white border rounded-md select-none touch-none overflow-hidden"
       style={{ aspectRatio: "210 / 297" }}
     >
-      <ReportCardMiniPreview />
+      <RealReportCardPreview />
       {stampUrl ? (
         <div
           role="button"

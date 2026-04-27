@@ -8,8 +8,15 @@ import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
-import { Loader2, Pencil, Plus, Trash2 } from "lucide-react";
-import { DEFAULT_LEARNER_FIELDS, type LearnerFieldFlags } from "@/hooks/useLearnerFieldSettings";
+import { Loader2, Pencil, Plus, Trash2, ArrowUp, ArrowDown, ListOrdered } from "lucide-react";
+import {
+  DEFAULT_LEARNER_FIELDS,
+  DEFAULT_LEARNER_INFO_ORDER,
+  LEARNER_INFO_LABELS,
+  normalizeOrder,
+  type LearnerFieldFlags,
+  type LearnerInfoFieldKey,
+} from "@/hooks/useLearnerFieldSettings";
 
 type House = { id: string; name: string; color: string | null; sort_order: number };
 
@@ -24,6 +31,9 @@ export default function SettingsPage() {
   const [loadingFlags, setLoadingFlags] = useState(true);
   const [savingFlags, setSavingFlags] = useState(false);
 
+  const [order, setOrder] = useState<LearnerInfoFieldKey[]>(DEFAULT_LEARNER_INFO_ORDER);
+  const [savingOrder, setSavingOrder] = useState(false);
+
   const loadHouses = async () => {
     setLoadingHouses(true);
     const { data } = await supabase.from("houses" as any).select("*").order("sort_order").order("name");
@@ -32,16 +42,39 @@ export default function SettingsPage() {
   };
   const loadFlags = async () => {
     setLoadingFlags(true);
-    const { data } = await supabase
-      .from("system_settings" as any)
-      .select("value")
-      .eq("key", "learner_fields")
-      .maybeSingle();
-    if (data && (data as any).value) {
-      setFlags({ ...DEFAULT_LEARNER_FIELDS, ...((data as any).value as Partial<LearnerFieldFlags>) });
+    const [{ data: f }, { data: o }] = await Promise.all([
+      supabase.from("system_settings" as any).select("value").eq("key", "learner_fields").maybeSingle(),
+      supabase.from("system_settings" as any).select("value").eq("key", "learner_info_order").maybeSingle(),
+    ]);
+    if (f && (f as any).value) {
+      setFlags({ ...DEFAULT_LEARNER_FIELDS, ...((f as any).value as Partial<LearnerFieldFlags>) });
+    }
+    if (o && Array.isArray((o as any).value)) {
+      setOrder(normalizeOrder((o as any).value as LearnerInfoFieldKey[]));
     }
     setLoadingFlags(false);
   };
+
+  const saveOrder = async (next: LearnerInfoFieldKey[]) => {
+    setOrder(next);
+    setSavingOrder(true);
+    // upsert in case the row doesn't exist yet
+    const { error } = await supabase
+      .from("system_settings" as any)
+      .upsert({ key: "learner_info_order", value: next as any }, { onConflict: "key" });
+    setSavingOrder(false);
+    if (error) toast({ title: "Save failed", description: error.message, variant: "destructive" });
+  };
+
+  const moveItem = (index: number, dir: -1 | 1) => {
+    const next = [...order];
+    const j = index + dir;
+    if (j < 0 || j >= next.length) return;
+    [next[index], next[j]] = [next[j], next[index]];
+    saveOrder(next);
+  };
+
+  const resetOrder = () => saveOrder(DEFAULT_LEARNER_INFO_ORDER);
 
   useEffect(() => { loadHouses(); loadFlags(); }, []);
 
@@ -205,6 +238,50 @@ export default function SettingsPage() {
               ))}
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* SECTION C: LEARNER INFO LABEL ORDER */}
+      <Card>
+        <CardHeader className="flex flex-row items-start justify-between gap-2">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <ListOrdered className="h-4 w-4" /> Learner Info Order on Report Card
+            </CardTitle>
+            <CardDescription>
+              Drag-style ordering: use the arrows to set the order of labels (Name, Class, House, etc.) shown on the report card. Changes apply to all reports in real time.
+            </CardDescription>
+          </div>
+          <Button size="sm" variant="outline" onClick={resetOrder} disabled={savingOrder}>
+            Reset to default
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {loadingFlags ? (
+            <div className="flex justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>
+          ) : (
+            <div className="divide-y border rounded-md">
+              {order.map((k, i) => (
+                <div key={k} className="flex items-center justify-between gap-3 px-3 py-2">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs font-mono w-6 text-center bg-muted rounded px-1 py-0.5">{i + 1}</span>
+                    <span className="font-medium">{LEARNER_INFO_LABELS[k]}</span>
+                  </div>
+                  <div className="flex gap-1">
+                    <Button size="icon" variant="ghost" disabled={i === 0 || savingOrder} onClick={() => moveItem(i, -1)} aria-label="Move up">
+                      <ArrowUp className="h-4 w-4" />
+                    </Button>
+                    <Button size="icon" variant="ghost" disabled={i === order.length - 1 || savingOrder} onClick={() => moveItem(i, 1)} aria-label="Move down">
+                      <ArrowDown className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          <p className="text-xs text-muted-foreground mt-2">
+            Note: Hidden fields (toggled off above) will be skipped automatically. The chosen order fills the report card grid left-to-right, top-to-bottom.
+          </p>
         </CardContent>
       </Card>
     </div>
