@@ -199,7 +199,7 @@ export default function SubjectsPage() {
       <div className="flex items-end justify-between gap-2 flex-wrap">
         <div>
           <h1 className="text-3xl font-bold">Subjects</h1>
-          <p className="text-muted-foreground">Add subjects per class. Mark up to 4 core subjects per level for aggregate calculation.</p>
+          <p className="text-muted-foreground">Add subjects per class. Mark up to 4 core subjects per class for aggregate calculation.</p>
         </div>
         <div className="flex gap-2">
           {classFilter !== "all" && (
