@@ -330,7 +330,7 @@ export function WatermarkPanel({ schoolId, watermarkUrl, initial, onSaved, onUpl
     return (
       <div className="space-y-4">
         {uploadBlock}
-        <div className="grid grid-cols-1 md:grid-cols-[minmax(200px,260px)_1fr] gap-6 items-start">
+        <div className="grid grid-cols-1 md:grid-cols-[minmax(240px,320px)_1fr] lg:grid-cols-[minmax(320px,420px)_1fr] xl:grid-cols-[minmax(380px,480px)_1fr] gap-6 items-start">
           {previewBlock}
           {controlsBlock}
         </div>
