@@ -276,3 +276,75 @@
   .nrc-page { box-shadow: none; margin: 0; }
   .no-print { display: none !important; }
 }
+
+/* =====================================================================
+   STRICT CONTAINMENT — LOCK A4, NO OVERFLOW IN ANY DIRECTION
+   ===================================================================== */
+.nrc-page,
+.nrc-page * {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+.nrc-page { overflow: hidden !important; }
+
+.nrc-page td,
+.nrc-page th,
+.nrc-page p,
+.nrc-page span,
+.nrc-page div,
+.nrc-page li {
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-word;
+}
+
+/* Areas: clip names/comments so rows never grow beyond their flex slot */
+.nrc-area-name {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.nrc-area-comment {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  max-height: 2.6em;
+  white-space: normal;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+/* Comments block: clamp body, prevent vertical push */
+.nrc-comment-body {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  max-height: 18mm;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+/* Pupil info — wrap, don't overflow */
+.nrc-pupil,
+.nrc-pupil-row {
+  overflow: hidden;
+}
+.nrc-write {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 60mm;
+  vertical-align: bottom;
+}
+
+/* Signature names — clip if too long */
+.nrc-sig-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 40mm;
+}
+
+/* Tables locked */
+.nrc-page table { table-layout: fixed; width: 100%; }

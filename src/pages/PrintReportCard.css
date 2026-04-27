@@ -458,3 +458,67 @@ table.rc-phase-summary td {
   }
   .report-page:last-child { page-break-after: auto; }
 }
+
+/* =====================================================================
+   STRICT CONTAINMENT — LOCK A4, NO OVERFLOW IN ANY DIRECTION
+   ===================================================================== */
+.report-page,
+.report-page * {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.report-page {
+  overflow: hidden !important;
+}
+
+/* All text elements: wrap aggressively, never break layout */
+.report-page td,
+.report-page th,
+.report-page p,
+.report-page span,
+.report-page div,
+.report-page li {
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-word;
+}
+
+/* Cells that explicitly should ellipsis stay nowrap; others wrap */
+.rc-b-text,
+.rc-b-text-col,
+.rc-b-label,
+.rc-b-label-col,
+.rc-sig-name,
+.rc-sig-position {
+  overflow: hidden;
+  white-space: normal;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+/* Force long unbroken strings to break */
+.rc-fill,
+.rc-sig-name,
+.rc-eot-subject,
+.rc-phase-rowlabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Comment fields: clamp to fixed lines so vertical doesn't expand */
+.rc-b-text-col {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  max-height: 4.2em;
+}
+.rc-b-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  max-height: 2.8em;
+}
+
+/* Table cells never push width */
+.report-page table { table-layout: fixed; width: 100%; }
