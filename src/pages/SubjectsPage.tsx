@@ -95,10 +95,9 @@ export default function SubjectsPage() {
     setOpen(true);
   };
 
-  const coreCountForLevel = (level: string | null | undefined, excludeId?: string) => {
-    if (!level) return 0;
-    const classIds = new Set(classes.filter(c => c.level === level).map(c => c.id));
-    return subjects.filter(s => s.is_core && classIds.has(s.class_id) && s.id !== excludeId).length;
+  const coreCountForClass = (classId: string | null | undefined, excludeId?: string) => {
+    if (!classId) return 0;
+    return subjects.filter(s => s.is_core && s.class_id === classId && s.id !== excludeId).length;
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
