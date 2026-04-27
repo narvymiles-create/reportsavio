@@ -10,7 +10,6 @@ import { toast } from "@/hooks/use-toast";
 import { Loader2, Upload, Image as ImageIcon, Stamp, Settings2, Droplet } from "lucide-react";
 import { StampPositionDialog, StampPositionPanel } from "@/components/StampPositionDialog";
 import { WatermarkPanel } from "@/components/WatermarkPanel";
-import { processStampFile } from "@/lib/signatureProcessing";
 
 const schema = z.object({
   name: z.string().trim().min(1).max(200),
@@ -190,15 +189,16 @@ export default function SchoolInfoPage() {
     }
     setUploadingStamp(true);
     try {
-      // Strip white background → transparent PNG, auto-crop. Preserves stamp color.
-      const processed = await processStampFile(file, { whiteThreshold: 230 });
-      const path = `stamp-${info.id}.png`;
+      // Upload the stamp EXACTLY as provided — no background removal,
+      // no re-encoding. Preserves whatever transparency the user prepared.
+      const ext = (file.name.split(".").pop() || "png").toLowerCase();
+      const path = `stamp-${info.id}.${ext}`;
       const { error: upErr } = await supabase.storage
         .from("school-assets")
-        .upload(path, processed, { upsert: true, contentType: "image/png" });
+        .upload(path, file, { upsert: true, contentType: file.type || "image/png" });
       if (upErr) throw upErr;
       await supabase.from("school_info" as any).update({ stamp_path: path }).eq("id", info.id);
-      toast({ title: "Stamp uploaded", description: "Background removed automatically." });
+      toast({ title: "Stamp uploaded", description: "Your stamp is saved as-is." });
       load();
     } catch (err: any) {
       toast({ title: "Upload failed", description: err.message, variant: "destructive" });
@@ -267,7 +267,11 @@ export default function SchoolInfoPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2"><Stamp className="h-4 w-4" /> School stamp</CardTitle>
             <CardDescription>
-              PNG/JPG, max 4 MB. White background is removed automatically. The position, size, and opacity you save here apply to all report cards.
+              PNG (recommended) or JPG, max 4 MB. Your stamp is uploaded <b>exactly as provided</b> — no automatic background removal.
+              <br />
+              <span className="text-amber-600 dark:text-amber-400 font-medium">
+                ⚠ Please remove the background BEFORE uploading (use a transparent PNG) for the cleanest look on report cards.
+              </span>
             </CardDescription>
           </CardHeader>
           <CardContent>

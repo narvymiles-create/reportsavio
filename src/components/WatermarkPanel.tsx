@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Loader2, RotateCcw, Save, Upload, Droplet } from "lucide-react";
-import { processStampFile } from "@/lib/signatureProcessing";
+import { ReportCardMiniPreview } from "@/components/ReportCardMiniPreview";
 
 export type WatermarkSettings = {
   watermark_enabled: boolean;
@@ -68,14 +68,15 @@ export function WatermarkPanel({ schoolId, watermarkUrl, initial, onSaved, onUpl
     }
     setUploading(true);
     try {
-      const processed = await processStampFile(file, { whiteThreshold: 230, maxSize: 1600 });
-      const path = `watermark-${schoolId}.png`;
+      // Upload watermark exactly as provided (no auto background removal).
+      const ext = (file.name.split(".").pop() || "png").toLowerCase();
+      const path = `watermark-${schoolId}.${ext}`;
       const { error: upErr } = await supabase.storage
         .from("school-assets")
-        .upload(path, processed, { upsert: true, contentType: "image/png" });
+        .upload(path, file, { upsert: true, contentType: file.type || "image/png" });
       if (upErr) throw upErr;
       await supabase.from("school_info" as any).update({ watermark_path: path }).eq("id", schoolId);
-      toast({ title: "Watermark uploaded", description: "Background removed automatically." });
+      toast({ title: "Watermark uploaded", description: "Your image is saved as-is." });
       onUploaded();
     } catch (err: any) {
       toast({ title: "Upload failed", description: err.message, variant: "destructive" });
@@ -200,6 +201,9 @@ export function WatermarkPanel({ schoolId, watermarkUrl, initial, onSaved, onUpl
           <Label htmlFor="wm-enable" className="text-sm">Enable watermark</Label>
         </div>
       </div>
+      <p className="text-xs text-amber-600 dark:text-amber-400">
+        ⚠ Please remove the background BEFORE uploading (use a transparent PNG). Your image is uploaded exactly as provided.
+      </p>
 
       {/* A4-ratio preview */}
       <div
@@ -211,16 +215,12 @@ export function WatermarkPanel({ schoolId, watermarkUrl, initial, onSaved, onUpl
         <div className="absolute inset-0" style={{ zIndex: 0 }}>
           {renderWatermark()}
         </div>
-        {/* mock content layer (above watermark) */}
-        <div className="relative" style={{ zIndex: 2 }}>
-          <div className="absolute inset-x-3 top-3 h-6 bg-muted/80 rounded-sm flex items-center justify-center text-[10px] text-muted-foreground">SCHOOL HEADER</div>
-          <div className="absolute inset-x-3 top-12 h-4 bg-muted/60 rounded-sm flex items-center justify-center text-[9px] text-muted-foreground">Student Info</div>
-          <div className="absolute inset-x-3 top-[42%] h-5 bg-muted/80 rounded-sm flex items-center justify-center text-[9px] text-muted-foreground">Performance Table</div>
-          <div className="absolute inset-x-3 top-[55%] h-5 bg-muted/80 rounded-sm flex items-center justify-center text-[9px] text-muted-foreground">Comments / Signatures</div>
-          <div className="absolute inset-x-3 bottom-3 h-4 bg-muted/60 rounded-sm flex items-center justify-center text-[9px] text-muted-foreground">Footer</div>
+        {/* real report card preview layer (above watermark) */}
+        <div className="absolute inset-0" style={{ zIndex: 2 }}>
+          <ReportCardMiniPreview />
         </div>
         {!watermarkUrl && (
-          <div className="absolute inset-0 flex items-center justify-center text-xs text-muted-foreground">
+          <div className="absolute inset-0 flex items-center justify-center text-xs text-muted-foreground bg-background/40 z-10">
             Upload a watermark image to begin
           </div>
         )}

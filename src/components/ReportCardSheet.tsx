@@ -481,12 +481,10 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
           </tr>
           <tr>
             <td><span className="rc-lbl">CLASS:</span> <span className="rc-fill">{klass?.name ?? ""}</span></td>
-            {flags.stream
-              ? <td><span className="rc-lbl">STREAM:</span> <span className="rc-fill">{stream?.name ?? ""}</span></td>
-              : <td />}
             {flags.pay_code
               ? <td><span className="rc-lbl">PAY CODE:</span> <span className="rc-fill">{learner.pay_code ?? ""}</span></td>
               : <td />}
+            <td />
           </tr>
         </tbody>
       </table>
