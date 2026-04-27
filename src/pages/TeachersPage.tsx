@@ -266,7 +266,7 @@ export default function TeachersPage() {
     <div className="space-y-6">
       <div className="flex items-end justify-between gap-2 flex-wrap">
         <div>
-          <h1 className="text-3xl font-bold">Teachers</h1>
+          <h1 className="text-3xl font-bold">{isNursery ? "Nursery Teachers" : "Teachers"}</h1>
           <p className="text-muted-foreground">Manage teachers, auto-generate initials, and edit assignments.</p>
         </div>
         <Dialog

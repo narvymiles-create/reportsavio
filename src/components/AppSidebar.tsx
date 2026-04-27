@@ -67,7 +67,7 @@ const nurseryGroups = [
       { title: "Nursery Classes", url: "/nursery/classes", icon: GraduationCap },
       { title: "Learning Areas", url: "/nursery/learning-areas", icon: Shapes },
       { title: "Color Key", url: "/nursery/colors", icon: Palette },
-      { title: "Teachers", url: "/teachers", icon: UserCog },
+      { title: "Nursery Teachers", url: "/teachers", icon: UserCog },
       { title: "Terms", url: "/terms", icon: CalendarDays },
     ],
   },
