@@ -14,7 +14,7 @@ import { useReportModule } from "@/hooks/useReportModule";
 
 type School = { id: string; head_teacher_name: string | null; head_teacher_signature_path: string | null; nursery_head_teacher_name: string | null; nursery_head_teacher_signature_path: string | null };
 type Cls = { id: string; name: string; class_signature_path: string | null; class_teacher_id: string | null };
-type Teacher = { id: string; full_name: string; initials: string | null; signature_path: string | null };
+type Teacher = { id: string; full_name: string; initials: string | null; signature_path: string | null; section?: string | null };
 
 function SignatureCell({ path, onChange, kind }: { path: string | null; onChange: (newPath: string | null) => Promise<void>; kind: "school" | "class" | "teacher" }) {
   const [url, setUrl] = useState<string | null>(null);
@@ -148,7 +148,7 @@ export default function SignaturesPage() {
     const [s, c, t] = await Promise.all([
       (supabase.from("school_info") as any).select("id,head_teacher_name,head_teacher_signature_path,nursery_head_teacher_name,nursery_head_teacher_signature_path").eq("is_active", true).order("created_at", { ascending: false }).limit(1).maybeSingle(),
       (supabase.from(classesTable) as any).select("id,name,class_signature_path,class_teacher_id").order("sort_order").order("name"),
-      (supabase.from("teachers") as any).select("id,full_name,initials,signature_path").eq("section", section).order("full_name"),
+      (supabase.from("teachers") as any).select("id,full_name,initials,signature_path,section").order("full_name"),
     ]);
     setSchool((s.data as any) ?? null);
     setClasses((c.data ?? []) as Cls[]);
@@ -267,11 +267,11 @@ export default function SignaturesPage() {
               <CardDescription>Optional — used where individual subject signatures are required.</CardDescription>
             </CardHeader>
             <CardContent>
-              {teachers.length === 0 ? (
+              {teachers.filter(t => (t.section ?? "primary") === "primary").length === 0 ? (
                 <p className="text-sm text-muted-foreground">No teachers yet.</p>
               ) : (
                 <div className="space-y-4">
-                  {teachers.map(t => (
+                  {teachers.filter(t => (t.section ?? "primary") === "primary").map(t => (
                     <div key={t.id} className="flex items-center justify-between border rounded-lg p-3 gap-4 flex-wrap">
                       <div>
                         <div className="font-semibold">{t.full_name}</div>
