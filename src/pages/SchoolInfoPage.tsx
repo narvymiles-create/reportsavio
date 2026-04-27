@@ -267,7 +267,11 @@ export default function SchoolInfoPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2"><Stamp className="h-4 w-4" /> School stamp</CardTitle>
             <CardDescription>
-              PNG/JPG, max 4 MB. White background is removed automatically. The position, size, and opacity you save here apply to all report cards.
+              PNG (recommended) or JPG, max 4 MB. Your stamp is uploaded <b>exactly as provided</b> — no automatic background removal.
+              <br />
+              <span className="text-amber-600 dark:text-amber-400 font-medium">
+                ⚠ Please remove the background BEFORE uploading (use a transparent PNG) for the cleanest look on report cards.
+              </span>
             </CardDescription>
           </CardHeader>
           <CardContent>
