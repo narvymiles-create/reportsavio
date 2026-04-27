@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { gradeFor, divisionFor, type GradeBand, type DivisionRule } from "@/lib/grading";
+import { calculateDivision, gradeFor, type GradeBand } from "@/lib/grading";
 import { useLearnerFieldSettings } from "@/hooks/useLearnerFieldSettings";
 
 
@@ -46,7 +46,6 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
   const [subjects, setSubjects] = useState<Anything[]>([]);
   const [marks, setMarks] = useState<Anything[]>([]);
   const [bands, setBands] = useState<GradeBand[]>([]);
-  const [divRules, setDivRules] = useState<DivisionRule[]>([]);
   const [classMarks, setClassMarks] = useState<Anything[]>([]);
   const [classSubjects, setClassSubjects] = useState<Anything[]>([]);
   const [classLearnerCount, setClassLearnerCount] = useState<number>(0);
@@ -63,15 +62,14 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
       if (cancelled) return;
       setLearner(ln);
 
-      const [{ data: tm }, { data: rc }, { data: si }, { data: gs }, { data: dr }] = await Promise.all([
+      const [{ data: tm }, { data: rc }, { data: si }, { data: gs }] = await Promise.all([
         supabase.from("terms").select("*").eq("id", termId).maybeSingle(),
         supabase.from("report_cards").select("*").eq("learner_id", learnerId).eq("term_id", termId).maybeSingle(),
         supabase.from("school_info").select("*").eq("is_active", true).order("created_at", { ascending: false }).limit(1).maybeSingle(),
         supabase.from("grading_scales").select("grade,points,min_mark,max_mark,remark").order("sort_order"),
-        supabase.from("division_rules").select("division,min_aggregate,max_aggregate").order("sort_order"),
       ]);
       if (cancelled) return;
-      setTerm(tm); setReport(rc); setSchool(si); setBands((gs ?? []) as GradeBand[]); setDivRules((dr ?? []) as DivisionRule[]);
+      setTerm(tm); setReport(rc); setSchool(si); setBands((gs ?? []) as GradeBand[]);
 
       let cls: Anything | null = null;
       if (ln?.class_id) {
@@ -131,7 +129,7 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
     return () => { cancelled = true; };
   }, [learnerId, termId, reloadKey]);
 
-  // Realtime: refetch when marks/subjects/division_rules change
+  // Realtime: refetch when marks/subjects/grading_scales change
   useEffect(() => {
     if (!learnerId || !termId) return;
     const ch = supabase
@@ -139,7 +137,6 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
       .on("postgres_changes", { event: "*", schema: "public", table: "marks", filter: `term_id=eq.${termId}` }, () => setReloadKey(k => k + 1))
       .on("postgres_changes", { event: "*", schema: "public", table: "subjects" }, () => setReloadKey(k => k + 1))
       .on("postgres_changes", { event: "*", schema: "public", table: "learners" }, () => setReloadKey(k => k + 1))
-      .on("postgres_changes", { event: "*", schema: "public", table: "division_rules" }, () => setReloadKey(k => k + 1))
       .on("postgres_changes", { event: "*", schema: "public", table: "grading_scales" }, () => setReloadKey(k => k + 1))
       .subscribe();
     return () => { supabase.removeChannel(ch); };
@@ -258,8 +255,8 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
     const position = lp.positionMap.get(learnerId) ?? null;
     const classSize = classLearnerCount || 0;
     // Only compute division when this phase actually has marks AND core subjects valid
-    const division = (hasData && coreCountValid && divRules.length)
-      ? divisionFor(aggregate, divRules)
+    const division = (hasData && coreCountValid)
+      ? calculateDivision(aggregate)
       : "";
     return { position, classSize, division };
   };
