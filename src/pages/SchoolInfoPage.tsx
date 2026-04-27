@@ -10,7 +10,6 @@ import { toast } from "@/hooks/use-toast";
 import { Loader2, Upload, Image as ImageIcon, Stamp, Settings2, Droplet } from "lucide-react";
 import { StampPositionDialog, StampPositionPanel } from "@/components/StampPositionDialog";
 import { WatermarkPanel } from "@/components/WatermarkPanel";
-import { processStampFile } from "@/lib/signatureProcessing";
 
 const schema = z.object({
   name: z.string().trim().min(1).max(200),
