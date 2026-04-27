@@ -195,7 +195,11 @@ export default function SignaturesPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold">{isNursery ? "Nursery Signatures" : "Signatures"}</h1>
-        <p className="text-muted-foreground">Upload an image OR draw directly. Backgrounds are removed and signatures auto-cropped & scaled for the report card.</p>
+        <p className="text-muted-foreground">Upload an image OR draw directly. Uploaded signatures are saved exactly as provided — their original background is preserved.</p>
+      </div>
+
+      <div className="rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 p-3 text-sm text-amber-900 dark:text-amber-200">
+        <strong>Reminder:</strong> Please remove the background from your signature image <em>before</em> uploading (use a transparent PNG). The signature will be placed on the report card with whatever background it has.
       </div>
 
       <Tabs defaultValue="head">
