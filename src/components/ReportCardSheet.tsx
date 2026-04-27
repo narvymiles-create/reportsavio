@@ -270,6 +270,8 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
   // Debug logging — verify per-exam computation
   // eslint-disable-next-line no-console
   console.log(`[ReportCard ${learnerId}] BOT agg=${botSum.aggregate} div=${botInfo.division} | MID agg=${midSum.aggregate} div=${midInfo.division} | EOT agg=${eotAggregate} div=${eotInfo.division} | coreCountValid=${coreCountValid}`);
+  // eslint-disable-next-line no-console
+  console.log(`[ReportCard ${learnerId}] BOT AGG: ${botSum.aggregate} DIVISION: ${botInfo.division} | MID AGG: ${midSum.aggregate} DIVISION: ${midInfo.division} | EOT AGG: ${eotAggregate} DIVISION: ${eotInfo.division}`);
 
   const codeFor = (name: string): string => {
     const n = name.toUpperCase();
