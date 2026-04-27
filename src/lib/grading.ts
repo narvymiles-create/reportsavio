@@ -40,3 +40,33 @@ export function calculateDivision(aggregate: number | null | undefined): string 
 }
 
 export const divisionFor = calculateDivision;
+
+/** Downgrade a base division by ONE level (1→2, 2→3, 3→4, 4→4). X/U unchanged. */
+export function downgradeDivision(div: string): string {
+  if (div === "1") return "2";
+  if (div === "2") return "3";
+  if (div === "3") return "4";
+  if (div === "4") return "4";
+  return div; // X or U or empty - unchanged
+}
+
+/** Detect if a subject's name maps to ENG or MTC (the two critical core subjects). */
+export function isCriticalCoreSubject(name: string | null | undefined): "ENG" | "MTC" | null {
+  if (!name) return null;
+  const n = name.toUpperCase();
+  if (n.includes("ENGLISH")) return "ENG";
+  if (n.includes("MATH")) return "MTC";
+  return null;
+}
+
+/**
+ * Apply the F9-in-ENG-or-MTC override rule to a base division.
+ * If learner scored F9 in English OR Math, push division ONE level worse.
+ * Skip override if division is "X" (missing core) or "U".
+ */
+export function applyF9Override(baseDivision: string, hasF9InEngOrMath: boolean): string {
+  if (!hasF9InEngOrMath) return baseDivision;
+  if (baseDivision === "X" || baseDivision === "U" || !baseDivision) return baseDivision;
+  return downgradeDivision(baseDivision);
+}
+
