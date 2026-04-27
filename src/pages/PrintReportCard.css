@@ -522,15 +522,3 @@ table.rc-phase-summary td {
 
 /* Table cells never push width */
 .report-page table { table-layout: fixed; width: 100%; }
-
-/* Stamp must stay within A4 borders */
-.rc-stamp {
-  position: absolute;
-  max-width: calc(210mm - 14mm);
-  max-height: calc(297mm - 14mm);
-  object-fit: contain;
-  pointer-events: none;
-  z-index: 3;
-  /* Clamp position so the centered image (translate -50%,-50%) cannot leave the page */
-  /* Achieved via the parent .report-page overflow:hidden already, plus size cap */
-}

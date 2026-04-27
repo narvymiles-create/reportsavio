@@ -348,9 +348,3 @@
 
 /* Tables locked */
 .nrc-page table { table-layout: fixed; width: 100%; }
-
-/* Stamp must stay within page borders */
-.nrc-stamp {
-  max-width: calc(210mm - 12mm);
-  max-height: calc(297mm - 12mm);
-}
