@@ -16,9 +16,7 @@ import type { LucideIcon } from "lucide-react";
 import { generateClassReports } from "@/lib/reportCards";
 import { calculateDivision } from "@/lib/grading";
 import { ReportCardSheet } from "@/components/ReportCardSheet";
-import html2canvas from "html2canvas";
-import jsPDF from "jspdf";
-import JSZip from "jszip";
+import { downloadElementsAsZip, downloadPdfFromElement, safeFileName } from "@/lib/pdfExport";
 import "./PrintReportCard.css";
 
 type Term = { id: string; name: string; year: number; is_current: boolean };
