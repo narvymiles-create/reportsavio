@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -286,10 +286,11 @@ export default function ReportCardsPage() {
         supabase.from("classes").select("id,name").order("sort_order").order("name"),
         supabase.from("streams").select("id,class_id,name").order("name"),
       ]);
-      setTerms((t.data ?? []) as Term[]);
+      const termsData = (t.data ?? []) as Term[];
+      setTerms(termsData);
       setClasses((c.data ?? []) as Cls[]);
       setStreams((s.data ?? []) as Stream[]);
-      const cur = (t.data ?? []).find((x: any) => x.is_current);
+      const cur = termsData.find((x) => x.is_current);
       if (cur) setTermId(cur.id);
       setLoading(false);
     })();
@@ -302,16 +303,16 @@ export default function ReportCardsPage() {
       .then(({ data }) => setLearners((data ?? []) as Learner[]));
   }, [classId]);
 
-  const loadReports = async () => {
+  const loadReports = useCallback(async () => {
     if (!termId || !classId) { setReports({}); return; }
     const { data } = await supabase.from("report_cards")
       .select("learner_id,total_marks,average,aggregate,division,position,class_size,generated_at")
       .eq("term_id", termId).eq("class_id", classId);
     const map: Record<string, Report> = {};
-    (data ?? []).forEach((r: any) => { map[r.learner_id] = r; });
+    ((data ?? []) as Report[]).forEach((r) => { map[r.learner_id] = r; });
     setReports(map);
-  };
-  useEffect(() => { loadReports(); }, [termId, classId]);
+  }, [termId, classId]);
+  useEffect(() => { loadReports(); }, [loadReports]);
 
   const filtered = useMemo(() => {
     if (streamId === "all") return learners;
