@@ -417,10 +417,10 @@ export default function ReportCardsPage() {
               {generating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
               Generate / Refresh All
             </Button>
-            <Button variant="outline" onClick={() => openBulk("print")} disabled={!termId || !classId || generatedCount === 0}>
+            <Button variant="outline" onClick={() => startReportJob("print")} disabled={!termId || !classId || generatedCount === 0 || !!reportJob}>
               <Package className="mr-2 h-4 w-4" /> Bulk Print
             </Button>
-            <Button variant="outline" onClick={() => openBulk("download")} disabled={!termId || !classId || generatedCount === 0}>
+            <Button variant="outline" onClick={() => startReportJob("download")} disabled={!termId || !classId || generatedCount === 0 || !!reportJob}>
               <FolderArchive className="mr-2 h-4 w-4" /> Bulk Download (ZIP)
             </Button>
           </div>
@@ -461,8 +461,8 @@ export default function ReportCardsPage() {
                         {r ? (
                           <div className="inline-flex items-center gap-1 justify-end">
                             <IconAction icon={Eye} label="View" asChild href={printUrl} target="_blank" />
-                            <IconAction icon={Printer} label="Print" asChild href={`${printUrl}?mode=print`} target="_blank" />
-                            <IconAction icon={Download} label="Download" asChild href={`${printUrl}?mode=download`} target="_blank" />
+                            <IconAction icon={Printer} label="Print" onClick={() => startReportJob("print", [l], `Print ${l.full_name}`)} />
+                            <IconAction icon={Download} label="Download" onClick={() => startReportJob("download", [l], `Download ${l.full_name}`)} />
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button size="icon" variant="ghost" className="h-8 w-8 inline-flex lg:hidden" onClick={() => { setSingleLearnerId(l.id); generateSingle(); }} title="Re-generate" aria-label="Edit / Regenerate">
