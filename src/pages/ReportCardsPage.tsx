@@ -212,11 +212,12 @@ function ReportJobRunner({ job, termId, onDone }: { job: ReportJob; termId: stri
         await runDownload();
         if (mountedRef.current) onDone();
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("[ReportCards job] fatal", error);
       if (mountedRef.current) {
-        setErrorMsg(error?.message || "Bulk process failed");
-        toast({ title: "Report action failed", description: error?.message || "Bulk process failed", variant: "destructive" });
+        const message = errorMessage(error) || "Bulk process failed";
+        setErrorMsg(message);
+        toast({ title: "Report action failed", description: message, variant: "destructive" });
       }
     } finally {
       if (mountedRef.current && job.mode !== "print") setWorking(false);
@@ -228,6 +229,8 @@ function ReportJobRunner({ job, termId, onDone }: { job: ReportJob; termId: stri
     startedRef.current = true;
     const t = setTimeout(runJob, 500);
     return () => clearTimeout(t);
+    // runJob is intentionally captured for this one immutable job id.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allReady, job.id]);
 
   return (
