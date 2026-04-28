@@ -91,6 +91,152 @@ function IconAction({ icon: Icon, label, onClick, asChild, href, target, variant
   );
 }
 
+function ReportJobRunner({ job, termId, onDone }: { job: ReportJob; termId: string; onDone: () => void }) {
+  const [readyIds, setReadyIds] = useState<Record<string, boolean>>({});
+  const [working, setWorking] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [statusMsg, setStatusMsg] = useState("Preparing report cards...");
+  const [errorMsg, setErrorMsg] = useState("");
+  const sheetsRef = useRef<HTMLDivElement>(null);
+  const startedRef = useRef(false);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; document.body.classList.remove("bulk-report-printing"); };
+  }, []);
+
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (working) { e.preventDefault(); e.returnValue = ""; }
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [working]);
+
+  const readyCount = Object.keys(readyIds).length;
+  const allReady = readyCount >= job.learners.length;
+
+  const renderPageToPdfBlob = async (page: HTMLDivElement): Promise<Blob> => {
+    const canvas = await html2canvas(page, { scale: 2, backgroundColor: "#ffffff", useCORS: true, logging: false });
+    const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const ratio = canvas.width / canvas.height;
+    let w = pageW;
+    let h = pageW / ratio;
+    if (h > pageH) { h = pageH; w = pageH * ratio; }
+    pdf.addImage(canvas.toDataURL("image/jpeg", 0.92), "JPEG", (pageW - w) / 2, (pageH - h) / 2, w, h, undefined, "FAST");
+    return pdf.output("blob");
+  };
+
+  const runDownload = async () => {
+    const pages = Array.from(sheetsRef.current?.querySelectorAll<HTMLDivElement>(".report-page") ?? []);
+    if (pages.length === 0) throw new Error("No printable report cards were found.");
+    const zip = new JSZip();
+    const failures: string[] = [];
+    console.log(`[ReportCards ZIP] Starting ${pages.length} learner(s)`);
+
+    for (let i = 0; i < pages.length; i += BULK_BATCH_SIZE) {
+      const batchEnd = Math.min(i + BULK_BATCH_SIZE, pages.length);
+      if (mountedRef.current) setStatusMsg(`Processing ${i + 1}–${batchEnd} of ${pages.length}...`);
+      for (let j = i; j < batchEnd; j++) {
+        if (!mountedRef.current) return;
+        const learner = job.learners[j];
+        try {
+          const blob = await renderPageToPdfBlob(pages[j]);
+          const safe = (learner?.full_name ?? `report-${j + 1}`).replace(/[^a-z0-9_\-\s]/gi, "_");
+          zip.file(`${safe}.pdf`, blob);
+          console.log(`[ReportCards ZIP] PDF generated: ${safe}`);
+        } catch (error) {
+          console.error(`[ReportCards ZIP] Failed: ${learner?.full_name}`, error);
+          failures.push(learner?.full_name ?? `#${j + 1}`);
+        }
+        if (mountedRef.current) setProgress(Math.round(((j + 1) / pages.length) * 100));
+        await new Promise(resolve => setTimeout(resolve, 30));
+      }
+    }
+
+    if (mountedRef.current) setStatusMsg("Packaging ZIP file...");
+    const zipBlob = await zip.generateAsync({ type: "blob" });
+    console.log("[ReportCards ZIP] ZIP creation success");
+    const url = URL.createObjectURL(zipBlob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `report-cards-${new Date().toISOString().slice(0, 10)}.zip`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    if (failures.length) toast({ title: "Some reports failed", description: `${failures.length} failed: ${failures.slice(0, 3).join(", ")}`, variant: "destructive" });
+    else toast({ title: "Download ready", description: `${pages.length} report card(s) packaged.` });
+  };
+
+  const runJob = async () => {
+    try {
+      if (!job.learners.length) throw new Error("No learners available for report generation.");
+      setWorking(true);
+      setErrorMsg("");
+      setProgress(0);
+      console.log(`[ReportCards ${job.mode}] Learners: ${job.learners.length}`);
+      if (job.mode === "print") {
+        setStatusMsg("Opening print options...");
+        document.body.classList.add("bulk-report-printing");
+        window.print();
+        setTimeout(() => {
+          document.body.classList.remove("bulk-report-printing");
+          if (mountedRef.current) onDone();
+        }, 1000);
+      } else {
+        await runDownload();
+        if (mountedRef.current) onDone();
+      }
+    } catch (error: any) {
+      console.error("[ReportCards job] fatal", error);
+      if (mountedRef.current) {
+        setErrorMsg(error?.message || "Bulk process failed");
+        toast({ title: "Report action failed", description: error?.message || "Bulk process failed", variant: "destructive" });
+      }
+    } finally {
+      if (mountedRef.current && job.mode !== "print") setWorking(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!allReady || startedRef.current) return;
+    startedRef.current = true;
+    const t = setTimeout(runJob, 500);
+    return () => clearTimeout(t);
+  }, [allReady, job.id]);
+
+  return (
+    <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm p-6 overflow-auto no-print">
+      <Card className="max-w-xl mx-auto">
+        <CardHeader>
+          <CardTitle>{job.label}</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm"><strong>{job.learners.length}</strong> report card(s) — {allReady ? "ready" : `loading ${readyCount}/${job.learners.length}…`}</p>
+          <p className="text-sm text-muted-foreground">{errorMsg || statusMsg} {working && `${progress}%`}</p>
+          <div className="h-2 rounded bg-muted overflow-hidden"><div className="h-full bg-primary transition-all" style={{ width: `${allReady && job.mode === "print" ? 100 : progress}%` }} /></div>
+          {errorMsg && <Button variant="outline" onClick={onDone}>Close</Button>}
+        </CardContent>
+      </Card>
+      <div ref={sheetsRef} className="report-job-renderer" aria-hidden>
+        {job.learners.map((learner, i) => (
+          <ReportCardSheet
+            key={`${job.id}-${learner.id}`}
+            learnerId={learner.id}
+            termId={termId}
+            pageBreak={i < job.learners.length - 1}
+            onReady={() => setReadyIds(prev => prev[learner.id] ? prev : { ...prev, [learner.id]: true })}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function ReportCardsPage() {
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
