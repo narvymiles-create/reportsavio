@@ -133,8 +133,27 @@ function ReportJobRunner({ job, termId, onDone }: { job: ReportJob; termId: stri
   const runDownload = async () => {
     const pages = Array.from(sheetsRef.current?.querySelectorAll<HTMLDivElement>(".report-page") ?? []);
     if (pages.length === 0) throw new Error("No printable report cards were found.");
-    const zip = new JSZip();
     const failures: string[] = [];
+
+    if (pages.length === 1) {
+      setStatusMsg("Generating PDF...");
+      const blob = await renderPageToPdfBlob(pages[0]);
+      const safe = (job.learners[0]?.full_name ?? "report-card").replace(/[^a-z0-9_\-\s]/gi, "_");
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${safe}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      setProgress(100);
+      console.log(`[ReportCards PDF] PDF generated: ${safe}`);
+      toast({ title: "Download ready", description: `${safe}.pdf` });
+      return;
+    }
+
+    const zip = new JSZip();
     console.log(`[ReportCards ZIP] Starting ${pages.length} learner(s)`);
 
     for (let i = 0; i < pages.length; i += BULK_BATCH_SIZE) {
