@@ -4,9 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Loader2, Printer, Download } from "lucide-react";
 import { NurseryReportSheet } from "@/components/NurseryReportSheet";
-import html2canvas from "html2canvas";
-import jsPDF from "jspdf";
-import JSZip from "jszip";
+import { downloadElementsAsZip, safeFileName } from "@/lib/pdfExport";
 import { toast } from "@/hooks/use-toast";
 
 type Learner = { id: string; full_name: string; stream_id: string | null };
@@ -79,21 +77,6 @@ export default function BulkNurseryReportCardsPage() {
     return () => clearTimeout(t);
   }, [readyCount, learners.length, loading, mode]);
 
-  const renderPageToPdfBlob = async (page: HTMLDivElement): Promise<Blob> => {
-    const canvas = await html2canvas(page, { scale: 2, backgroundColor: "#ffffff", useCORS: true, logging: false });
-    const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-    const pageW = pdf.internal.pageSize.getWidth();
-    const pageH = pdf.internal.pageSize.getHeight();
-    const imgData = canvas.toDataURL("image/jpeg", 0.92);
-    const ratio = canvas.width / canvas.height;
-    let w = pageW, h = pageW / ratio;
-    if (h > pageH) { h = pageH; w = pageH * ratio; }
-    const x = (pageW - w) / 2;
-    const y = (pageH - h) / 2;
-    pdf.addImage(imgData, "JPEG", x, y, w, h, undefined, "FAST");
-    return pdf.output("blob");
-  };
-
   const runBulkDownload = async () => {
     if (!sheetsRef.current) return;
     if (!learners || learners.length === 0) {
@@ -104,44 +87,22 @@ export default function BulkNurseryReportCardsPage() {
     setProgress(0);
     setErrorMsg("");
     setStatusMsg("Generating reports, please wait...");
-    const failures: string[] = [];
     try {
       const pages = Array.from(sheetsRef.current.querySelectorAll<HTMLDivElement>(".nrc-page"));
       console.log(`[BulkNursery] Starting ZIP for ${pages.length} learner(s)`);
-      const zip = new JSZip();
-
-      for (let i = 0; i < pages.length; i += BATCH_SIZE) {
-        const batchEnd = Math.min(i + BATCH_SIZE, pages.length);
-        setStatusMsg(`Processing ${i + 1}–${batchEnd} of ${pages.length}...`);
-        for (let j = i; j < batchEnd; j++) {
+      const jobs = pages.map((element, j) => {
+        const safe = safeFileName(learners[j]?.full_name ?? `report-${j + 1}`, `report-${j + 1}`);
+        return { element, filename: `${safe}.pdf` };
+      });
+      const { failures } = await downloadElementsAsZip(
+        jobs,
+        `nursery-report-cards-${new Date().toISOString().slice(0, 10)}.zip`,
+        (done, total, current) => {
           if (!mountedRef.current) return;
-          const page = pages[j];
-          const learner = learners[j];
-          try {
-            const blob = await renderPageToPdfBlob(page);
-            const safe = (learner?.full_name ?? `report-${j + 1}`).replace(/[^a-z0-9_\-\s]/gi, "_");
-            zip.file(`${safe}.pdf`, blob);
-            console.log(`[BulkNursery] ✓ ${safe}`);
-          } catch (err) {
-            console.error(`[BulkNursery] ✗ Failed for ${learner?.full_name}`, err);
-            failures.push(learner?.full_name ?? `#${j + 1}`);
-          }
-          setProgress(Math.round(((j + 1) / pages.length) * 100));
-          await new Promise(r => setTimeout(r, 30));
+          setStatusMsg(`Processing ${done} of ${total}: ${current}`);
+          setProgress(Math.round((done / total) * 100));
         }
-      }
-
-      setStatusMsg("Packaging ZIP...");
-      const zipBlob = await zip.generateAsync({ type: "blob" });
-      const url = URL.createObjectURL(zipBlob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `nursery-report-cards-${new Date().toISOString().slice(0, 10)}.zip`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-
+      );
       if (failures.length > 0) {
         toast({ title: "Some reports failed", description: `${failures.length} failed`, variant: "destructive" });
       } else {
