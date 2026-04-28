@@ -347,6 +347,8 @@ export default function ReportCardsPage() {
 
   return (
     <div className="space-y-6">
+      {reportJob && <ReportJobRunner job={reportJob} termId={termId} onDone={() => setReportJob(null)} />}
+
       <div>
         <h1 className="text-3xl font-bold">Report Cards</h1>
         <p className="text-muted-foreground">Generate, preview, print and bulk-export report cards.</p>
