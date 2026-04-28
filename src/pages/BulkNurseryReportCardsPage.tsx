@@ -4,9 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Loader2, Printer, Download } from "lucide-react";
 import { NurseryReportSheet } from "@/components/NurseryReportSheet";
-import html2canvas from "html2canvas";
-import jsPDF from "jspdf";
-import JSZip from "jszip";
+import { downloadElementsAsZip, safeFileName } from "@/lib/pdfExport";
 import { toast } from "@/hooks/use-toast";
 
 type Learner = { id: string; full_name: string; stream_id: string | null };
