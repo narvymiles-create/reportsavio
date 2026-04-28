@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,11 @@ import {
 } from "lucide-react";
 import { generateClassReports } from "@/lib/reportCards";
 import { calculateDivision } from "@/lib/grading";
+import { ReportCardSheet } from "@/components/ReportCardSheet";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
+import JSZip from "jszip";
+import "./PrintReportCard.css";
 
 type Term = { id: string; name: string; year: number; is_current: boolean };
 type Cls = { id: string; name: string };
@@ -24,6 +29,9 @@ type Report = {
   aggregate: number | null; division: string | null; position: number | null;
   class_size: number | null; generated_at: string;
 };
+type ReportJob = { id: number; mode: "print" | "download"; learners: Learner[]; label: string };
+
+const BULK_BATCH_SIZE = 5;
 
 function IconAction({ icon: Icon, label, onClick, asChild, href, target, variant = "ghost", danger }: {
   icon: any; label: string; onClick?: () => void; asChild?: boolean; href?: string; target?: string;
