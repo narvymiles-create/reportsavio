@@ -87,27 +87,69 @@ function lockElementToA4(element: HTMLElement): () => void {
   };
 }
 
+async function waitForRenderAssets(element: HTMLElement): Promise<void> {
+  const images = Array.from(element.querySelectorAll("img"));
+  await Promise.all(images.map((img) => {
+    if (img.complete && img.naturalWidth > 0) return Promise.resolve();
+    return new Promise<void>((resolve) => {
+      img.addEventListener("load", () => resolve(), { once: true });
+      img.addEventListener("error", () => resolve(), { once: true });
+    });
+  }));
+  await document.fonts?.ready.catch(() => undefined);
+  await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+}
+
+function createA4CaptureTarget(element: HTMLElement): { target: HTMLElement; cleanup: () => void } {
+  const host = document.createElement("div");
+  host.setAttribute("data-pdf-capture-host", "true");
+  host.style.position = "fixed";
+  host.style.left = "0";
+  host.style.top = "0";
+  host.style.width = `${A4_WIDTH_MM}mm`;
+  host.style.height = `${A4_HEIGHT_MM}mm`;
+  host.style.overflow = "hidden";
+  host.style.background = "#ffffff";
+  host.style.pointerEvents = "none";
+  host.style.zIndex = "-1";
+
+  const target = element.cloneNode(true) as HTMLElement;
+  host.appendChild(target);
+  document.body.appendChild(host);
+  const restore = lockElementToA4(target);
+
+  return {
+    target,
+    cleanup: () => {
+      restore();
+      host.remove();
+    },
+  };
+}
+
 export async function elementToPdfBlob(element: HTMLElement, filename = "report.pdf"): Promise<Blob> {
-  const restore = lockElementToA4(element);
+  const { target, cleanup } = createA4CaptureTarget(element);
   try {
     window.scrollTo(0, 0);
+    await waitForRenderAssets(target);
     const blob: Blob = await (html2pdf() as any)
       .set(baseOptions(filename))
-      .from(element)
+      .from(target)
       .outputPdf("blob");
     return blob;
   } finally {
-    restore();
+    cleanup();
   }
 }
 
 export async function downloadPdfFromElement(element: HTMLElement, filename = "report.pdf"): Promise<void> {
-  const restore = lockElementToA4(element);
+  const { target, cleanup } = createA4CaptureTarget(element);
   try {
     window.scrollTo(0, 0);
-    await (html2pdf() as any).set(baseOptions(filename)).from(element).save();
+    await waitForRenderAssets(target);
+    await (html2pdf() as any).set(baseOptions(filename)).from(target).save();
   } finally {
-    restore();
+    cleanup();
   }
 }
 
