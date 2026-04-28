@@ -456,6 +456,23 @@ table.rc-phase-summary td {
 @media print {
   .no-print { display: none !important; }
   .print-root { background: #fff; }
+  body.bulk-report-printing * { visibility: hidden !important; }
+  body.bulk-report-printing .report-job-overlay,
+  body.bulk-report-printing .report-job-overlay *,
+  body.bulk-report-printing .report-job-renderer,
+  body.bulk-report-printing .report-job-renderer * { visibility: visible !important; }
+  body.bulk-report-printing .report-job-overlay {
+    position: static !important;
+    inset: auto !important;
+    padding: 0 !important;
+    background: #fff !important;
+    overflow: visible !important;
+  }
+  body.bulk-report-printing .report-job-renderer {
+    position: static !important;
+    left: auto !important;
+    top: auto !important;
+  }
   .report-page {
     margin: 0;
     box-shadow: none;
@@ -467,6 +484,20 @@ table.rc-phase-summary td {
     break-inside: avoid;
   }
   .report-page:last-child { page-break-after: auto; }
+}
+
+.report-job-renderer {
+  position: absolute;
+  left: -10000px;
+  top: 0;
+  width: 210mm;
+}
+
+body.bulk-report-printing .report-job-renderer {
+  position: static;
+  left: auto;
+  top: auto;
+  width: auto;
 }
 
 /* =====================================================================
