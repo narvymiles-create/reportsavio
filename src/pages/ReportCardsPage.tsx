@@ -117,76 +117,35 @@ function ReportJobRunner({ job, termId, onDone }: { job: ReportJob; termId: stri
   const readyCount = Object.keys(readyIds).length;
   const allReady = readyCount >= job.learners.length;
 
-  const renderPageToPdfBlob = async (page: HTMLDivElement): Promise<Blob> => {
-    const canvas = await html2canvas(page, { scale: 2, backgroundColor: "#ffffff", useCORS: true, logging: false });
-    const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-    const pageW = pdf.internal.pageSize.getWidth();
-    const pageH = pdf.internal.pageSize.getHeight();
-    const ratio = canvas.width / canvas.height;
-    let w = pageW;
-    let h = pageW / ratio;
-    if (h > pageH) { h = pageH; w = pageH * ratio; }
-    pdf.addImage(canvas.toDataURL("image/jpeg", 0.92), "JPEG", (pageW - w) / 2, (pageH - h) / 2, w, h, undefined, "FAST");
-    return pdf.output("blob");
-  };
-
   const runDownload = async () => {
     const pages = Array.from(sheetsRef.current?.querySelectorAll<HTMLDivElement>(".report-page") ?? []);
     if (pages.length === 0) throw new Error("No printable report cards were found.");
-    const failures: string[] = [];
 
     if (pages.length === 1) {
       setStatusMsg("Generating PDF...");
-      const blob = await renderPageToPdfBlob(pages[0]);
-      const safe = (job.learners[0]?.full_name ?? "report-card").replace(/[^a-z0-9_\-\s]/gi, "_");
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `${safe}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      const safe = safeFileName(job.learners[0]?.full_name ?? "report-card", "report-card");
+      await downloadPdfFromElement(pages[0], `${safe}.pdf`);
       setProgress(100);
       console.log(`[ReportCards PDF] PDF generated: ${safe}`);
       toast({ title: "Download ready", description: `${safe}.pdf` });
       return;
     }
 
-    const zip = new JSZip();
     console.log(`[ReportCards ZIP] Starting ${pages.length} learner(s)`);
-
-    for (let i = 0; i < pages.length; i += BULK_BATCH_SIZE) {
-      const batchEnd = Math.min(i + BULK_BATCH_SIZE, pages.length);
-      if (mountedRef.current) setStatusMsg(`Processing ${i + 1}–${batchEnd} of ${pages.length}...`);
-      for (let j = i; j < batchEnd; j++) {
+    const jobs = pages.map((element, j) => {
+      const safe = safeFileName(job.learners[j]?.full_name ?? `report-${j + 1}`, `report-${j + 1}`);
+      return { element, filename: `${safe}.pdf` };
+    });
+    const { failures } = await downloadElementsAsZip(
+      jobs,
+      `report-cards-${new Date().toISOString().slice(0, 10)}.zip`,
+      (done, total, current) => {
         if (!mountedRef.current) return;
-        const learner = job.learners[j];
-        try {
-          const blob = await renderPageToPdfBlob(pages[j]);
-          const safe = (learner?.full_name ?? `report-${j + 1}`).replace(/[^a-z0-9_\-\s]/gi, "_");
-          zip.file(`${safe}.pdf`, blob);
-          console.log(`[ReportCards ZIP] PDF generated: ${safe}`);
-        } catch (error) {
-          console.error(`[ReportCards ZIP] Failed: ${learner?.full_name}`, error);
-          failures.push(learner?.full_name ?? `#${j + 1}`);
-        }
-        if (mountedRef.current) setProgress(Math.round(((j + 1) / pages.length) * 100));
-        await new Promise(resolve => setTimeout(resolve, 30));
+        setStatusMsg(`Processing ${done} of ${total}: ${current}`);
+        setProgress(Math.round((done / total) * 100));
       }
-    }
-
-    if (mountedRef.current) setStatusMsg("Packaging ZIP file...");
-    const zipBlob = await zip.generateAsync({ type: "blob" });
+    );
     console.log("[ReportCards ZIP] ZIP creation success");
-    const url = URL.createObjectURL(zipBlob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `report-cards-${new Date().toISOString().slice(0, 10)}.zip`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
     if (failures.length) toast({ title: "Some reports failed", description: `${failures.length} failed: ${failures.slice(0, 3).join(", ")}`, variant: "destructive" });
     else toast({ title: "Download ready", description: `${pages.length} report card(s) packaged.` });
   };
