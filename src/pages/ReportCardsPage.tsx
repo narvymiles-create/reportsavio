@@ -210,8 +210,8 @@ function ReportJobRunner({ job, termId, onDone }: { job: ReportJob; termId: stri
   }, [allReady, job.id]);
 
   return (
-    <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm p-6 overflow-auto no-print">
-      <Card className="max-w-xl mx-auto">
+    <div className="report-job-overlay fixed inset-0 z-50 bg-background/95 backdrop-blur-sm p-6 overflow-auto">
+      <Card className="no-print max-w-xl mx-auto">
         <CardHeader>
           <CardTitle>{job.label}</CardTitle>
         </CardHeader>
@@ -222,7 +222,7 @@ function ReportJobRunner({ job, termId, onDone }: { job: ReportJob; termId: stri
           {errorMsg && <Button variant="outline" onClick={onDone}>Close</Button>}
         </CardContent>
       </Card>
-      <div ref={sheetsRef} className="report-job-renderer" aria-hidden>
+      <div ref={sheetsRef} className="report-job-renderer" aria-hidden={job.mode === "download"}>
         {job.learners.map((learner, i) => (
           <ReportCardSheet
             key={`${job.id}-${learner.id}`}
