@@ -12,6 +12,10 @@
   position: relative;
   width: 210mm;
   height: 297mm;
+  min-width: 210mm;
+  min-height: 297mm;
+  max-width: 210mm;
+  max-height: 297mm;
   margin: 16px auto;
   padding: 14mm 12mm 10mm;
   background: #fff;
@@ -158,8 +162,6 @@
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  page-break-inside: avoid;
-  break-inside: avoid;
 }
 
 /* EOT fixed-height container — table NEVER expands, summary always visible */
@@ -205,8 +207,6 @@
   width: 100%;
   border-collapse: collapse;
   table-layout: fixed;
-  page-break-inside: avoid;
-  break-inside: avoid;
 }
 .rc-phase th, .rc-phase td {
   border: 1px solid #111;
@@ -480,8 +480,6 @@ table.rc-phase-summary td {
     height: 297mm;
     overflow: hidden;
     page-break-after: always;
-    page-break-inside: avoid;
-    break-inside: avoid;
   }
   .report-page:last-child { page-break-after: auto; }
 }

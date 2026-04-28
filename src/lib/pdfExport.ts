@@ -19,7 +19,7 @@ const A4_HEIGHT_PX = Math.round(A4_HEIGHT_MM * MM_TO_PX); // 1123
 const baseOptions = (filename: string) => ({
   margin: 0,
   filename,
-  image: { type: "jpeg" as const, quality: 0.98 },
+  image: { type: "png" as const, quality: 1 },
   html2canvas: {
     scale: 2,
     useCORS: true,
@@ -39,8 +39,7 @@ const baseOptions = (filename: string) => ({
     orientation: "portrait" as const,
     compress: true,
   },
-  // Force single page — never split
-  pagebreak: { mode: ["avoid-all"] as any },
+  pagebreak: { mode: [] as any },
 });
 
 /**
@@ -53,6 +52,7 @@ function lockElementToA4(element: HTMLElement): () => void {
     height: element.style.height,
     maxWidth: element.style.maxWidth,
     maxHeight: element.style.maxHeight,
+    minWidth: element.style.minWidth,
     minHeight: element.style.minHeight,
     margin: element.style.margin,
     boxShadow: element.style.boxShadow,
@@ -64,6 +64,7 @@ function lockElementToA4(element: HTMLElement): () => void {
   element.style.height = `${A4_HEIGHT_MM}mm`;
   element.style.maxWidth = `${A4_WIDTH_MM}mm`;
   element.style.maxHeight = `${A4_HEIGHT_MM}mm`;
+  element.style.minWidth = `${A4_WIDTH_MM}mm`;
   element.style.minHeight = `${A4_HEIGHT_MM}mm`;
   element.style.margin = "0";
   element.style.boxShadow = "none";
@@ -76,6 +77,7 @@ function lockElementToA4(element: HTMLElement): () => void {
     element.style.height = prev.height;
     element.style.maxWidth = prev.maxWidth;
     element.style.maxHeight = prev.maxHeight;
+    element.style.minWidth = prev.minWidth;
     element.style.minHeight = prev.minHeight;
     element.style.margin = prev.margin;
     element.style.boxShadow = prev.boxShadow;
@@ -85,27 +87,69 @@ function lockElementToA4(element: HTMLElement): () => void {
   };
 }
 
+async function waitForRenderAssets(element: HTMLElement): Promise<void> {
+  const images = Array.from(element.querySelectorAll("img"));
+  await Promise.all(images.map((img) => {
+    if (img.complete && img.naturalWidth > 0) return Promise.resolve();
+    return new Promise<void>((resolve) => {
+      img.addEventListener("load", () => resolve(), { once: true });
+      img.addEventListener("error", () => resolve(), { once: true });
+    });
+  }));
+  await document.fonts?.ready.catch(() => undefined);
+  await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+}
+
+function createA4CaptureTarget(element: HTMLElement): { target: HTMLElement; cleanup: () => void } {
+  const host = document.createElement("div");
+  host.setAttribute("data-pdf-capture-host", "true");
+  host.style.position = "fixed";
+  host.style.left = "0";
+  host.style.top = "0";
+  host.style.width = `${A4_WIDTH_MM}mm`;
+  host.style.height = `${A4_HEIGHT_MM}mm`;
+  host.style.overflow = "hidden";
+  host.style.background = "#ffffff";
+  host.style.pointerEvents = "none";
+  host.style.zIndex = "-1";
+
+  const target = element.cloneNode(true) as HTMLElement;
+  host.appendChild(target);
+  document.body.appendChild(host);
+  const restore = lockElementToA4(target);
+
+  return {
+    target,
+    cleanup: () => {
+      restore();
+      host.remove();
+    },
+  };
+}
+
 export async function elementToPdfBlob(element: HTMLElement, filename = "report.pdf"): Promise<Blob> {
-  const restore = lockElementToA4(element);
+  const { target, cleanup } = createA4CaptureTarget(element);
   try {
     window.scrollTo(0, 0);
+    await waitForRenderAssets(target);
     const blob: Blob = await (html2pdf() as any)
       .set(baseOptions(filename))
-      .from(element)
+      .from(target)
       .outputPdf("blob");
     return blob;
   } finally {
-    restore();
+    cleanup();
   }
 }
 
 export async function downloadPdfFromElement(element: HTMLElement, filename = "report.pdf"): Promise<void> {
-  const restore = lockElementToA4(element);
+  const { target, cleanup } = createA4CaptureTarget(element);
   try {
     window.scrollTo(0, 0);
-    await (html2pdf() as any).set(baseOptions(filename)).from(element).save();
+    await waitForRenderAssets(target);
+    await (html2pdf() as any).set(baseOptions(filename)).from(target).save();
   } finally {
-    restore();
+    cleanup();
   }
 }
 
