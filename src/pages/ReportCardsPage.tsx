@@ -12,6 +12,7 @@ import { toast } from "@/hooks/use-toast";
 import {
   Download, Eye, FileText, Loader2, Printer, Sparkles, Trash2, UserCheck, Package, FolderArchive,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { generateClassReports } from "@/lib/reportCards";
 import { calculateDivision } from "@/lib/grading";
 import { ReportCardSheet } from "@/components/ReportCardSheet";
@@ -32,9 +33,10 @@ type Report = {
 type ReportJob = { id: number; mode: "print" | "download"; learners: Learner[]; label: string };
 
 const BULK_BATCH_SIZE = 5;
+const errorMessage = (error: unknown) => error instanceof Error ? error.message : String(error || "Unknown error");
 
 function IconAction({ icon: Icon, label, onClick, asChild, href, target, variant = "ghost", danger }: {
-  icon: any; label: string; onClick?: () => void; asChild?: boolean; href?: string; target?: string;
+  icon: LucideIcon; label: string; onClick?: () => void; asChild?: boolean; href?: string; target?: string;
   variant?: "ghost" | "outline"; danger?: boolean;
 }) {
   const btn = (
