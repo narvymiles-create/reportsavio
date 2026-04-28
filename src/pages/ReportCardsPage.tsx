@@ -95,6 +95,7 @@ export default function ReportCardsPage() {
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [generatingOne, setGeneratingOne] = useState<string | null>(null);
+  const [reportJob, setReportJob] = useState<ReportJob | null>(null);
 
   const [terms, setTerms] = useState<Term[]>([]);
   const [classes, setClasses] = useState<Cls[]>([]);
@@ -106,6 +107,7 @@ export default function ReportCardsPage() {
   const [classId, setClassId] = useState("");
   const [streamId, setStreamId] = useState("all");
   const [singleLearnerId, setSingleLearnerId] = useState("");
+  const jobCounterRef = useRef(0);
 
   useEffect(() => {
     (async () => {
@@ -171,7 +173,6 @@ export default function ReportCardsPage() {
       await generateClassReports(termId, classId);
       await loadReports();
       toast({ title: "Report card ready" });
-      window.open(`/print/report-card/${singleLearnerId}/${termId}`, "_blank");
     } catch (e: any) {
       toast({ title: "Failed", description: e.message, variant: "destructive" });
     } finally {
@@ -187,11 +188,11 @@ export default function ReportCardsPage() {
     loadReports();
   };
 
-  const openBulk = (mode: "print" | "download") => {
+  const startReportJob = (mode: "print" | "download", selectedLearners?: Learner[], label?: string) => {
     if (!termId || !classId) return toast({ title: "Pick a term and class", variant: "destructive" });
-    const generated = filtered.filter(l => reports[l.id]).length;
-    if (generated === 0) return toast({ title: "No report cards generated yet", variant: "destructive" });
-    window.open(`/print/bulk/${termId}/${classId}?mode=${mode}`, "_blank");
+    const readyLearners = (selectedLearners ?? filtered).filter(l => reports[l.id]);
+    if (readyLearners.length === 0) return toast({ title: "No report cards generated yet", variant: "destructive" });
+    setReportJob({ id: ++jobCounterRef.current, mode, learners: readyLearners, label: label ?? (mode === "print" ? "Bulk print" : "Bulk ZIP download") });
   };
 
   if (loading) return <div className="flex items-center justify-center p-12"><Loader2 className="h-6 w-6 animate-spin" /></div>;
