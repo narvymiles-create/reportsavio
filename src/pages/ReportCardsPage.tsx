@@ -327,8 +327,8 @@ export default function ReportCardsPage() {
       const rows = await generateClassReports(termId, classId);
       toast({ title: `Generated ${rows.length} report card(s)` });
       loadReports();
-    } catch (e: any) {
-      toast({ title: "Failed", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Failed", description: errorMessage(e), variant: "destructive" });
     } finally {
       setGenerating(false);
     }
@@ -344,8 +344,8 @@ export default function ReportCardsPage() {
       await generateClassReports(termId, classId);
       await loadReports();
       toast({ title: "Report card ready" });
-    } catch (e: any) {
-      toast({ title: "Failed", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Failed", description: errorMessage(e), variant: "destructive" });
     } finally {
       setGeneratingOne(null);
     }
