@@ -4,9 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Loader2, Printer, Download } from "lucide-react";
 import { ReportCardSheet } from "@/components/ReportCardSheet";
-import html2canvas from "html2canvas";
-import jsPDF from "jspdf";
-import JSZip from "jszip";
+import { downloadElementsAsZip, safeFileName } from "@/lib/pdfExport";
 import { toast } from "@/hooks/use-toast";
 import "./PrintReportCard.css";
 
