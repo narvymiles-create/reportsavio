@@ -30,27 +30,8 @@ export default function PrintReportCard() {
     if (!root) return;
     setWorking(true);
     try {
-      const canvas = await html2canvas(root, { scale: 2, backgroundColor: "#ffffff", useCORS: true, logging: false });
-      const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-      const pageW = pdf.internal.pageSize.getWidth();
-      const pageH = pdf.internal.pageSize.getHeight();
-      const imgData = canvas.toDataURL("image/jpeg", 0.92);
-      const ratio = canvas.width / canvas.height;
-      let w = pageW, h = pageW / ratio;
-      if (h > pageH) { h = pageH; w = pageH * ratio; }
-      const x = (pageW - w) / 2;
-      const y = (pageH - h) / 2;
-      pdf.addImage(imgData, "JPEG", x, y, w, h, undefined, "FAST");
-      const safe = learnerName.replace(/[^a-z0-9_\-\s]/gi, "_");
-      const blob = pdf.output("blob");
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `${safe}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      const safe = safeFileName(learnerName, "report-card");
+      await downloadPdfFromElement(root, `${safe}.pdf`);
       toast({ title: "Download ready", description: `${safe}.pdf` });
     } catch (e: any) {
       toast({ title: "Download failed", description: e.message, variant: "destructive" });
