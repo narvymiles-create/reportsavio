@@ -70,7 +70,7 @@ export function useLearnerFieldSettings() {
     })();
 
     const ch = supabase
-      .channel("learner-field-settings")
+      .channel(`learner-field-settings-${Math.random().toString(36).slice(2)}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "system_settings", filter: "key=eq.learner_fields" },
