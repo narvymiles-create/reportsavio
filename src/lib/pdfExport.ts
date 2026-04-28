@@ -19,7 +19,7 @@ const A4_HEIGHT_PX = Math.round(A4_HEIGHT_MM * MM_TO_PX); // 1123
 const baseOptions = (filename: string) => ({
   margin: 0,
   filename,
-  image: { type: "jpeg" as const, quality: 0.98 },
+  image: { type: "png" as const, quality: 1 },
   html2canvas: {
     scale: 2,
     useCORS: true,
@@ -39,8 +39,7 @@ const baseOptions = (filename: string) => ({
     orientation: "portrait" as const,
     compress: true,
   },
-  // Force single page — never split
-  pagebreak: { mode: ["avoid-all"] as any },
+  pagebreak: { mode: [] as any },
 });
 
 /**
@@ -53,6 +52,7 @@ function lockElementToA4(element: HTMLElement): () => void {
     height: element.style.height,
     maxWidth: element.style.maxWidth,
     maxHeight: element.style.maxHeight,
+    minWidth: element.style.minWidth,
     minHeight: element.style.minHeight,
     margin: element.style.margin,
     boxShadow: element.style.boxShadow,
@@ -64,6 +64,7 @@ function lockElementToA4(element: HTMLElement): () => void {
   element.style.height = `${A4_HEIGHT_MM}mm`;
   element.style.maxWidth = `${A4_WIDTH_MM}mm`;
   element.style.maxHeight = `${A4_HEIGHT_MM}mm`;
+  element.style.minWidth = `${A4_WIDTH_MM}mm`;
   element.style.minHeight = `${A4_HEIGHT_MM}mm`;
   element.style.margin = "0";
   element.style.boxShadow = "none";
@@ -76,6 +77,7 @@ function lockElementToA4(element: HTMLElement): () => void {
     element.style.height = prev.height;
     element.style.maxWidth = prev.maxWidth;
     element.style.maxHeight = prev.maxHeight;
+    element.style.minWidth = prev.minWidth;
     element.style.minHeight = prev.minHeight;
     element.style.margin = prev.margin;
     element.style.boxShadow = prev.boxShadow;
