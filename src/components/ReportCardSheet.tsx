@@ -517,13 +517,23 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
           {orderedSubjects.map(s => {
             const m = marksBySubject.get(s.id);
             const isCore = coreSubjectIds.has(s.id);
+            // Grade & remark MUST match the EOT marks entry exactly:
+            // marks entry computes grade from the EOT mark only (gradeFor(eot, bands)),
+            // not from the stored `marks.grade` (which is grade of the average total).
+            const eotVal = m?.eot;
+            const eotBand = eotVal != null && eotVal !== "" && !isNaN(Number(eotVal))
+              ? gradeFor(Number(eotVal), bands)
+              : null;
+            // Debug: confirm EOT grade comes from EOT mark, not recomputed from average
+            // eslint-disable-next-line no-console
+            if (eotVal != null && eotVal !== "") console.log(`[ReportCard EOT] ${s.name}: mark=${eotVal} grade=${eotBand?.grade ?? ""}`);
             return (
               <tr key={s.id}>
                 <td className="rc-eot-subject">{s.name?.toUpperCase()}</td>
                 <td>{s.max_marks ?? 100}</td>
-                <td>{m?.eot ?? ""}</td>
-                <td>{isCore ? (m?.grade ?? "") : ""}</td>
-                <td>{isCore ? (m?.remark ?? "") : ""}</td>
+                <td>{eotVal ?? ""}</td>
+                <td>{isCore ? (eotBand?.grade ?? "") : ""}</td>
+                <td>{isCore ? (eotBand?.remark ?? "") : ""}</td>
                 <td>{(s.subject_teacher_id && teachersById[s.subject_teacher_id]?.initials) || m?.teacher_initials || ""}</td>
               </tr>
             );
