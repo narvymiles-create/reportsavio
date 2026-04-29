@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/sidebar";
 import { useReportModule } from "@/hooks/useReportModule";
 import { Button } from "@/components/ui/button";
+import skavioLogo from "@/assets/skavio-logo-transparent.png";
 
 const primaryGroups = [
   { label: "Overview", items: [{ title: "Dashboard", url: "/", icon: LayoutDashboard }] },
@@ -95,13 +96,18 @@ export function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarHeader className="border-b border-sidebar-border">
         <div className="flex items-center gap-2 px-2 py-2">
-          <div className="h-8 w-8 rounded-md bg-sidebar-primary flex items-center justify-center text-sidebar-primary-foreground font-bold">
-            S
-          </div>
+          <img
+            src={skavioLogo}
+            alt="Skavio Technologies"
+            width={32}
+            height={32}
+            style={{ background: "transparent" }}
+            className="h-8 w-8 object-contain"
+          />
           {!collapsed && (
             <div className="leading-tight">
               <div className="text-sidebar-foreground font-semibold text-sm">Sona Reports</div>
-              <div className="text-sidebar-foreground/60 text-xs">Admin Console</div>
+              <div className="text-sidebar-foreground/60 text-xs">Powered by Skavio Technologies</div>
             </div>
           )}
         </div>

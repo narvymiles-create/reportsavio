@@ -4,6 +4,8 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { LogOut } from "lucide-react";
+import { PoweredByFooter } from "@/components/PoweredByFooter";
+import skavioLogo from "@/assets/skavio-logo-transparent.png";
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const { user, signOut } = useAuth();
@@ -16,6 +18,14 @@ export function AppLayout({ children }: { children: ReactNode }) {
           <header className="h-14 border-b bg-card flex items-center justify-between px-3 sticky top-0 z-10">
             <div className="flex items-center gap-2">
               <SidebarTrigger />
+              <img
+                src={skavioLogo}
+                alt="Skavio Technologies"
+                width={28}
+                height={28}
+                style={{ background: "transparent" }}
+                className="h-7 w-7 object-contain"
+              />
               <span className="text-sm text-muted-foreground hidden sm:inline">
                 School Report Card Management
               </span>
@@ -29,6 +39,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
             </div>
           </header>
           <main className="flex-1 p-4 md:p-6 overflow-x-hidden">{children}</main>
+          <PoweredByFooter className="border-t bg-card" />
         </div>
       </div>
     </SidebarProvider>
