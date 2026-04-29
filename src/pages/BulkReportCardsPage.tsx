@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Printer, Download } from "lucide-react";
 import { ReportCardSheet } from "@/components/ReportCardSheet";
 import { downloadElementsAsZip, safeFileName } from "@/lib/pdfExport";
+import { waitForImagesAndFonts } from "@/lib/reportAssets";
 import { toast } from "@/hooks/use-toast";
 import "./PrintReportCard.css";
 
@@ -84,7 +85,7 @@ export default function BulkReportCardsPage() {
     const t = setTimeout(() => {
       if (!mountedRef.current) return;
       if (mode === "print") {
-        try { window.print(); } catch (e) { console.error(e); }
+        runBulkPrint();
       } else {
         runBulkDownload();
       }
@@ -104,6 +105,7 @@ export default function BulkReportCardsPage() {
     setStatusMsg("Generating reports, please wait...");
     try {
       const pages = Array.from(sheetsRef.current.querySelectorAll<HTMLDivElement>(".report-page"));
+      await waitForImagesAndFonts(sheetsRef.current);
       console.log(`[BulkReports] Starting ZIP for ${pages.length} learner(s)`);
       const jobs = pages.map((element, j) => {
         const safeName = safeFileName(learners[j]?.full_name ?? `report-${j + 1}`, `report-${j + 1}`);
@@ -140,9 +142,13 @@ export default function BulkReportCardsPage() {
     }
   };
 
-  const runBulkPrint = () => {
+  const runBulkPrint = async () => {
     if (!learners || learners.length === 0) {
       toast({ title: "No learners available for report generation", variant: "destructive" });
+      return;
+    }
+    if (readyCount < learners.length || !sheetsRef.current) {
+      toast({ title: "Please wait, report still loading" });
       return;
     }
     try { window.print(); } catch (e: any) {
