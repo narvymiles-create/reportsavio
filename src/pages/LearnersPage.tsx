@@ -15,6 +15,7 @@ import { toast } from "@/hooks/use-toast";
 import { Loader2, Plus, Pencil, Trash2, User, Upload } from "lucide-react";
 
 import { useLearnerFieldSettings } from "@/hooks/useLearnerFieldSettings";
+import { useAuth } from "@/contexts/AuthContext";
 
 type House = { id: string; name: string };
 type ClassRow = { id: string; name: string };
@@ -66,6 +67,7 @@ const schema = z.object({
 });
 
 export default function LearnersPage() {
+  const { schoolId } = useAuth();
   const [loading, setLoading] = useState(true);
   const [learners, setLearners] = useState<Learner[]>([]);
   const [classes, setClasses] = useState<ClassRow[]>([]);
@@ -231,7 +233,7 @@ export default function LearnersPage() {
 
     if (!error && photoFile && savedId) {
       const ext = photoFile.name.split(".").pop();
-      const path = `learner-${savedId}.${ext}`;
+      const path = `schools/${schoolId}/learner-${savedId}.${ext}`;
       const { error: upErr } = await supabase.storage.from("learner-photos").upload(path, photoFile, { upsert: true, contentType: photoFile.type });
       if (upErr) {
         toast({ title: "Photo upload failed", description: upErr.message, variant: "destructive" });

@@ -11,12 +11,14 @@ import { Loader2, PenLine, Trash2, Upload } from "lucide-react";
 import SignatureCanvas from "react-signature-canvas";
 import { processCanvasDataUrl, processSignatureFile } from "@/lib/signatureProcessing";
 import { useReportModule } from "@/hooks/useReportModule";
+import { useAuth } from "@/contexts/AuthContext";
 
 type School = { id: string; head_teacher_name: string | null; head_teacher_signature_path: string | null; nursery_head_teacher_name: string | null; nursery_head_teacher_signature_path: string | null };
 type Cls = { id: string; name: string; class_signature_path: string | null; class_teacher_id: string | null };
 type Teacher = { id: string; full_name: string; initials: string | null; signature_path: string | null; section?: string | null };
 
 function SignatureCell({ path, onChange, kind }: { path: string | null; onChange: (newPath: string | null) => Promise<void>; kind: "school" | "class" | "teacher" }) {
+  const { schoolId } = useAuth();
   const [url, setUrl] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [drawOpen, setDrawOpen] = useState(false);
@@ -33,9 +35,12 @@ function SignatureCell({ path, onChange, kind }: { path: string | null; onChange
   }, [path]);
 
   const persist = async (blob: Blob, ext = "png", contentType = "image/png") => {
+    if (!schoolId) {
+      return toast({ title: "No school context", description: "Set up your school first.", variant: "destructive" });
+    }
     setBusy(true);
     try {
-      const newPath = `${kind}/${crypto.randomUUID()}.${ext}`;
+      const newPath = `schools/${schoolId}/${kind}/${crypto.randomUUID()}.${ext}`;
       const { error } = await supabase.storage.from("signatures").upload(newPath, blob, { upsert: false, contentType });
       if (error) throw error;
       if (path) await supabase.storage.from("signatures").remove([path]);
