@@ -80,7 +80,7 @@ export default function PrintReportCard() {
         </Button>
       </div>
       <div ref={sheetRef}>
-        <ReportCardSheet learnerId={learnerId} termId={termId} onReady={() => setReady(true)} />
+        <ReportCardSheet learnerId={learnerId} termId={termId} onReadyChange={setReady} />
       </div>
     </div>
   );
