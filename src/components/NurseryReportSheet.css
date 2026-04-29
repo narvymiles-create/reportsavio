@@ -21,6 +21,15 @@
   color: #111;
 }
 
+.nrc-loading {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font: 700 12pt Arial, sans-serif;
+  color: #475569;
+}
+
 .nrc-frame {
   width: 100%;
   height: 100%;
