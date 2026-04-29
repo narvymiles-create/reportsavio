@@ -44,7 +44,7 @@ export default function NurseryLearnersPage() {
       sex: sex || null,
       class_id: classId || null,
       stream_id: streamId || null,
-    });
+    } as any);
     if (error) return toast({ title: "Error", description: error.message, variant: "destructive" });
     setName(""); setAge(""); setSex(""); setStreamId(""); load();
   };

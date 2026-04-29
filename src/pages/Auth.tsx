@@ -42,7 +42,7 @@ export default function Auth() {
     } else {
       toast({
         title: "Account created",
-        description: "You can now sign in. The first account is granted admin automatically.",
+        description: "Check your email to confirm, then sign in to set up your school.",
       });
     }
   };

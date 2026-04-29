@@ -133,7 +133,7 @@ export default function SchoolInfoPage() {
     if (info) {
       ({ error } = await supabase.from("school_info" as any).update(payload).eq("id", info.id));
     } else {
-      ({ error } = await supabase.from("school_info" as any).insert(payload));
+      ({ error } = await supabase.from("school_info" as any).insert(payload as any));
     }
     setSaving(false);
     if (error) {

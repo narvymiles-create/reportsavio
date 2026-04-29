@@ -107,7 +107,7 @@ export async function generateClassReports(termId: string, classId: string): Pro
   }));
 
   if (payload.length) {
-    const { error } = await supabase.from("report_cards").upsert(payload, { onConflict: "term_id,learner_id" });
+    const { error } = await supabase.from("report_cards").upsert(payload as any, { onConflict: "term_id,learner_id" });
     if (error) throw error;
   }
   return rows;

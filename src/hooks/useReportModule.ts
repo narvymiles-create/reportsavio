@@ -53,7 +53,7 @@ export function useReportModule() {
     if ((existing as any)?.id) {
       await supabase.from("system_settings" as any).update({ value: m as any }).eq("key", KEY);
     } else {
-      await supabase.from("system_settings" as any).insert({ key: KEY, value: m as any });
+      await supabase.from("system_settings" as any).insert({ key: KEY, value: m as any } as any);
     }
   }, []);
 

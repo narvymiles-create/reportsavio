@@ -286,7 +286,7 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
       }
     }
     if (payload.length === 0) { setSaving(false); return toast({ title: "Nothing to save" }); }
-    const { error } = await supabase.from("marks").upsert(payload, { onConflict: "term_id,learner_id,subject_id" });
+    const { error } = await supabase.from("marks").upsert(payload as any, { onConflict: "term_id,learner_id,subject_id" });
     setSaving(false);
     if (error) return toast({ title: "Save failed", description: error.message, variant: "destructive" });
     setBaseline(JSON.parse(JSON.stringify(marks)));

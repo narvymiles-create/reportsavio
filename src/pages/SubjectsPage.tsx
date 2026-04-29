@@ -189,7 +189,7 @@ export default function SubjectsPage() {
       max_marks: 100,
       sort_order: i,
     }));
-    const { error } = await supabase.from("subjects").insert(rows);
+    const { error } = await supabase.from("subjects").insert(rows as any);
     if (error) toast({ title: "Seed failed", description: error.message, variant: "destructive" });
     else { toast({ title: `Added ${toAdd.length} subjects` }); load(); }
   };

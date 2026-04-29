@@ -4,7 +4,7 @@ import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export function RequireAdmin({ children }: { children: React.ReactNode }) {
-  const { user, isAdmin, loading, signOut } = useAuth();
+  const { user, isAdmin, isSuperAdmin, schoolId, loading, signOut } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -20,7 +20,12 @@ export function RequireAdmin({ children }: { children: React.ReactNode }) {
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 
-  if (!isAdmin) {
+  // Super admins bypass school requirement
+  if (!isSuperAdmin && !schoolId) {
+    return <Navigate to="/onboarding" replace />;
+  }
+
+  if (!isAdmin && !isSuperAdmin) {
     const handleGoToLogin = async () => {
       await signOut();
       navigate("/auth", { replace: true });

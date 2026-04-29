@@ -62,7 +62,7 @@ export default function GradingPage() {
 
   const seedGrades = async () => {
     setBusy(true);
-    const { error } = await supabase.from("grading_scales").insert(DEFAULT_GRADES);
+    const { error } = await supabase.from("grading_scales").insert(DEFAULT_GRADES as any);
     setBusy(false);
     if (error) return toast({ title: "Failed", description: error.message, variant: "destructive" });
     toast({ title: "Default grading scale added" });
@@ -70,7 +70,7 @@ export default function GradingPage() {
   };
   const seedDivisions = async () => {
     setBusy(true);
-    const { error } = await supabase.from("division_rules").insert(DEFAULT_DIVISIONS);
+    const { error } = await supabase.from("division_rules").insert(DEFAULT_DIVISIONS as any);
     setBusy(false);
     if (error) return toast({ title: "Failed", description: error.message, variant: "destructive" });
     toast({ title: "Default divisions added" });
@@ -91,7 +91,7 @@ export default function GradingPage() {
     setBusy(true);
     const res = gEdit
       ? await supabase.from("grading_scales").update(payload).eq("id", gEdit.id)
-      : await supabase.from("grading_scales").insert([payload]);
+      : await supabase.from("grading_scales").insert([payload] as any);
     setBusy(false);
     if (res.error) return toast({ title: "Failed", description: res.error.message, variant: "destructive" });
     toast({ title: gEdit ? "Grade updated" : "Grade added" });
@@ -111,7 +111,7 @@ export default function GradingPage() {
     setBusy(true);
     const res = dEdit
       ? await supabase.from("division_rules").update(payload).eq("id", dEdit.id)
-      : await supabase.from("division_rules").insert([payload]);
+      : await supabase.from("division_rules").insert([payload] as any);
     setBusy(false);
     if (res.error) return toast({ title: "Failed", description: res.error.message, variant: "destructive" });
     toast({ title: dEdit ? "Division updated" : "Division added" });

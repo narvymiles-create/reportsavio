@@ -79,7 +79,7 @@ export default function TermsPage() {
     if (editing) {
       ({ error } = await supabase.from("terms").update(payload).eq("id", editing.id));
     } else {
-      ({ error } = await supabase.from("terms").insert([payload as any]));
+      ({ error } = await supabase.from("terms").insert([payload] as any));
     }
     setSubmitting(false);
     if (error) {

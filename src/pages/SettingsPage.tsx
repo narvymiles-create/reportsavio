@@ -61,7 +61,7 @@ export default function SettingsPage() {
     // upsert in case the row doesn't exist yet
     const { error } = await supabase
       .from("system_settings" as any)
-      .upsert({ key: "learner_info_order", value: next as any }, { onConflict: "key" });
+      .upsert({ key: "learner_info_order", value: next as any } as any, { onConflict: "key" });
     setSavingOrder(false);
     if (error) toast({ title: "Save failed", description: error.message, variant: "destructive" });
   };
@@ -89,7 +89,7 @@ export default function SettingsPage() {
     const payload = { name, color, sort_order };
     const res = editing
       ? await supabase.from("houses" as any).update(payload).eq("id", editing.id)
-      : await supabase.from("houses" as any).insert([payload]);
+      : await supabase.from("houses" as any).insert([payload] as any);
     setSubmitting(false);
     if ((res as any).error) {
       toast({ title: "Save failed", description: (res as any).error.message, variant: "destructive" });

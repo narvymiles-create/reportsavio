@@ -224,7 +224,7 @@ export default function LearnersPage() {
     if (editing) {
       ({ error } = await supabase.from("learners").update(payload).eq("id", editing.id));
     } else {
-      const { data, error: insErr } = await supabase.from("learners").insert([payload]).select("id").maybeSingle();
+      const { data, error: insErr } = await supabase.from("learners").insert([payload] as any).select("id").maybeSingle();
       error = insErr;
       savedId = (data as any)?.id ?? null;
     }
