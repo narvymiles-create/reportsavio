@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { calculateDivision, gradeFor, applyF9Override, isCriticalCoreSubject, type GradeBand } from "@/lib/grading";
 import { useLearnerFieldSettings } from "@/hooks/useLearnerFieldSettings";
@@ -30,6 +30,7 @@ export type ReportCardSheetProps = {
  * Reuses the .report-page CSS in PrintReportCard.css.
  */
 export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: ReportCardSheetProps) {
+  const pageRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
   const [school, setSchool] = useState<Anything | null>(null);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
@@ -140,11 +141,18 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
       setLogoUrl(logoBase64); setHeadSigUrl(headSigBase64); setClassSigUrl(classSigBase64); setPhotoUrl(photoBase64); setStampUrl(stampBase64); setWatermarkUrl(watermarkBase64);
       setReportDataReady(true);
       setLoading(false);
-      await waitForImagesAndFonts(document);
-      if (!cancelled) onReady?.();
     })();
     return () => { cancelled = true; };
   }, [learnerId, termId, reloadKey]);
+
+  useEffect(() => {
+    if (loading || !reportDataReady || !pageRef.current) return;
+    let cancelled = false;
+    waitForImagesAndFonts(pageRef.current).then(() => {
+      if (!cancelled) onReady?.();
+    });
+    return () => { cancelled = true; };
+  }, [loading, reportDataReady, onReady]);
 
   // Realtime: refetch when marks/subjects/grading_scales change
   useEffect(() => {
@@ -239,9 +247,9 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
 
 
   if (loading || !learner || !term) {
-    return <div className="report-page" style={pageBreak ? { pageBreakAfter: "always" } : undefined}>
+    return <div ref={pageRef} className="report-page" style={pageBreak ? { pageBreakAfter: "always" } : undefined}>
       <p style={{ textAlign: "center", marginTop: "40mm", color: "#666" }}>
-        {loading ? "Loading..." : "Learner or term not found."}
+        {loading ? "Preparing report card..." : "Learner or term not found."}
       </p>
     </div>;
   }
@@ -390,7 +398,7 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
   const wmY = school?.watermark_y ?? 50;
 
   return (
-    <div className="report-page" style={pageBreak ? { pageBreakAfter: "always" } : undefined}>
+    <div ref={pageRef} className="report-page" style={pageBreak ? { pageBreakAfter: "always" } : undefined}>
       {wmEnabled && (
         <div
           aria-hidden
