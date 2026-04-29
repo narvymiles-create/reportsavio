@@ -39,7 +39,10 @@ const POSITION_PRESETS: Record<string, { x: number; y: number; label: string }> 
 };
 
 type Props = {
+  /** school_info row id — used to update the row */
   schoolId: string;
+  /** tenant school id — used as storage folder prefix */
+  tenantSchoolId: string | null;
   watermarkUrl: string | null;
   initial: Partial<WatermarkSettings>;
   onSaved: (s: WatermarkSettings & { watermark_path?: string | null }) => void;
@@ -48,7 +51,7 @@ type Props = {
   layout?: "stack" | "split";
 };
 
-export function WatermarkPanel({ schoolId, watermarkUrl, initial, onSaved, onUploaded, layout = "stack" }: Props) {
+export function WatermarkPanel({ schoolId, tenantSchoolId, watermarkUrl, initial, onSaved, onUploaded, layout = "stack" }: Props) {
   const isSplit = layout === "split";
   const [s, setS] = useState<WatermarkSettings>({ ...WATERMARK_DEFAULTS, ...initial });
   const [saving, setSaving] = useState(false);
@@ -69,11 +72,15 @@ export function WatermarkPanel({ schoolId, watermarkUrl, initial, onSaved, onUpl
       toast({ title: "Too large", description: "Watermark must be under 5 MB.", variant: "destructive" });
       return;
     }
+    if (!tenantSchoolId) {
+      toast({ title: "No school context", description: "Please refresh and try again.", variant: "destructive" });
+      return;
+    }
     setUploading(true);
     try {
       // Upload watermark exactly as provided (no auto background removal).
       const ext = (file.name.split(".").pop() || "png").toLowerCase();
-      const path = `schools/${schoolId}/watermark-${schoolId}.${ext}`;
+      const path = `schools/${tenantSchoolId}/watermark-${schoolId}.${ext}`;
       const { error: upErr } = await supabase.storage
         .from("school-assets")
         .upload(path, file, { upsert: true, contentType: file.type || "image/png" });

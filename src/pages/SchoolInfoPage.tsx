@@ -342,6 +342,7 @@ export default function SchoolInfoPage() {
           <CardContent>
             <WatermarkPanel
               schoolId={info.id}
+              tenantSchoolId={schoolId}
               watermarkUrl={watermarkUrl}
               layout="split"
               initial={{
