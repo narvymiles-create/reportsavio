@@ -158,6 +158,29 @@
   font-weight: 700;
 }
 
+/* Skavio footer (screen + print) */
+.marks-form__footer {
+  margin-top: 18px;
+  padding-top: 10px;
+  border-top: 1px solid #0a2472;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 11px;
+  color: #444;
+}
+.marks-form__footer-logo {
+  height: 18px;
+  width: auto;
+  background: transparent !important;
+  object-fit: contain;
+}
+.marks-form__footer-text {
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
 /* Print */
 @media print {
   @page { size: A4 landscape; margin: 10mm; }
@@ -167,4 +190,6 @@
   [data-sidebar], header, nav, aside { display: none !important; }
   .marks-form { padding: 0; }
   .marks-form__table input { color: #0a2472; }
+  .marks-form__footer { display: flex !important; }
+  [data-skavio-footer="true"] { display: none !important; } /* avoid duplicate global footer in print */
 }
