@@ -10,13 +10,12 @@ import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "@/hooks/use-toast";
 import {
-  Download, Eye, FileText, Loader2, Printer, Sparkles, Trash2, UserCheck, Package, FolderArchive,
+  Eye, FileText, Loader2, Printer, Sparkles, Trash2, UserCheck, Package,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { generateClassReports } from "@/lib/reportCards";
 import { calculateDivision } from "@/lib/grading";
 import { ReportCardSheet } from "@/components/ReportCardSheet";
-import { downloadElementsAsZip, downloadPdfFromElement, safeFileName } from "@/lib/pdfExport";
 import { waitForImagesAndFonts } from "@/lib/reportAssets";
 import "./PrintReportCard.css";
 
@@ -29,9 +28,8 @@ type Report = {
   aggregate: number | null; division: string | null; position: number | null;
   class_size: number | null; generated_at: string;
 };
-type ReportJob = { id: number; mode: "print" | "download"; learners: Learner[]; label: string };
+type ReportJob = { id: number; learners: Learner[]; label: string };
 
-const BULK_BATCH_SIZE = 5;
 const errorMessage = (error: unknown) => error instanceof Error ? error.message : String(error || "Unknown error");
 
 function IconAction({ icon: Icon, label, onClick, asChild, href, target, variant = "ghost", danger }: {
@@ -118,40 +116,6 @@ function ReportJobRunner({ job, termId, onDone }: { job: ReportJob; termId: stri
   const readyCount = Object.keys(readyIds).length;
   const allReady = readyCount >= job.learners.length;
 
-  const runDownload = async () => {
-    const pages = Array.from(sheetsRef.current?.querySelectorAll<HTMLDivElement>(".report-page") ?? []);
-    if (pages.length === 0) throw new Error("No printable report cards were found.");
-    await waitForImagesAndFonts(sheetsRef.current);
-
-    if (pages.length === 1) {
-      setStatusMsg("Generating PDF...");
-      const safe = safeFileName(job.learners[0]?.full_name ?? "report-card", "report-card");
-      await downloadPdfFromElement(pages[0], `${safe}.pdf`);
-      setProgress(100);
-      console.log(`[ReportCards PDF] PDF generated: ${safe}`);
-      toast({ title: "Download ready", description: `${safe}.pdf` });
-      return;
-    }
-
-    console.log(`[ReportCards ZIP] Starting ${pages.length} learner(s)`);
-    const jobs = pages.map((element, j) => {
-      const safe = safeFileName(job.learners[j]?.full_name ?? `report-${j + 1}`, `report-${j + 1}`);
-      return { element, filename: `${safe}.pdf` };
-    });
-    const { failures } = await downloadElementsAsZip(
-      jobs,
-      `report-cards-${new Date().toISOString().slice(0, 10)}.zip`,
-      (done, total, current) => {
-        if (!mountedRef.current) return;
-        setStatusMsg(`Processing ${done} of ${total}: ${current}`);
-        setProgress(Math.round((done / total) * 100));
-      }
-    );
-    console.log("[ReportCards ZIP] ZIP creation success");
-    if (failures.length) toast({ title: "Some reports failed", description: `${failures.length} failed: ${failures.slice(0, 3).join(", ")}`, variant: "destructive" });
-    else toast({ title: "Download ready", description: `${pages.length} report card(s) packaged.` });
-  };
-
   const runJob = async () => {
     try {
       if (!job.learners.length) throw new Error("No learners available for report generation.");
@@ -159,20 +123,14 @@ function ReportJobRunner({ job, termId, onDone }: { job: ReportJob; termId: stri
       setWorking(true);
       setErrorMsg("");
       setProgress(0);
-      console.log(`[ReportCards ${job.mode}] Learners: ${job.learners.length}`);
-      if (job.mode === "print") {
-        setStatusMsg("Opening print options...");
-        await waitForImagesAndFonts(sheetsRef.current);
-        document.body.classList.add("bulk-report-printing");
-        window.print();
-        setTimeout(() => {
-          document.body.classList.remove("bulk-report-printing");
-          if (mountedRef.current) onDone();
-        }, 1000);
-      } else {
-        await runDownload();
+      setStatusMsg("Opening print options...");
+      await waitForImagesAndFonts(sheetsRef.current);
+      document.body.classList.add("bulk-report-printing");
+      window.print();
+      setTimeout(() => {
+        document.body.classList.remove("bulk-report-printing");
         if (mountedRef.current) onDone();
-      }
+      }, 1000);
     } catch (error: unknown) {
       console.error("[ReportCards job] fatal", error);
       if (mountedRef.current) {
@@ -180,8 +138,6 @@ function ReportJobRunner({ job, termId, onDone }: { job: ReportJob; termId: stri
         setErrorMsg(message);
         toast({ title: "Report action failed", description: message, variant: "destructive" });
       }
-    } finally {
-      if (mountedRef.current && job.mode !== "print") setWorking(false);
     }
   };
 
@@ -203,11 +159,11 @@ function ReportJobRunner({ job, termId, onDone }: { job: ReportJob; termId: stri
         <CardContent className="space-y-3">
           <p className="text-sm"><strong>{job.learners.length}</strong> report card(s) — {allReady ? "ready" : `loading ${readyCount}/${job.learners.length}…`}</p>
           <p className="text-sm text-muted-foreground">{errorMsg || statusMsg} {working && `${progress}%`}</p>
-          <div className="h-2 rounded bg-muted overflow-hidden"><div className="h-full bg-primary transition-all" style={{ width: `${allReady && job.mode === "print" ? 100 : progress}%` }} /></div>
+          <div className="h-2 rounded bg-muted overflow-hidden"><div className="h-full bg-primary transition-all" style={{ width: `${allReady ? 100 : progress}%` }} /></div>
           {errorMsg && <Button variant="outline" onClick={onDone}>Close</Button>}
         </CardContent>
       </Card>
-      <div ref={sheetsRef} className="report-job-renderer" aria-hidden={job.mode === "download"}>
+      <div ref={sheetsRef} className="report-job-renderer">
         {job.learners.map((learner, i) => (
           <ReportCardSheet
             key={`${job.id}-${learner.id}`}
@@ -320,11 +276,11 @@ export default function ReportCardsPage() {
     loadReports();
   };
 
-  const startReportJob = (mode: "print" | "download", selectedLearners?: Learner[], label?: string) => {
+  const startReportJob = (selectedLearners?: Learner[], label?: string) => {
     if (!termId || !classId) return toast({ title: "Pick a term and class", variant: "destructive" });
     const readyLearners = (selectedLearners ?? filtered).filter(l => reports[l.id]);
     if (readyLearners.length === 0) return toast({ title: "No report cards generated yet", variant: "destructive" });
-    setReportJob({ id: ++jobCounterRef.current, mode, learners: readyLearners, label: label ?? (mode === "print" ? "Bulk print" : "Bulk ZIP download") });
+    setReportJob({ id: ++jobCounterRef.current, learners: readyLearners, label: label ?? "Bulk print" });
   };
 
   if (loading) return <div className="flex items-center justify-center p-12"><Loader2 className="h-6 w-6 animate-spin" /></div>;
@@ -405,11 +361,8 @@ export default function ReportCardsPage() {
               {generating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
               Generate / Refresh All
             </Button>
-            <Button variant="outline" onClick={() => startReportJob("print")} disabled={!termId || !classId || generatedCount === 0 || !!reportJob}>
+            <Button variant="outline" onClick={() => startReportJob()} disabled={!termId || !classId || generatedCount === 0 || !!reportJob}>
               <Package className="mr-2 h-4 w-4" /> Bulk Print
-            </Button>
-            <Button variant="outline" onClick={() => startReportJob("download")} disabled={!termId || !classId || generatedCount === 0 || !!reportJob}>
-              <FolderArchive className="mr-2 h-4 w-4" /> Bulk Download (ZIP)
             </Button>
           </div>
         </CardHeader>
@@ -449,8 +402,7 @@ export default function ReportCardsPage() {
                         {r ? (
                           <div className="inline-flex items-center gap-1 justify-end">
                             <IconAction icon={Eye} label="View" asChild href={printUrl} target="_blank" />
-                            <IconAction icon={Printer} label="Print" onClick={() => startReportJob("print", [l], `Print ${l.full_name}`)} />
-                            <IconAction icon={Download} label="Download" onClick={() => startReportJob("download", [l], `Download ${l.full_name}`)} />
+                            <IconAction icon={Printer} label="Print" onClick={() => startReportJob([l], `Print ${l.full_name}`)} />
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button size="icon" variant="ghost" className="h-8 w-8 inline-flex lg:hidden" onClick={() => { setSingleLearnerId(l.id); generateSingle(); }} title="Re-generate" aria-label="Edit / Regenerate">
