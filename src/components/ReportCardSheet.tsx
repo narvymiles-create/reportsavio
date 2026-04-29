@@ -21,6 +21,8 @@ export type ReportCardSheetProps = {
   termId: string;
   /** Called once when this card has finished loading (signals readiness for print/snapshot). */
   onReady?: () => void;
+  /** Reports true/false readiness whenever the sheet reloads. */
+  onReadyChange?: (ready: boolean) => void;
   /** Adds the CSS class that triggers a page-break-after for bulk pages. */
   pageBreak?: boolean;
 };
@@ -29,7 +31,7 @@ export type ReportCardSheetProps = {
  * Renders a single, fully-styled report card sheet (no header/print toolbar).
  * Reuses the .report-page CSS in PrintReportCard.css.
  */
-export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: ReportCardSheetProps) {
+export function ReportCardSheet({ learnerId, termId, onReady, onReadyChange, pageBreak }: ReportCardSheetProps) {
   const pageRef = useRef<HTMLDivElement>(null);
   const readySignaledRef = useRef(false);
   const [loading, setLoading] = useState(true);
@@ -64,6 +66,7 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
       setLoading(true);
       setReportDataReady(false);
       readySignaledRef.current = false;
+      onReadyChange?.(false);
       const { data: ln } = await supabase.from("learners").select("*").eq("id", learnerId).maybeSingle();
       if (cancelled) return;
 
@@ -153,11 +156,12 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
     waitForImagesAndFonts(pageRef.current).then(() => {
       if (!cancelled && !readySignaledRef.current) {
         readySignaledRef.current = true;
+        onReadyChange?.(true);
         onReady?.();
       }
     });
     return () => { cancelled = true; };
-  }, [loading, reportDataReady, onReady]);
+  }, [loading, reportDataReady, onReady, onReadyChange]);
 
   // Realtime: refetch when marks/subjects/grading_scales change
   useEffect(() => {
