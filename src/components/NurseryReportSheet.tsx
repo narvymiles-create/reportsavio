@@ -91,7 +91,6 @@ export function NurseryReportSheet({ learnerId, termId, onReady, pageBreak }: Pr
 
       // Term
       const { data: t } = await supabase.from("terms" as any).select("*").eq("id", termId).maybeSingle();
-      setTerm(t);
 
       // Areas + colors
       const { data: a } = await supabase.from("nursery_learning_areas" as any).select("*").order("sort_order");
@@ -103,11 +102,9 @@ export function NurseryReportSheet({ learnerId, termId, onReady, pageBreak }: Pr
       const { data: ams } = await supabase.from("nursery_assessments" as any).select("*").eq("learner_id", learnerId).eq("term_id", termId);
       const map: Record<string, { grade: string | null; comment: string | null }> = {};
       (ams as any[] ?? []).forEach((r) => { map[r.learning_area_id] = { grade: r.grade, comment: r.comment }; });
-      setAssessments(map);
 
       // Report card comments
       const { data: rc } = await supabase.from("nursery_report_cards" as any).select("*").eq("learner_id", learnerId).eq("term_id", termId).maybeSingle();
-      if (rc) setReport({ class_teacher_comment: (rc as any).class_teacher_comment ?? "", head_teacher_comment: (rc as any).head_teacher_comment ?? "" });
 
       // Class teacher signature from class record (preferred over teacher record signature)
       // already loaded above via teacher; if class has its own signature, prefer it
@@ -125,6 +122,8 @@ export function NurseryReportSheet({ learnerId, termId, onReady, pageBreak }: Pr
       setSchool(s);
       setLogoUrl(logoBase64); setStampUrl(stampBase64); setWatermarkUrl(watermarkBase64); setHeadSigUrl(headSigBase64);
       setLearner(l); setPhotoUrl(photoBase64); setCls(classData); setStream(streamData); setClassTeacher(teacherData); setClassSigUrl(classSigBase64);
+      setTerm(t); setAssessments(map);
+      setReport({ class_teacher_comment: (rc as any)?.class_teacher_comment ?? "", head_teacher_comment: (rc as any)?.head_teacher_comment ?? "" });
       setAreas(areaRows.map((area, i) => ({ ...area, imageBase64: areaImages[i] })));
       setColors((g as any) ?? []);
       setReportDataReady(true);
