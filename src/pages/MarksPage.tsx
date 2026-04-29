@@ -155,7 +155,7 @@ export default function MarksPage() {
 
     const { error } = await supabase
       .from("marks")
-      .upsert(payload, { onConflict: "term_id,learner_id,subject_id" });
+      .upsert(payload as any, { onConflict: "term_id,learner_id,subject_id" });
     setSaving(false);
     if (error) return toast({ title: "Save failed", description: error.message, variant: "destructive" });
     toast({ title: `Saved ${payload.length} record(s)` });

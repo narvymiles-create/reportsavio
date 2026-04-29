@@ -22,7 +22,7 @@ export default function NurseryColorsPage() {
 
   const add = async () => {
     if (!grade.trim() || !label.trim()) return;
-    await supabase.from("nursery_grade_colors" as any).insert({ grade: grade.trim().toUpperCase(), label: label.trim(), color, sort_order: list.length + 1 });
+    await supabase.from("nursery_grade_colors" as any).insert({ grade: grade.trim().toUpperCase(), label: label.trim(), color, sort_order: list.length + 1 } as any);
     setGrade(""); setLabel(""); load();
   };
   const update = async (id: string, patch: Partial<GC>) => {

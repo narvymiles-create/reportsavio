@@ -52,7 +52,7 @@ export default function CommentsPage() {
 
   const seed = async () => {
     setBusy(true);
-    const { error } = await supabase.from("comment_templates").insert(DEFAULTS);
+    const { error } = await supabase.from("comment_templates").insert(DEFAULTS as any);
     setBusy(false);
     if (error) return toast({ title: "Failed", description: error.message, variant: "destructive" });
     toast({ title: "Default comments added" });
@@ -72,7 +72,7 @@ export default function CommentsPage() {
     setBusy(true);
     const res = edit
       ? await supabase.from("comment_templates").update(payload).eq("id", edit.id)
-      : await supabase.from("comment_templates").insert([payload]);
+      : await supabase.from("comment_templates").insert([payload] as any);
     setBusy(false);
     if (res.error) return toast({ title: "Failed", description: res.error.message, variant: "destructive" });
     toast({ title: edit ? "Comment updated" : "Comment added" });

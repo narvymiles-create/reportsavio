@@ -24,7 +24,7 @@ export default function NurseryLearningAreasPage() {
 
   const add = async () => {
     if (!name.trim()) return;
-    const { error } = await supabase.from("nursery_learning_areas" as any).insert({ name: name.trim(), sort_order: areas.length + 1 });
+    const { error } = await supabase.from("nursery_learning_areas" as any).insert({ name: name.trim(), sort_order: areas.length + 1 } as any);
     if (error) return toast({ title: "Error", description: error.message, variant: "destructive" });
     setName(""); load();
   };

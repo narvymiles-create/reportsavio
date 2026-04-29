@@ -116,7 +116,7 @@ export default function ClassesPage() {
       toast({ title: "Stream name too long", variant: "destructive" });
       return;
     }
-    const { error } = await supabase.from("streams").insert({ class_id: classId, name: trimmed });
+    const { error } = await supabase.from("streams").insert({ class_id: classId, name: trimmed } as any);
     if (error) {
       toast({ title: "Add stream failed", description: error.message, variant: "destructive" });
     } else {

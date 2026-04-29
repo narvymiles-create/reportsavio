@@ -31,7 +31,7 @@ export default function NurseryClassesPage() {
 
   const addClass = async () => {
     if (!name.trim()) return;
-    const { error } = await supabase.from("nursery_classes" as any).insert({ name: name.trim(), level: level.trim() || null, sort_order: classes.length });
+    const { error } = await supabase.from("nursery_classes" as any).insert({ name: name.trim(), level: level.trim() || null, sort_order: classes.length } as any);
     if (error) return toast({ title: "Error", description: error.message, variant: "destructive" });
     setName(""); setLevel(""); load();
   };
@@ -47,7 +47,7 @@ export default function NurseryClassesPage() {
   };
   const addStream = async (classId: string, sName: string) => {
     if (!sName.trim()) return;
-    await supabase.from("nursery_streams" as any).insert({ class_id: classId, name: sName.trim() });
+    await supabase.from("nursery_streams" as any).insert({ class_id: classId, name: sName.trim() } as any);
     load();
   };
   const delStream = async (id: string) => {
