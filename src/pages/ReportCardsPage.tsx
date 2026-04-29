@@ -276,11 +276,11 @@ export default function ReportCardsPage() {
     loadReports();
   };
 
-  const startReportJob = (mode: "print" | "download", selectedLearners?: Learner[], label?: string) => {
+  const startReportJob = (selectedLearners?: Learner[], label?: string) => {
     if (!termId || !classId) return toast({ title: "Pick a term and class", variant: "destructive" });
     const readyLearners = (selectedLearners ?? filtered).filter(l => reports[l.id]);
     if (readyLearners.length === 0) return toast({ title: "No report cards generated yet", variant: "destructive" });
-    setReportJob({ id: ++jobCounterRef.current, mode, learners: readyLearners, label: label ?? (mode === "print" ? "Bulk print" : "Bulk ZIP download") });
+    setReportJob({ id: ++jobCounterRef.current, learners: readyLearners, label: label ?? "Bulk print" });
   };
 
   if (loading) return <div className="flex items-center justify-center p-12"><Loader2 className="h-6 w-6 animate-spin" /></div>;
@@ -361,11 +361,8 @@ export default function ReportCardsPage() {
               {generating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
               Generate / Refresh All
             </Button>
-            <Button variant="outline" onClick={() => startReportJob("print")} disabled={!termId || !classId || generatedCount === 0 || !!reportJob}>
+            <Button variant="outline" onClick={() => startReportJob()} disabled={!termId || !classId || generatedCount === 0 || !!reportJob}>
               <Package className="mr-2 h-4 w-4" /> Bulk Print
-            </Button>
-            <Button variant="outline" onClick={() => startReportJob("download")} disabled={!termId || !classId || generatedCount === 0 || !!reportJob}>
-              <FolderArchive className="mr-2 h-4 w-4" /> Bulk Download (ZIP)
             </Button>
           </div>
         </CardHeader>
@@ -405,8 +402,7 @@ export default function ReportCardsPage() {
                         {r ? (
                           <div className="inline-flex items-center gap-1 justify-end">
                             <IconAction icon={Eye} label="View" asChild href={printUrl} target="_blank" />
-                            <IconAction icon={Printer} label="Print" onClick={() => startReportJob("print", [l], `Print ${l.full_name}`)} />
-                            <IconAction icon={Download} label="Download" onClick={() => startReportJob("download", [l], `Download ${l.full_name}`)} />
+                            <IconAction icon={Printer} label="Print" onClick={() => startReportJob([l], `Print ${l.full_name}`)} />
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button size="icon" variant="ghost" className="h-8 w-8 inline-flex lg:hidden" onClick={() => { setSingleLearnerId(l.id); generateSingle(); }} title="Re-generate" aria-label="Edit / Regenerate">
