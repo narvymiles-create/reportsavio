@@ -286,6 +286,51 @@ export default function ReportCardsPage() {
     setReportJob({ id: ++jobCounterRef.current, learners: readyLearners, label: label ?? "Bulk print" });
   };
 
+  const downloadOne = async (learner: Learner) => {
+    if (!termId) return;
+    if (!reports[learner.id]) return toast({ title: "Generate the report card first", variant: "destructive" });
+    setDownloadingId(learner.id);
+    try {
+      await downloadReportCardPDF(learner.id, termId, learner.full_name);
+      toast({ title: "Downloaded", description: `${learner.full_name}.pdf` });
+    } catch (e: unknown) {
+      toast({ title: "Download failed", description: errorMessage(e), variant: "destructive" });
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
+  const downloadAllZip = async () => {
+    if (!termId || !classId) return toast({ title: "Pick a term and class", variant: "destructive" });
+    const ready = filtered.filter(l => reports[l.id]);
+    if (ready.length === 0) return toast({ title: "No report cards generated yet", variant: "destructive" });
+    const cls = classes.find(c => c.id === classId)?.name ?? "class";
+    const term = terms.find(t => t.id === termId);
+    const zipName = `report-cards_${cls}_${term?.name ?? ""}_${term?.year ?? ""}`;
+    setBulkDownload({ done: 0, total: ready.length, current: "", failed: [] });
+    try {
+      const { failed } = await downloadReportCardsZip(
+        ready.map(l => ({ id: l.id, full_name: l.full_name })),
+        termId,
+        zipName,
+        (p) => setBulkDownload(p),
+      );
+      if (failed.length === 0) {
+        toast({ title: `Downloaded ${ready.length} report card(s)` });
+      } else {
+        toast({
+          title: `Downloaded with ${failed.length} failure(s)`,
+          description: failed.slice(0, 3).map(f => f.name).join(", "),
+          variant: "destructive",
+        });
+      }
+    } catch (e: unknown) {
+      toast({ title: "Bulk download failed", description: errorMessage(e), variant: "destructive" });
+    } finally {
+      setBulkDownload(null);
+    }
+  };
+
   if (loading) return <div className="flex items-center justify-center p-12"><Loader2 className="h-6 w-6 animate-spin" /></div>;
 
   const generatedCount = filtered.filter(l => reports[l.id]).length;
