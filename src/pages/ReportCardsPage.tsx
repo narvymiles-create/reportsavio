@@ -479,6 +479,17 @@ export default function ReportCardsPage() {
                             <IconAction icon={Printer} label="Print" onClick={() => startReportJob([l], `Print ${l.full_name}`)} />
                             <Tooltip>
                               <TooltipTrigger asChild>
+                                <Button size="icon" variant="ghost" className="h-8 w-8 inline-flex lg:hidden" onClick={() => downloadOne(l)} disabled={downloadingId === l.id} title="Download PDF" aria-label="Download PDF">
+                                  {downloadingId === l.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Download PDF</TooltipContent>
+                            </Tooltip>
+                            <Button size="sm" variant="ghost" className="hidden lg:inline-flex" onClick={() => downloadOne(l)} disabled={downloadingId === l.id}>
+                              {downloadingId === l.id ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Download className="mr-1 h-4 w-4" />} Download
+                            </Button>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
                                 <Button size="icon" variant="ghost" className="h-8 w-8 inline-flex lg:hidden" onClick={() => { setSingleLearnerId(l.id); generateSingle(); }} title="Re-generate" aria-label="Edit / Regenerate">
                                   {generatingOne === l.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
                                 </Button>
