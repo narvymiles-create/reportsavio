@@ -195,6 +195,8 @@ export default function ReportCardsPage() {
   const [classId, setClassId] = useState("");
   const [streamId, setStreamId] = useState("all");
   const [singleLearnerId, setSingleLearnerId] = useState("");
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [bulkDownload, setBulkDownload] = useState<BulkProgress | null>(null);
   const jobCounterRef = useRef(0);
 
   useEffect(() => {
