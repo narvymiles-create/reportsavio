@@ -339,6 +339,29 @@ export default function ReportCardsPage() {
     <div className="space-y-6">
       {reportJob && <ReportJobRunner job={reportJob} termId={termId} onDone={() => setReportJob(null)} />}
 
+      {bulkDownload && (
+        <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm p-6 flex items-center justify-center">
+          <Card className="max-w-xl w-full">
+            <CardHeader><CardTitle>Generating PDFs…</CardTitle></CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-sm">
+                <strong>{bulkDownload.done}</strong> / {bulkDownload.total} processed
+                {bulkDownload.current && <> — {bulkDownload.current}</>}
+              </p>
+              <div className="h-2 rounded bg-muted overflow-hidden">
+                <div className="h-full bg-primary transition-all"
+                  style={{ width: `${bulkDownload.total ? Math.round((bulkDownload.done / bulkDownload.total) * 100) : 0}%` }} />
+              </div>
+              {bulkDownload.failed.length > 0 && (
+                <p className="text-xs text-destructive">{bulkDownload.failed.length} failed so far</p>
+              )}
+              <p className="text-xs text-muted-foreground">Please keep this tab open until the download starts.</p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+
       <div>
         <h1 className="text-3xl font-bold">Report Cards</h1>
         <p className="text-muted-foreground">Generate, preview, print and bulk-export report cards.</p>
