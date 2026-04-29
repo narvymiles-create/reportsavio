@@ -295,6 +295,56 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
 
   const handlePrint = () => window.print();
 
+  const handleImportFile = (file: File) => {
+    Papa.parse<Record<string, string>>(file, {
+      header: true, skipEmptyLines: true,
+      complete: (res) => {
+        const rows = res.data;
+        if (!rows.length) { toast({ title: "Empty file", variant: "destructive" }); return; }
+        const headerKeys = Object.keys(rows[0]).map(k => k.trim());
+        const nameKey = headerKeys.find(k => k.toUpperCase() === "NAMES" || k.toUpperCase() === "NAME");
+        if (!nameKey) { toast({ title: "Invalid format or unknown student/subject", description: "Missing NAMES column", variant: "destructive" }); return; }
+        const subByCode: Record<string, Subject> = {};
+        for (const s of subjects) {
+          const code = (s.code === "OTHER" && s.code_label) ? s.code_label : s.code;
+          subByCode[String(code).toUpperCase()] = s;
+        }
+        const learnerByName: Record<string, Learner> = {};
+        for (const l of filteredLearners) learnerByName[l.full_name.toUpperCase().trim()] = l;
+        const updates: Record<string, MarkRow> = { ...marks };
+        let updated = 0; const unknown: string[] = [];
+        for (const r of rows) {
+          const name = String(r[nameKey] ?? "").trim().toUpperCase();
+          const learner = learnerByName[name];
+          if (!learner) { unknown.push(name); continue; }
+          for (const h of headerKeys) {
+            if (h === nameKey) continue;
+            const subj = subByCode[h.toUpperCase()];
+            if (!subj) { unknown.push(h); continue; }
+            const raw = String(r[h] ?? "").trim();
+            if (raw === "") continue;
+            const num = Number(raw);
+            if (isNaN(num)) continue;
+            const key = `${learner.id}|${subj.id}`;
+            updates[key] = {
+              ...(updates[key] ?? { learner_id: learner.id, subject_id: subj.id, bot: null, mid: null, eot: null }),
+              [exam]: num,
+            } as MarkRow;
+            updated += 1;
+          }
+        }
+        if (updated === 0) {
+          toast({ title: "Invalid format or unknown student/subject", description: unknown.slice(0, 5).join(", "), variant: "destructive" });
+          return;
+        }
+        setMarks(updates);
+        setImportOpen(false);
+        toast({ title: `Imported ${updated} mark(s)`, description: unknown.length ? `Skipped: ${unknown.slice(0, 5).join(", ")}` : undefined });
+      },
+      error: (err) => toast({ title: "Import failed", description: err.message, variant: "destructive" }),
+    });
+  };
+
 
   if (loading) return <div className="flex items-center justify-center p-12"><Loader2 className="h-6 w-6 animate-spin" /></div>;
 
