@@ -401,9 +401,10 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
     XLSX.writeFile(wb, `${baseFileName()}.xlsx`);
   };
 
-  const exportPDF = () => {
+  const exportPDF = async () => {
     const { headers, rows } = buildExportRows();
     const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
+    const logoDataUrl = await getSkavioLogoDataUrl();
     const title = `${school?.name ?? ""} — ${TITLES[exam]}`;
     doc.setFontSize(12);
     doc.text(title, 40, 30);
@@ -412,6 +413,7 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
     doc.text(`Class: ${c?.name ?? "—"}    Term: ${t ? `${t.name} ${t.year}` : "—"}`, 40, 46);
 
     const colW = Math.max(40, (doc.internal.pageSize.getWidth() - 80) / headers.length);
+    const FOOTER_RESERVE = 36; // pt — keeps content above Skavio footer
     let y = 70;
     doc.setFontSize(8);
     headers.forEach((h, i) => doc.text(String(h), 40 + i * colW, y));
@@ -419,12 +421,14 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
     rows.forEach(r => {
       r.forEach((v, i) => doc.text(String(v ?? ""), 40 + i * colW, y));
       y += 12;
-      if (y > doc.internal.pageSize.getHeight() - 40) { doc.addPage(); y = 40; }
+      if (y > doc.internal.pageSize.getHeight() - FOOTER_RESERVE) { doc.addPage(); y = 40; }
     });
     y += 14;
+    if (y > doc.internal.pageSize.getHeight() - FOOTER_RESERVE - 30) { doc.addPage(); y = 40; }
     doc.setFontSize(10); doc.text("SUMMARY", 40, y); y += 14;
     doc.setFontSize(9);
     doc.text(`DIV1: ${divSummary["1"] || 0}   DIV2: ${divSummary["2"] || 0}   DIV3: ${divSummary["3"] || 0}   DIV4: ${divSummary["4"] || 0}   DIV X: ${divSummary.X || 0}   U: ${divSummary.U || 0}`, 40, y);
+    drawSkavioFooter(doc, logoDataUrl);
     doc.save(`${baseFileName()}.pdf`);
   };
 
