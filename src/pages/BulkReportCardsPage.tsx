@@ -151,7 +151,10 @@ export default function BulkReportCardsPage() {
       toast({ title: "Please wait, report still loading" });
       return;
     }
-    try { window.print(); } catch (e: any) {
+    try {
+      await waitForImagesAndFonts(sheetsRef.current);
+      window.print();
+    } catch (e: any) {
       toast({ title: "Print failed", description: e.message, variant: "destructive" });
     }
   };
