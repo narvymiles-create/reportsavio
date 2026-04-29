@@ -357,27 +357,12 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
 
         {/* Action toolbar */}
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={downloadPDF} disabled={!classId || filteredLearners.length === 0}>
-            <FileDown className="mr-2 h-4 w-4" /> Download PDF
-          </Button>
           <Button variant="outline" onClick={handlePrint} disabled={!classId || filteredLearners.length === 0}>
             <Printer className="mr-2 h-4 w-4" /> Print
           </Button>
           <Button variant="outline" onClick={() => setImportOpen(true)} disabled={!classId || subjects.length === 0}>
             <Upload className="mr-2 h-4 w-4" /> Import Marks (CSV)
           </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" disabled={!classId || filteredLearners.length === 0}>
-                <Download className="mr-2 h-4 w-4" /> Export
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuItem onClick={exportXLSX}><FileSpreadsheet className="mr-2 h-4 w-4" /> Excel (.xlsx)</DropdownMenuItem>
-              <DropdownMenuItem onClick={exportCSV}><FileText className="mr-2 h-4 w-4" /> CSV (.csv)</DropdownMenuItem>
-              <DropdownMenuItem onClick={exportPDF}><FileDown className="mr-2 h-4 w-4" /> PDF (.pdf)</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
         </div>
 
         {classId && !coreCountValid && (
@@ -408,9 +393,6 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
               Nalule,{subjects.map(() => "").join(",")}
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button variant="outline" onClick={downloadTemplate}>
-                <Download className="mr-2 h-4 w-4" /> Download Template
-              </Button>
               <input
                 ref={fileInputRef}
                 type="file"
