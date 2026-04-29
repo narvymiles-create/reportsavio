@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Printer, Download } from "lucide-react";
 import { NurseryReportSheet } from "@/components/NurseryReportSheet";
 import { downloadElementsAsZip, safeFileName } from "@/lib/pdfExport";
+import { waitForImagesAndFonts } from "@/lib/reportAssets";
 import { toast } from "@/hooks/use-toast";
 
 type Learner = { id: string; full_name: string; stream_id: string | null };
@@ -69,7 +70,7 @@ export default function BulkNurseryReportCardsPage() {
     const t = setTimeout(() => {
       if (!mountedRef.current) return;
       if (mode === "print") {
-        try { window.print(); } catch (e) { console.error(e); }
+        runBulkPrint();
       } else {
         runBulkDownload();
       }
@@ -89,6 +90,7 @@ export default function BulkNurseryReportCardsPage() {
     setStatusMsg("Generating reports, please wait...");
     try {
       const pages = Array.from(sheetsRef.current.querySelectorAll<HTMLDivElement>(".nrc-page"));
+      await waitForImagesAndFonts(sheetsRef.current);
       console.log(`[BulkNursery] Starting ZIP for ${pages.length} learner(s)`);
       const jobs = pages.map((element, j) => {
         const safe = safeFileName(learners[j]?.full_name ?? `report-${j + 1}`, `report-${j + 1}`);
@@ -120,12 +122,19 @@ export default function BulkNurseryReportCardsPage() {
     }
   };
 
-  const runBulkPrint = () => {
+  const runBulkPrint = async () => {
     if (!learners || learners.length === 0) {
       toast({ title: "No learners available for report generation", variant: "destructive" });
       return;
     }
-    try { window.print(); } catch (e: any) {
+    if (readyCount < learners.length || !sheetsRef.current) {
+      toast({ title: "Please wait, report still loading" });
+      return;
+    }
+    try {
+      await waitForImagesAndFonts(sheetsRef.current);
+      window.print();
+    } catch (e: any) {
       toast({ title: "Print failed", description: e.message, variant: "destructive" });
     }
   };
