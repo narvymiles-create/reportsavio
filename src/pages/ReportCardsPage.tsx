@@ -10,13 +10,14 @@ import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "@/hooks/use-toast";
 import {
-  Eye, FileText, Loader2, Printer, Sparkles, Trash2, UserCheck, Package,
+  Eye, FileText, Loader2, Printer, Sparkles, Trash2, UserCheck, Package, Download, FileDown,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { generateClassReports } from "@/lib/reportCards";
 import { calculateDivision } from "@/lib/grading";
 import { ReportCardSheet } from "@/components/ReportCardSheet";
 import { waitForImagesAndFonts } from "@/lib/reportAssets";
+import { downloadReportCardPDF, downloadReportCardsZip, type BulkProgress } from "@/lib/pdfGenerator";
 import "./PrintReportCard.css";
 
 type Term = { id: string; name: string; year: number; is_current: boolean };
@@ -194,6 +195,8 @@ export default function ReportCardsPage() {
   const [classId, setClassId] = useState("");
   const [streamId, setStreamId] = useState("all");
   const [singleLearnerId, setSingleLearnerId] = useState("");
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [bulkDownload, setBulkDownload] = useState<BulkProgress | null>(null);
   const jobCounterRef = useRef(0);
 
   useEffect(() => {
@@ -283,6 +286,51 @@ export default function ReportCardsPage() {
     setReportJob({ id: ++jobCounterRef.current, learners: readyLearners, label: label ?? "Bulk print" });
   };
 
+  const downloadOne = async (learner: Learner) => {
+    if (!termId) return;
+    if (!reports[learner.id]) return toast({ title: "Generate the report card first", variant: "destructive" });
+    setDownloadingId(learner.id);
+    try {
+      await downloadReportCardPDF(learner.id, termId, learner.full_name);
+      toast({ title: "Downloaded", description: `${learner.full_name}.pdf` });
+    } catch (e: unknown) {
+      toast({ title: "Download failed", description: errorMessage(e), variant: "destructive" });
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
+  const downloadAllZip = async () => {
+    if (!termId || !classId) return toast({ title: "Pick a term and class", variant: "destructive" });
+    const ready = filtered.filter(l => reports[l.id]);
+    if (ready.length === 0) return toast({ title: "No report cards generated yet", variant: "destructive" });
+    const cls = classes.find(c => c.id === classId)?.name ?? "class";
+    const term = terms.find(t => t.id === termId);
+    const zipName = `report-cards_${cls}_${term?.name ?? ""}_${term?.year ?? ""}`;
+    setBulkDownload({ done: 0, total: ready.length, current: "", failed: [] });
+    try {
+      const { failed } = await downloadReportCardsZip(
+        ready.map(l => ({ id: l.id, full_name: l.full_name })),
+        termId,
+        zipName,
+        (p) => setBulkDownload(p),
+      );
+      if (failed.length === 0) {
+        toast({ title: `Downloaded ${ready.length} report card(s)` });
+      } else {
+        toast({
+          title: `Downloaded with ${failed.length} failure(s)`,
+          description: failed.slice(0, 3).map(f => f.name).join(", "),
+          variant: "destructive",
+        });
+      }
+    } catch (e: unknown) {
+      toast({ title: "Bulk download failed", description: errorMessage(e), variant: "destructive" });
+    } finally {
+      setBulkDownload(null);
+    }
+  };
+
   if (loading) return <div className="flex items-center justify-center p-12"><Loader2 className="h-6 w-6 animate-spin" /></div>;
 
   const generatedCount = filtered.filter(l => reports[l.id]).length;
@@ -290,6 +338,29 @@ export default function ReportCardsPage() {
   return (
     <div className="space-y-6">
       {reportJob && <ReportJobRunner job={reportJob} termId={termId} onDone={() => setReportJob(null)} />}
+
+      {bulkDownload && (
+        <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm p-6 flex items-center justify-center">
+          <Card className="max-w-xl w-full">
+            <CardHeader><CardTitle>Generating PDFs…</CardTitle></CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-sm">
+                <strong>{bulkDownload.done}</strong> / {bulkDownload.total} processed
+                {bulkDownload.current && <> — {bulkDownload.current}</>}
+              </p>
+              <div className="h-2 rounded bg-muted overflow-hidden">
+                <div className="h-full bg-primary transition-all"
+                  style={{ width: `${bulkDownload.total ? Math.round((bulkDownload.done / bulkDownload.total) * 100) : 0}%` }} />
+              </div>
+              {bulkDownload.failed.length > 0 && (
+                <p className="text-xs text-destructive">{bulkDownload.failed.length} failed so far</p>
+              )}
+              <p className="text-xs text-muted-foreground">Please keep this tab open until the download starts.</p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
 
       <div>
         <h1 className="text-3xl font-bold">Report Cards</h1>
@@ -364,6 +435,9 @@ export default function ReportCardsPage() {
             <Button variant="outline" onClick={() => startReportJob()} disabled={!termId || !classId || generatedCount === 0 || !!reportJob}>
               <Package className="mr-2 h-4 w-4" /> Bulk Print
             </Button>
+            <Button variant="outline" onClick={downloadAllZip} disabled={!termId || !classId || generatedCount === 0 || !!bulkDownload}>
+              <FileDown className="mr-2 h-4 w-4" /> Bulk Download (ZIP)
+            </Button>
           </div>
         </CardHeader>
         <CardContent>
@@ -403,6 +477,17 @@ export default function ReportCardsPage() {
                           <div className="inline-flex items-center gap-1 justify-end">
                             <IconAction icon={Eye} label="View" asChild href={printUrl} target="_blank" />
                             <IconAction icon={Printer} label="Print" onClick={() => startReportJob([l], `Print ${l.full_name}`)} />
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button size="icon" variant="ghost" className="h-8 w-8 inline-flex lg:hidden" onClick={() => downloadOne(l)} disabled={downloadingId === l.id} title="Download PDF" aria-label="Download PDF">
+                                  {downloadingId === l.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Download PDF</TooltipContent>
+                            </Tooltip>
+                            <Button size="sm" variant="ghost" className="hidden lg:inline-flex" onClick={() => downloadOne(l)} disabled={downloadingId === l.id}>
+                              {downloadingId === l.id ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Download className="mr-1 h-4 w-4" />} Download
+                            </Button>
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button size="icon" variant="ghost" className="h-8 w-8 inline-flex lg:hidden" onClick={() => { setSingleLearnerId(l.id); generateSingle(); }} title="Re-generate" aria-label="Edit / Regenerate">
