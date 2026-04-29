@@ -10,6 +10,7 @@ import { toast } from "@/hooks/use-toast";
 import { Loader2, Upload, Image as ImageIcon, Stamp, Settings2, Droplet } from "lucide-react";
 import { StampPositionDialog, StampPositionPanel } from "@/components/StampPositionDialog";
 import { WatermarkPanel } from "@/components/WatermarkPanel";
+import { useAuth } from "@/contexts/AuthContext";
 
 const schema = z.object({
   name: z.string().trim().min(1).max(200),
@@ -47,6 +48,7 @@ type SchoolInfo = {
 };
 
 export default function SchoolInfoPage() {
+  const { schoolId } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -161,7 +163,7 @@ export default function SchoolInfoPage() {
     }
     setUploading(true);
     const ext = file.name.split(".").pop();
-    const path = `logo-${info.id}.${ext}`;
+    const path = `schools/${schoolId}/logo-${info.id}.${ext}`;
     const { error: upErr } = await supabase.storage
       .from("school-assets")
       .upload(path, file, { upsert: true, contentType: file.type });
@@ -192,7 +194,7 @@ export default function SchoolInfoPage() {
       // Upload the stamp EXACTLY as provided — no background removal,
       // no re-encoding. Preserves whatever transparency the user prepared.
       const ext = (file.name.split(".").pop() || "png").toLowerCase();
-      const path = `stamp-${info.id}.${ext}`;
+      const path = `schools/${schoolId}/stamp-${info.id}.${ext}`;
       const { error: upErr } = await supabase.storage
         .from("school-assets")
         .upload(path, file, { upsert: true, contentType: file.type || "image/png" });

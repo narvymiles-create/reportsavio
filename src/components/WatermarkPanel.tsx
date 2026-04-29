@@ -73,7 +73,7 @@ export function WatermarkPanel({ schoolId, watermarkUrl, initial, onSaved, onUpl
     try {
       // Upload watermark exactly as provided (no auto background removal).
       const ext = (file.name.split(".").pop() || "png").toLowerCase();
-      const path = `watermark-${schoolId}.${ext}`;
+      const path = `schools/${schoolId}/watermark-${schoolId}.${ext}`;
       const { error: upErr } = await supabase.storage
         .from("school-assets")
         .upload(path, file, { upsert: true, contentType: file.type || "image/png" });
