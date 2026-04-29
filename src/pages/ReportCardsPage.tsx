@@ -17,6 +17,7 @@ import { generateClassReports } from "@/lib/reportCards";
 import { calculateDivision } from "@/lib/grading";
 import { ReportCardSheet } from "@/components/ReportCardSheet";
 import { downloadElementsAsZip, downloadPdfFromElement, safeFileName } from "@/lib/pdfExport";
+import { waitForImagesAndFonts } from "@/lib/reportAssets";
 import "./PrintReportCard.css";
 
 type Term = { id: string; name: string; year: number; is_current: boolean };
@@ -120,6 +121,7 @@ function ReportJobRunner({ job, termId, onDone }: { job: ReportJob; termId: stri
   const runDownload = async () => {
     const pages = Array.from(sheetsRef.current?.querySelectorAll<HTMLDivElement>(".report-page") ?? []);
     if (pages.length === 0) throw new Error("No printable report cards were found.");
+    await waitForImagesAndFonts(sheetsRef.current);
 
     if (pages.length === 1) {
       setStatusMsg("Generating PDF...");
@@ -153,12 +155,14 @@ function ReportJobRunner({ job, termId, onDone }: { job: ReportJob; termId: stri
   const runJob = async () => {
     try {
       if (!job.learners.length) throw new Error("No learners available for report generation.");
+      if (!allReady) throw new Error("Please wait, report still loading");
       setWorking(true);
       setErrorMsg("");
       setProgress(0);
       console.log(`[ReportCards ${job.mode}] Learners: ${job.learners.length}`);
       if (job.mode === "print") {
         setStatusMsg("Opening print options...");
+        await waitForImagesAndFonts(sheetsRef.current);
         document.body.classList.add("bulk-report-printing");
         window.print();
         setTimeout(() => {
