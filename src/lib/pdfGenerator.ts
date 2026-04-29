@@ -128,7 +128,7 @@ async function renderSheetIntoPage(
 const html2pdfOptions = (filename: string) => ({
   margin: 0,
   filename,
-  image: { type: "jpeg", quality: 0.98 },
+  image: { type: "jpeg" as const, quality: 0.98 },
   html2canvas: {
     scale: 2,
     useCORS: true,
