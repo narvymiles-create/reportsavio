@@ -1,14 +1,19 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { nurseryPublicUrl } from "@/lib/nurseryStorage";
+import { preloadImageAsBase64, waitForImagesAndFonts } from "@/lib/reportAssets";
 import "./NurseryReportSheet.css";
 
 type Props = { learnerId: string; termId: string; onReady?: () => void; pageBreak?: boolean };
 
-type Area = { id: string; name: string; image_path: string | null; sort_order: number };
+type Area = { id: string; name: string; image_path: string | null; imageBase64?: string | null; sort_order: number };
 type GC = { grade: string; label: string; color: string };
 
 export function NurseryReportSheet({ learnerId, termId, onReady, pageBreak }: Props) {
+  const pageRef = useRef<HTMLDivElement>(null);
+  const readySignaledRef = useRef(false);
+  const [loading, setLoading] = useState(true);
+  const [reportDataReady, setReportDataReady] = useState(false);
   const [school, setSchool] = useState<any>(null);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [stampUrl, setStampUrl] = useState<string | null>(null);
@@ -27,69 +32,79 @@ export function NurseryReportSheet({ learnerId, termId, onReady, pageBreak }: Pr
   const [headSigUrl, setHeadSigUrl] = useState<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
     (async () => {
+      setLoading(true);
+      setReportDataReady(false);
+      readySignaledRef.current = false;
       // School
       const { data: s } = await supabase.from("school_info" as any).select("*").eq("is_active", true).order("created_at", { ascending: false }).limit(1).maybeSingle();
-      setSchool(s);
+      if (cancelled) return;
+      let logoBase64: string | null = null;
+      let stampBase64: string | null = null;
+      let watermarkBase64: string | null = null;
+      let headSigBase64: string | null = null;
       if ((s as any)?.logo_path) {
         const { data: u } = await supabase.storage.from("school-assets").createSignedUrl((s as any).logo_path, 3600);
-        setLogoUrl(u?.signedUrl ?? null);
+        logoBase64 = await preloadImageAsBase64(u?.signedUrl ?? null);
       }
       if ((s as any)?.stamp_path) {
         const { data: u } = await supabase.storage.from("school-assets").createSignedUrl((s as any).stamp_path, 3600);
-        setStampUrl(u?.signedUrl ?? null);
+        stampBase64 = await preloadImageAsBase64(u?.signedUrl ?? null);
       }
       if ((s as any)?.watermark_path) {
         const { data: u } = await supabase.storage.from("school-assets").createSignedUrl((s as any).watermark_path, 3600);
-        setWatermarkUrl(u?.signedUrl ?? null);
+        watermarkBase64 = await preloadImageAsBase64(u?.signedUrl ?? null);
       }
       const headSigPath = (s as any)?.nursery_head_teacher_signature_path ?? (s as any)?.head_teacher_signature_path;
       if (headSigPath) {
         const { data: u } = await supabase.storage.from("signatures").createSignedUrl(headSigPath, 3600);
-        setHeadSigUrl(u?.signedUrl ?? null);
+        headSigBase64 = await preloadImageAsBase64(u?.signedUrl ?? null);
       }
 
       // Learner
       const { data: l } = await supabase.from("nursery_learners" as any).select("*").eq("id", learnerId).maybeSingle();
-      setLearner(l);
-      if ((l as any)?.photo_path) setPhotoUrl(nurseryPublicUrl((l as any).photo_path));
+      let photoBase64: string | null = null;
+      if ((l as any)?.photo_path) photoBase64 = await preloadImageAsBase64(nurseryPublicUrl((l as any).photo_path));
+
+      let classData: any = null;
+      let streamData: any = null;
+      let teacherData: any = null;
+      let classSigBase64: string | null = null;
 
       if ((l as any)?.class_id) {
         const { data: c } = await supabase.from("nursery_classes" as any).select("*").eq("id", (l as any).class_id).maybeSingle();
-        setCls(c);
+        classData = c;
         if ((c as any)?.class_teacher_id) {
           const { data: t } = await supabase.from("teachers" as any).select("*").eq("id", (c as any).class_teacher_id).maybeSingle();
-          setClassTeacher(t);
+          teacherData = t;
           if ((t as any)?.signature_path) {
             const { data: u } = await supabase.storage.from("signatures").createSignedUrl((t as any).signature_path, 3600);
-            setClassSigUrl(u?.signedUrl ?? null);
+            classSigBase64 = await preloadImageAsBase64(u?.signedUrl ?? null);
           }
         }
       }
       if ((l as any)?.stream_id) {
         const { data: st } = await supabase.from("nursery_streams" as any).select("*").eq("id", (l as any).stream_id).maybeSingle();
-        setStream(st);
+        streamData = st;
       }
 
       // Term
       const { data: t } = await supabase.from("terms" as any).select("*").eq("id", termId).maybeSingle();
-      setTerm(t);
 
       // Areas + colors
       const { data: a } = await supabase.from("nursery_learning_areas" as any).select("*").order("sort_order");
-      setAreas((a as any) ?? []);
+      const areaRows = ((a as any) ?? []) as Area[];
+      const areaImages = await Promise.all(areaRows.map((area) => preloadImageAsBase64(nurseryPublicUrl(area.image_path))));
       const { data: g } = await supabase.from("nursery_grade_colors" as any).select("grade,label,color").order("sort_order");
-      setColors((g as any) ?? []);
 
       // Assessments
       const { data: ams } = await supabase.from("nursery_assessments" as any).select("*").eq("learner_id", learnerId).eq("term_id", termId);
       const map: Record<string, { grade: string | null; comment: string | null }> = {};
       (ams as any[] ?? []).forEach((r) => { map[r.learning_area_id] = { grade: r.grade, comment: r.comment }; });
-      setAssessments(map);
 
       // Report card comments
       const { data: rc } = await supabase.from("nursery_report_cards" as any).select("*").eq("learner_id", learnerId).eq("term_id", termId).maybeSingle();
-      if (rc) setReport({ class_teacher_comment: (rc as any).class_teacher_comment ?? "", head_teacher_comment: (rc as any).head_teacher_comment ?? "" });
 
       // Class teacher signature from class record (preferred over teacher record signature)
       // already loaded above via teacher; if class has its own signature, prefer it
@@ -99,14 +114,35 @@ export function NurseryReportSheet({ learnerId, termId, onReady, pageBreak }: Pr
         const csp = (c2 as any)?.class_signature_path;
         if (csp) {
           const { data: u } = await supabase.storage.from("signatures").createSignedUrl(csp, 3600);
-          if (u?.signedUrl) setClassSigUrl(u.signedUrl);
+          if (u?.signedUrl) classSigBase64 = await preloadImageAsBase64(u.signedUrl);
         }
       } catch {}
 
-      // Signal ready for bulk renderers
-      setTimeout(() => onReady?.(), 300);
+      if (cancelled) return;
+      setSchool(s);
+      setLogoUrl(logoBase64); setStampUrl(stampBase64); setWatermarkUrl(watermarkBase64); setHeadSigUrl(headSigBase64);
+      setLearner(l); setPhotoUrl(photoBase64); setCls(classData); setStream(streamData); setClassTeacher(teacherData); setClassSigUrl(classSigBase64);
+      setTerm(t); setAssessments(map);
+      setReport({ class_teacher_comment: (rc as any)?.class_teacher_comment ?? "", head_teacher_comment: (rc as any)?.head_teacher_comment ?? "" });
+      setAreas(areaRows.map((area, i) => ({ ...area, imageBase64: areaImages[i] })));
+      setColors((g as any) ?? []);
+      setReportDataReady(true);
+      setLoading(false);
     })();
+    return () => { cancelled = true; };
   }, [learnerId, termId]);
+
+  useEffect(() => {
+    if (loading || !reportDataReady || !pageRef.current || readySignaledRef.current) return;
+    let cancelled = false;
+    waitForImagesAndFonts(pageRef.current).then(() => {
+      if (!cancelled && !readySignaledRef.current) {
+        readySignaledRef.current = true;
+        onReady?.();
+      }
+    });
+    return () => { cancelled = true; };
+  }, [loading, reportDataReady, onReady]);
 
   // Realtime sync of assessments
   useEffect(() => {
@@ -141,7 +177,9 @@ export function NurseryReportSheet({ learnerId, termId, onReady, pageBreak }: Pr
   }, [areas.length]);
 
   return (
-    <div className="nrc-page" style={{ ...rowHeightStyle, ...(pageBreak ? { pageBreakAfter: "always" } : {}) }}>
+    <div ref={pageRef} className="nrc-page" style={{ ...rowHeightStyle, ...(pageBreak ? { pageBreakAfter: "always" } : {}) }}>
+      {loading && <div className="nrc-loading">Preparing report card...</div>}
+      {!loading && (
       <div className="nrc-frame">
         {watermarkUrl && (school?.watermark_enabled !== false) && (
           <img
@@ -186,11 +224,10 @@ export function NurseryReportSheet({ learnerId, termId, onReady, pageBreak }: Pr
             const ax = assessments[a.id];
             const grade = (ax?.grade ?? "").toUpperCase();
             const bg = grade ? colorMap.get(grade) ?? "#e5e7eb" : "transparent";
-            const url = nurseryPublicUrl(a.image_path);
             return (
               <div key={a.id} className="nrc-area-row">
                 <div className="nrc-area-img">
-                  {url ? <img src={url} alt={a.name} /> : <div className="nrc-area-img-empty" />}
+                  {a.imageBase64 ? <img src={a.imageBase64} alt={a.name} /> : <div className="nrc-area-img-empty" />}
                 </div>
                 <div className="nrc-area-text">
                   <div className="nrc-area-name">{a.name}</div>
@@ -265,6 +302,7 @@ export function NurseryReportSheet({ learnerId, termId, onReady, pageBreak }: Pr
           />
         )}
       </div>
+      )}
     </div>
   );
 }

@@ -2,6 +2,7 @@
 // No server / edge function involvement.
 import html2pdf from "html2pdf.js";
 import JSZip from "jszip";
+import { waitForImagesAndFonts } from "@/lib/reportAssets";
 
 export type PdfElementJob = {
   element: HTMLElement;
@@ -88,16 +89,7 @@ function lockElementToA4(element: HTMLElement): () => void {
 }
 
 async function waitForRenderAssets(element: HTMLElement): Promise<void> {
-  const images = Array.from(element.querySelectorAll("img"));
-  await Promise.all(images.map((img) => {
-    if (img.complete && img.naturalWidth > 0) return Promise.resolve();
-    return new Promise<void>((resolve) => {
-      img.addEventListener("load", () => resolve(), { once: true });
-      img.addEventListener("error", () => resolve(), { once: true });
-    });
-  }));
-  await document.fonts?.ready.catch(() => undefined);
-  await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+  await waitForImagesAndFonts(element);
 }
 
 function createA4CaptureTarget(element: HTMLElement): { target: HTMLElement; cleanup: () => void } {

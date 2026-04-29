@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Printer, Download, Loader2 } from "lucide-react";
 import { ReportCardSheet } from "@/components/ReportCardSheet";
 import { downloadPdfFromElement, safeFileName } from "@/lib/pdfExport";
+import { waitForImagesAndFonts } from "@/lib/reportAssets";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import "./PrintReportCard.css";
@@ -28,8 +29,10 @@ export default function PrintReportCard() {
   const runDownload = async () => {
     const root = sheetRef.current?.querySelector<HTMLDivElement>(".report-page");
     if (!root) return;
+    if (!ready) return toast({ title: "Please wait, report still loading" });
     setWorking(true);
     try {
+      await waitForImagesAndFonts(root);
       const safe = safeFileName(learnerName, "report-card");
       await downloadPdfFromElement(root, `${safe}.pdf`);
       toast({ title: "Download ready", description: `${safe}.pdf` });
@@ -40,12 +43,24 @@ export default function PrintReportCard() {
     }
   };
 
+  const runPrint = async () => {
+    const root = sheetRef.current?.querySelector<HTMLDivElement>(".report-page");
+    if (!ready || !root) return toast({ title: "Please wait, report still loading" });
+    setWorking(true);
+    try {
+      await waitForImagesAndFonts(root);
+      window.print();
+    } finally {
+      setWorking(false);
+    }
+  };
+
   useEffect(() => {
     if (!ready || triggeredRef.current) return;
     if (mode === "preview") return;
     triggeredRef.current = true;
     const t = setTimeout(() => {
-      if (mode === "print") window.print();
+      if (mode === "print") runPrint();
       else if (mode === "download") runDownload();
     }, 600);
     return () => clearTimeout(t);
@@ -56,7 +71,7 @@ export default function PrintReportCard() {
   return (
     <div className="print-root">
       <div className="no-print sticky top-0 z-10 bg-background border-b p-3 flex justify-end gap-2">
-        <Button variant="outline" onClick={() => window.print()} disabled={!ready || working}>
+        <Button variant="outline" onClick={runPrint} disabled={!ready || working}>
           <Printer className="mr-2 h-4 w-4" /> Print / Save as PDF
         </Button>
         <Button onClick={runDownload} disabled={!ready || working}>
@@ -65,7 +80,7 @@ export default function PrintReportCard() {
         </Button>
       </div>
       <div ref={sheetRef}>
-        <ReportCardSheet learnerId={learnerId} termId={termId} onReady={() => setReady(true)} />
+        <ReportCardSheet learnerId={learnerId} termId={termId} onReadyChange={setReady} />
       </div>
     </div>
   );

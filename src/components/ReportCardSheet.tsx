@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { calculateDivision, gradeFor, applyF9Override, isCriticalCoreSubject, type GradeBand } from "@/lib/grading";
 import { useLearnerFieldSettings } from "@/hooks/useLearnerFieldSettings";
+import { preloadImageAsBase64, waitForImagesAndFonts } from "@/lib/reportAssets";
 
 
 type Anything = Record<string, any>;
@@ -20,6 +21,8 @@ export type ReportCardSheetProps = {
   termId: string;
   /** Called once when this card has finished loading (signals readiness for print/snapshot). */
   onReady?: () => void;
+  /** Reports true/false readiness whenever the sheet reloads. */
+  onReadyChange?: (ready: boolean) => void;
   /** Adds the CSS class that triggers a page-break-after for bulk pages. */
   pageBreak?: boolean;
 };
@@ -28,7 +31,9 @@ export type ReportCardSheetProps = {
  * Renders a single, fully-styled report card sheet (no header/print toolbar).
  * Reuses the .report-page CSS in PrintReportCard.css.
  */
-export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: ReportCardSheetProps) {
+export function ReportCardSheet({ learnerId, termId, onReady, onReadyChange, pageBreak }: ReportCardSheetProps) {
+  const pageRef = useRef<HTMLDivElement>(null);
+  const readySignaledRef = useRef(false);
   const [loading, setLoading] = useState(true);
   const [school, setSchool] = useState<Anything | null>(null);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
@@ -50,6 +55,7 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
   const [classSubjects, setClassSubjects] = useState<Anything[]>([]);
   const [classLearnerCount, setClassLearnerCount] = useState<number>(0);
   const [teachersById, setTeachersById] = useState<Record<string, Anything>>({});
+  const [reportDataReady, setReportDataReady] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   const { flags, order } = useLearnerFieldSettings();
 
@@ -58,9 +64,11 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
     let cancelled = false;
     (async () => {
       setLoading(true);
+      setReportDataReady(false);
+      readySignaledRef.current = false;
+      onReadyChange?.(false);
       const { data: ln } = await supabase.from("learners").select("*").eq("id", learnerId).maybeSingle();
       if (cancelled) return;
-      setLearner(ln);
 
       const [{ data: tm }, { data: rc }, { data: si }, { data: gs }] = await Promise.all([
         supabase.from("terms").select("*").eq("id", termId).maybeSingle(),
@@ -69,49 +77,48 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
         supabase.from("grading_scales").select("grade,points,min_mark,max_mark,remark").order("sort_order"),
       ]);
       if (cancelled) return;
-      setTerm(tm); setReport(rc); setSchool(si); setBands((gs ?? []) as GradeBand[]);
 
       let cls: Anything | null = null;
+      let strm: Anything | null = null;
+      let teacher: Anything | null = null;
+      let subs: Anything[] = [];
+      let teachersMap: Record<string, Anything> = {};
+      let classSubjectsData: Anything[] = [];
+      let classLearnerCountData = 0;
+      let classMarksData: Anything[] = [];
       if (ln?.class_id) {
         const { data } = await supabase.from("classes").select("*").eq("id", ln.class_id).maybeSingle();
-        cls = data; setKlass(data);
+        cls = data;
       }
       if (ln?.stream_id) {
         const { data } = await supabase.from("streams").select("*").eq("id", ln.stream_id).maybeSingle();
-        setStream(data);
+        strm = data;
       }
       if (cls?.class_teacher_id) {
         const { data } = await supabase.from("teachers").select("*").eq("id", cls.class_teacher_id).maybeSingle();
-        setClassTeacher(data);
+        teacher = data;
       }
       if (ln?.class_id) {
-        const { data: subs } = await supabase.from("subjects").select("*").eq("class_id", ln.class_id).order("sort_order");
-        setSubjects(subs ?? []);
+        const { data } = await supabase.from("subjects").select("*").eq("class_id", ln.class_id).order("sort_order");
+        subs = data ?? [];
         const teacherIds = Array.from(new Set((subs ?? []).map((s: any) => s.subject_teacher_id).filter(Boolean)));
         if (teacherIds.length) {
           const { data: ts } = await supabase.from("teachers").select("id,initials,full_name").in("id", teacherIds);
-          const map: Record<string, Anything> = {};
-          (ts ?? []).forEach((t: any) => { map[t.id] = t; });
-          setTeachersById(map);
-        } else {
-          setTeachersById({});
+          (ts ?? []).forEach((t: any) => { teachersMap[t.id] = t; });
         }
       }
       // Load class-wide subjects + marks for live position/aggregate computation
       if (ln?.class_id) {
-        setClassSubjects(((await supabase.from("subjects").select("id,is_core,class_id").eq("class_id", ln.class_id)).data ?? []));
+        classSubjectsData = ((await supabase.from("subjects").select("id,is_core,class_id").eq("class_id", ln.class_id)).data ?? []);
         const { data: classLearners } = await supabase.from("learners").select("id").eq("class_id", ln.class_id);
         const ids = (classLearners ?? []).map((l: any) => l.id);
-        if (!cancelled) setClassLearnerCount(ids.length);
+        classLearnerCountData = ids.length;
         if (ids.length) {
           const { data: cm } = await supabase.from("marks").select("learner_id,subject_id,bot,mid,eot,total,points").eq("term_id", termId).in("learner_id", ids);
-          if (!cancelled) setClassMarks(cm ?? []);
-        } else {
-          setClassMarks([]);
+          classMarksData = cm ?? [];
         }
       }
       const { data: mks } = await supabase.from("marks").select("*").eq("term_id", termId).eq("learner_id", learnerId);
-      setMarks(mks ?? []);
 
       const [lg, hs, cs, ph, st, wm] = await Promise.all([
         signedUrl("school-assets", si?.logo_path ?? null),
@@ -121,13 +128,40 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
         signedUrl("school-assets", si?.stamp_path ?? null),
         signedUrl("school-assets", si?.watermark_path ?? null),
       ]);
+      const [logoBase64, headSigBase64, classSigBase64, photoBase64, stampBase64, watermarkBase64] = await Promise.all([
+        preloadImageAsBase64(lg),
+        preloadImageAsBase64(hs),
+        preloadImageAsBase64(cs),
+        preloadImageAsBase64(ph),
+        preloadImageAsBase64(st),
+        preloadImageAsBase64(wm),
+      ]);
       if (cancelled) return;
-      setLogoUrl(lg); setHeadSigUrl(hs); setClassSigUrl(cs); setPhotoUrl(ph); setStampUrl(st); setWatermarkUrl(wm);
+      setLearner(ln);
+      setTerm(tm); setReport(rc); setSchool(si); setBands((gs ?? []) as GradeBand[]);
+      setKlass(cls); setStream(strm); setClassTeacher(teacher);
+      setSubjects(subs); setTeachersById(teachersMap);
+      setClassSubjects(classSubjectsData); setClassLearnerCount(classLearnerCountData); setClassMarks(classMarksData);
+      setMarks(mks ?? []);
+      setLogoUrl(logoBase64); setHeadSigUrl(headSigBase64); setClassSigUrl(classSigBase64); setPhotoUrl(photoBase64); setStampUrl(stampBase64); setWatermarkUrl(watermarkBase64);
+      setReportDataReady(true);
       setLoading(false);
-      onReady?.();
     })();
     return () => { cancelled = true; };
   }, [learnerId, termId, reloadKey]);
+
+  useEffect(() => {
+    if (loading || !reportDataReady || !pageRef.current || readySignaledRef.current) return;
+    let cancelled = false;
+    waitForImagesAndFonts(pageRef.current).then(() => {
+      if (!cancelled && !readySignaledRef.current) {
+        readySignaledRef.current = true;
+        onReadyChange?.(true);
+        onReady?.();
+      }
+    });
+    return () => { cancelled = true; };
+  }, [loading, reportDataReady, onReady, onReadyChange]);
 
   // Realtime: refetch when marks/subjects/grading_scales change
   useEffect(() => {
@@ -222,9 +256,9 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
 
 
   if (loading || !learner || !term) {
-    return <div className="report-page" style={pageBreak ? { pageBreakAfter: "always" } : undefined}>
+    return <div ref={pageRef} className="report-page" style={pageBreak ? { pageBreakAfter: "always" } : undefined}>
       <p style={{ textAlign: "center", marginTop: "40mm", color: "#666" }}>
-        {loading ? "Loading..." : "Learner or term not found."}
+        {loading ? "Preparing report card..." : "Learner or term not found."}
       </p>
     </div>;
   }
@@ -373,7 +407,7 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
   const wmY = school?.watermark_y ?? 50;
 
   return (
-    <div className="report-page" style={pageBreak ? { pageBreakAfter: "always" } : undefined}>
+    <div ref={pageRef} className="report-page" style={pageBreak ? { pageBreakAfter: "always" } : undefined}>
       {wmEnabled && (
         <div
           aria-hidden
