@@ -10,13 +10,14 @@ import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "@/hooks/use-toast";
 import {
-  Eye, FileText, Loader2, Printer, Sparkles, Trash2, UserCheck, Package,
+  Eye, FileText, Loader2, Printer, Sparkles, Trash2, UserCheck, Package, Download, FileDown,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { generateClassReports } from "@/lib/reportCards";
 import { calculateDivision } from "@/lib/grading";
 import { ReportCardSheet } from "@/components/ReportCardSheet";
 import { waitForImagesAndFonts } from "@/lib/reportAssets";
+import { downloadReportCardPDF, downloadReportCardsZip, type BulkProgress } from "@/lib/pdfGenerator";
 import "./PrintReportCard.css";
 
 type Term = { id: string; name: string; year: number; is_current: boolean };
