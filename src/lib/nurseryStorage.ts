@@ -8,9 +8,10 @@ export function nurseryPublicUrl(path: string | null | undefined): string | null
   return data.publicUrl ?? null;
 }
 
-export async function uploadNurseryAsset(file: File, prefix: string): Promise<string> {
+export async function uploadNurseryAsset(file: File, prefix: string, schoolId: string): Promise<string> {
+  if (!schoolId) throw new Error("Missing school context");
   const ext = file.name.split(".").pop() || "png";
-  const path = `${prefix}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+  const path = `schools/${schoolId}/${prefix}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
   const { error } = await supabase.storage.from(BUCKET).upload(path, file, {
     cacheControl: "3600",
     upsert: false,
