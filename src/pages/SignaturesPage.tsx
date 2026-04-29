@@ -11,6 +11,7 @@ import { Loader2, PenLine, Trash2, Upload } from "lucide-react";
 import SignatureCanvas from "react-signature-canvas";
 import { processCanvasDataUrl, processSignatureFile } from "@/lib/signatureProcessing";
 import { useReportModule } from "@/hooks/useReportModule";
+import { useAuth } from "@/contexts/AuthContext";
 
 type School = { id: string; head_teacher_name: string | null; head_teacher_signature_path: string | null; nursery_head_teacher_name: string | null; nursery_head_teacher_signature_path: string | null };
 type Cls = { id: string; name: string; class_signature_path: string | null; class_teacher_id: string | null };
