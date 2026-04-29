@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
-import { FileText, Save, Eye, Printer, Download, Users } from "lucide-react";
+import { FileText, Save, Eye, Printer, Users } from "lucide-react";
 import { NurseryReportSheet } from "@/components/NurseryReportSheet";
 
 type Cls = { id: string; name: string };
@@ -122,9 +122,6 @@ export default function NurseryReportsPage() {
               </Button>
               <Link to={`${bulkBase}${bulkBase.includes("?") ? "&" : "?"}mode=print`} target="_blank">
                 <Button variant="outline"><Printer className="h-4 w-4 mr-1" />Bulk Print</Button>
-              </Link>
-              <Link to={`${bulkBase}${bulkBase.includes("?") ? "&" : "?"}mode=download`} target="_blank">
-                <Button><Download className="h-4 w-4 mr-1" />Bulk Download (ZIP)</Button>
               </Link>
             </div>
           )}
