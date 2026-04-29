@@ -31,6 +31,7 @@ export type ReportCardSheetProps = {
  */
 export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: ReportCardSheetProps) {
   const pageRef = useRef<HTMLDivElement>(null);
+  const readySignaledRef = useRef(false);
   const [loading, setLoading] = useState(true);
   const [school, setSchool] = useState<Anything | null>(null);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
@@ -62,6 +63,7 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
     (async () => {
       setLoading(true);
       setReportDataReady(false);
+      readySignaledRef.current = false;
       const { data: ln } = await supabase.from("learners").select("*").eq("id", learnerId).maybeSingle();
       if (cancelled) return;
 
@@ -146,10 +148,13 @@ export function ReportCardSheet({ learnerId, termId, onReady, pageBreak }: Repor
   }, [learnerId, termId, reloadKey]);
 
   useEffect(() => {
-    if (loading || !reportDataReady || !pageRef.current) return;
+    if (loading || !reportDataReady || !pageRef.current || readySignaledRef.current) return;
     let cancelled = false;
     waitForImagesAndFonts(pageRef.current).then(() => {
-      if (!cancelled) onReady?.();
+      if (!cancelled && !readySignaledRef.current) {
+        readySignaledRef.current = true;
+        onReady?.();
+      }
     });
     return () => { cancelled = true; };
   }, [loading, reportDataReady, onReady]);
