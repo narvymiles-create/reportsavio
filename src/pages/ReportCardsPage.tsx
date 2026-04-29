@@ -435,6 +435,9 @@ export default function ReportCardsPage() {
             <Button variant="outline" onClick={() => startReportJob()} disabled={!termId || !classId || generatedCount === 0 || !!reportJob}>
               <Package className="mr-2 h-4 w-4" /> Bulk Print
             </Button>
+            <Button variant="outline" onClick={downloadAllZip} disabled={!termId || !classId || generatedCount === 0 || !!bulkDownload}>
+              <FileDown className="mr-2 h-4 w-4" /> Bulk Download (ZIP)
+            </Button>
           </div>
         </CardHeader>
         <CardContent>
