@@ -7,10 +7,12 @@ import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { Trash2, Upload, ArrowUp, ArrowDown } from "lucide-react";
 import { uploadNurseryAsset, nurseryPublicUrl } from "@/lib/nurseryStorage";
+import { useAuth } from "@/contexts/AuthContext";
 
 type Area = { id: string; name: string; image_path: string | null; sort_order: number };
 
 export default function NurseryLearningAreasPage() {
+  const { schoolId } = useAuth();
   const [areas, setAreas] = useState<Area[]>([]);
   const [name, setName] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -33,9 +35,10 @@ export default function NurseryLearningAreasPage() {
     load();
   };
   const upload = async (id: string, file: File) => {
+    if (!schoolId) return toast({ title: "No school", description: "Set up your school first.", variant: "destructive" });
     setBusyId(id);
     try {
-      const path = await uploadNurseryAsset(file, "learning-areas");
+      const path = await uploadNurseryAsset(file, "learning-areas", schoolId);
       await supabase.from("nursery_learning_areas" as any).update({ image_path: path }).eq("id", id);
       load();
     } catch (e: any) {

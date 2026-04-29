@@ -8,12 +8,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Trash2, Upload } from "lucide-react";
 import { uploadNurseryAsset, nurseryPublicUrl } from "@/lib/nurseryStorage";
 import { toast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 type L = { id: string; full_name: string; age: number | null; sex: string | null; class_id: string | null; stream_id: string | null; photo_path: string | null };
 type Cls = { id: string; name: string };
 type Stream = { id: string; class_id: string; name: string };
 
 export default function NurseryLearnersPage() {
+  const { schoolId } = useAuth();
   const [learners, setLearners] = useState<L[]>([]);
   const [classes, setClasses] = useState<Cls[]>([]);
   const [streams, setStreams] = useState<Stream[]>([]);
@@ -53,8 +55,9 @@ export default function NurseryLearnersPage() {
     load();
   };
   const uploadPhoto = async (id: string, file: File) => {
+    if (!schoolId) return toast({ title: "No school", description: "Set up your school first.", variant: "destructive" });
     try {
-      const path = await uploadNurseryAsset(file, "photos");
+      const path = await uploadNurseryAsset(file, "photos", schoolId);
       await supabase.from("nursery_learners" as any).update({ photo_path: path }).eq("id", id);
       load();
     } catch (e: any) {
