@@ -504,6 +504,8 @@ table.rc-phase-summary td {
     max-width: 210mm !important;
     max-height: 297mm !important;
     border: 1px solid #000 !important;
+    outline: 1px solid #000 !important;
+    outline-offset: -1px !important;
     box-sizing: border-box !important;
     overflow: hidden !important;
     page-break-inside: avoid !important;
@@ -578,7 +580,7 @@ body.bulk-report-printing .report-job-renderer {
 .rc-eot th:last-child,
 .rc-grading td:last-child,
 .rc-grading th:last-child {
-  border-right: 1px solid #111 !important;
+  border-right: 1px solid #000 !important;
 }
 
 /* All text elements: wrap aggressively, never break layout */
