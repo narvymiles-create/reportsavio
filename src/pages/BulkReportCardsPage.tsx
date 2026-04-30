@@ -25,7 +25,7 @@ export default function BulkReportCardsPage() {
 
   useEffect(() => {
     mountedRef.current = true;
-    return () => { mountedRef.current = false; document.body.classList.remove("bulk-report-printing"); };
+    return () => { mountedRef.current = false; };
   }, []);
 
   useEffect(() => {
@@ -74,11 +74,8 @@ export default function BulkReportCardsPage() {
     if (readyCount < learners.length || !sheetsRef.current) return toast({ title: "Please wait, report still loading" });
     try {
       await waitForImagesAndFonts(sheetsRef.current);
-      document.body.classList.add("bulk-report-printing");
       window.print();
-      window.setTimeout(() => document.body.classList.remove("bulk-report-printing"), 1000);
     } catch (e: any) {
-      document.body.classList.remove("bulk-report-printing");
       toast({ title: "Print failed", description: e.message, variant: "destructive" });
     }
   };
