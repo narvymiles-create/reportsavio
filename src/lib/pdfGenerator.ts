@@ -36,11 +36,13 @@ function buildHostContainer(): { host: HTMLDivElement; page: HTMLDivElement } {
 
   const page = document.createElement("div");
   page.setAttribute("data-pdf-page", "true");
+  page.className = "report-container";
   page.style.cssText = [
     "width:" + A4_WIDTH_MM + "mm",
     "height:" + A4_HEIGHT_MM + "mm",
     "padding:" + PAGE_PADDING_MM + "mm",
     "box-sizing:border-box",
+    "border:1px solid #000",
     "overflow:hidden",
     "background:#ffffff",
     "color:#000000",
