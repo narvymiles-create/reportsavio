@@ -23,7 +23,7 @@ export type ReportCardSheetProps = {
   onReady?: () => void;
   /** Reports true/false readiness whenever the sheet reloads. */
   onReadyChange?: (ready: boolean) => void;
-  /** Adds the CSS class that triggers a page-break-after for bulk pages. */
+  /** Adds the CSS class used for bulk-page separation. */
   pageBreak?: boolean;
 };
 
@@ -256,7 +256,7 @@ export function ReportCardSheet({ learnerId, termId, onReady, onReadyChange, pag
 
 
   if (loading || !learner || !term) {
-    return <div ref={pageRef} className="report-page" style={pageBreak ? { pageBreakAfter: "always" } : undefined}>
+    return <div ref={pageRef} className={`report-page report-container${pageBreak ? " report-page-break" : ""}`}>
       <p style={{ textAlign: "center", marginTop: "40mm", color: "#666" }}>
         {loading ? "Preparing report card..." : "Learner or term not found."}
       </p>
@@ -407,7 +407,7 @@ export function ReportCardSheet({ learnerId, termId, onReady, onReadyChange, pag
   const wmY = school?.watermark_y ?? 50;
 
   return (
-    <div ref={pageRef} className="report-page" style={pageBreak ? { pageBreakAfter: "always" } : undefined}>
+    <div ref={pageRef} className={`report-page report-container${pageBreak ? " report-page-break" : ""}`}>
       {wmEnabled && (
         <div
           aria-hidden
