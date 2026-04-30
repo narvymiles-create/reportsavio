@@ -525,7 +525,6 @@ table.rc-phase-summary td {
     position: relative !important;
   }
   body.bulk-report-printing .report-page-break:not(:last-child) {
-    page-break-after: always !important;
     break-after: page !important;
   }
   body.bulk-report-printing .report-page:last-child,
