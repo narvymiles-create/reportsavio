@@ -18,7 +18,7 @@ import { waitForImagesAndFonts } from "@/lib/reportAssets";
 
 const A4_WIDTH_MM = 210;
 const A4_HEIGHT_MM = 297;
-const PAGE_PADDING_MM = 8;
+const PAGE_PADDING_MM = 0;
 
 function buildHostContainer(): { host: HTMLDivElement; page: HTMLDivElement } {
   const host = document.createElement("div");

@@ -4,11 +4,12 @@
 
 .print-root {
   background: #e9eaee;
-  min-height: 100vh;
+  min-height: 0;
 }
 
 /* ---------- A4 SHEET (LOCKED) ---------- */
-.report-page {
+.report-page,
+.report-container {
   position: relative;
   width: 210mm;
   height: 297mm;
@@ -24,8 +25,13 @@
   font-size: 10pt;
   line-height: 1.25;
   box-shadow: 0 6px 24px rgba(0, 0, 0, 0.08);
+  border: 1px solid #000;
+  outline: 1px solid #000;
+  outline-offset: -1px;
   box-sizing: border-box;
   overflow: hidden;
+  page-break-after: avoid;
+  break-after: avoid;
 }
 
 /* Inner thin blue border frame */
@@ -209,7 +215,8 @@
   table-layout: fixed;
 }
 .rc-phase th, .rc-phase td {
-  border: 1px solid #111;
+  border: 1px solid #000;
+  border-right: 1px solid #000;
   padding: 3px 4px;
   text-align: center;
   font-size: 10pt;
@@ -247,7 +254,7 @@ table.rc-phase-summary {
   font-size: 10pt;
 }
 table.rc-phase-summary td {
-  border: 1px solid #111;
+  border: 1px solid #000;
   padding: 3px 4px;
   text-align: center;
   height: 20px;
@@ -273,7 +280,8 @@ table.rc-phase-summary td {
   table-layout: fixed;
 }
 .rc-eot th, .rc-eot td {
-  border: 1px solid #111;
+  border: 1px solid #000;
+  border-right: 1px solid #000;
   padding: 2px 6px;
   text-align: center;
   font-size: 10pt;
@@ -458,6 +466,7 @@ table.rc-phase-summary td {
     margin: 0 !important;
     padding: 0 !important;
     height: auto !important;
+    min-height: 0 !important;
     background: #fff !important;
   }
   .no-print { display: none !important; }
@@ -481,11 +490,23 @@ table.rc-phase-summary td {
     top: auto !important;
   }
 
-  .report-page {
+  .report-page,
+  .report-container {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
     margin: 0 !important;
     box-shadow: none !important;
     width: 210mm !important;
     height: 297mm !important;
+    min-width: 210mm !important;
+    min-height: 297mm !important;
+    max-width: 210mm !important;
+    max-height: 297mm !important;
+    border: 1px solid #000 !important;
+    outline: 1px solid #000 !important;
+    outline-offset: -1px !important;
+    box-sizing: border-box !important;
     overflow: hidden !important;
     page-break-inside: avoid !important;
     break-inside: avoid !important;
@@ -493,22 +514,25 @@ table.rc-phase-summary td {
     break-after: avoid !important;
   }
 
-  /* Single-report print: hide everything except the .report-page */
+  /* Single-report print: hide everything except the report container */
   body:not(.bulk-report-printing) * { visibility: hidden !important; }
-  body:not(.bulk-report-printing) .report-page,
-  body:not(.bulk-report-printing) .report-page * { visibility: visible !important; }
-  body:not(.bulk-report-printing) .report-page {
+  body:not(.bulk-report-printing) .report-container,
+  body:not(.bulk-report-printing) .report-container * { visibility: visible !important; }
+  body:not(.bulk-report-printing) .report-container {
     position: absolute !important;
     left: 0 !important;
     top: 0 !important;
   }
 
-  /* Bulk: each sheet (except the last) forces a new page */
+  /* Bulk: page separation only on explicit separator class, never on the last page */
   body.bulk-report-printing .report-page {
-    page-break-after: always !important;
+    position: relative !important;
+  }
+  body.bulk-report-printing .report-page-break:not(:last-child) {
     break-after: page !important;
   }
-  body.bulk-report-printing .report-page:last-child {
+  body.bulk-report-printing .report-page:last-child,
+  body.bulk-report-printing .report-page-break:last-child {
     page-break-after: avoid !important;
     break-after: avoid !important;
   }
@@ -537,8 +561,26 @@ body.bulk-report-printing .report-job-renderer {
   box-sizing: border-box;
 }
 
-.report-page {
+.report-page,
+.report-container {
   overflow: hidden !important;
+}
+
+.report-page table,
+.report-container table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.rc-phase td:last-child,
+.rc-phase th:last-child,
+.rc-phase-summary td:last-child,
+.rc-phase-summary th:last-child,
+.rc-eot td:last-child,
+.rc-eot th:last-child,
+.rc-grading td:last-child,
+.rc-grading th:last-child {
+  border-right: 1px solid #000 !important;
 }
 
 /* All text elements: wrap aggressively, never break layout */
