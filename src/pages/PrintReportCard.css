@@ -493,6 +493,16 @@ table.rc-phase-summary td {
     break-after: avoid !important;
   }
 
+  /* Single-report print: hide everything except the .report-page */
+  body:not(.bulk-report-printing) * { visibility: hidden !important; }
+  body:not(.bulk-report-printing) .report-page,
+  body:not(.bulk-report-printing) .report-page * { visibility: visible !important; }
+  body:not(.bulk-report-printing) .report-page {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+  }
+
   /* Bulk: each sheet (except the last) forces a new page */
   body.bulk-report-printing .report-page {
     page-break-after: always !important;
