@@ -352,7 +352,7 @@ export function ReportCardSheet({ learnerId, termId, onReady, onReadyChange, pag
     info: { position: number | null; classSize: number; division: string },
     hasData: boolean
   ) => {
-    if (!hasData) return null;
+    // Always render the table structure — even with no marks — so layout stays consistent.
     return (
     <div className="rc-phase-section" data-subjects={subjectCountKey}>
       <div className="rc-section-label">{label}</div>
@@ -537,7 +537,7 @@ export function ReportCardSheet({ learnerId, termId, onReady, onReadyChange, pag
       {renderPhaseTable("BEGINNING OF TERM EXAMS", "bot", botSum, botInfo, botHas)}
       {renderPhaseTable("MID-TERM EXAMS", "mid", midSum, midInfo, midHas)}
 
-      {eotHas && (
+      {/* END-OF-TERM section is ALWAYS rendered (empty cells when no marks). */}
       <div className="rc-eot-section" data-subjects={subjectCountKey}>
       <div className="rc-section-label">END OF TERM EXAMS</div>
       <table className="rc-eot" data-subjects={subjectCountKey}>
@@ -588,7 +588,6 @@ export function ReportCardSheet({ learnerId, termId, onReady, onReadyChange, pag
         </tbody>
       </table>
       </div>
-      )}
 
       <table className="rc-bottom" cellSpacing={0} cellPadding={0}>
         <tbody>
