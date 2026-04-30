@@ -569,17 +569,14 @@ body.bulk-report-printing .report-job-renderer {
   border-collapse: collapse;
 }
 
-.report-page td,
-.report-page th,
-.report-container td,
-.report-container th {
-  border-right: 1px solid #111;
-}
-
-.report-page td:last-child,
-.report-page th:last-child,
-.report-container td:last-child,
-.report-container th:last-child {
+.rc-phase td:last-child,
+.rc-phase th:last-child,
+.rc-phase-summary td:last-child,
+.rc-phase-summary th:last-child,
+.rc-eot td:last-child,
+.rc-eot th:last-child,
+.rc-grading td:last-child,
+.rc-grading th:last-child {
   border-right: 1px solid #111 !important;
 }
 
