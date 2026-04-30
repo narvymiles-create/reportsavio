@@ -559,8 +559,29 @@ body.bulk-report-printing .report-job-renderer {
   box-sizing: border-box;
 }
 
-.report-page {
+.report-page,
+.report-container {
   overflow: hidden !important;
+}
+
+.report-page table,
+.report-container table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.report-page td,
+.report-page th,
+.report-container td,
+.report-container th {
+  border-right: 1px solid #111;
+}
+
+.report-page td:last-child,
+.report-page th:last-child,
+.report-container td:last-child,
+.report-container th:last-child {
+  border-right: 1px solid #111 !important;
 }
 
 /* All text elements: wrap aggressively, never break layout */
