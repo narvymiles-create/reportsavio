@@ -465,7 +465,6 @@ table.rc-phase-summary td {
     padding: 0 !important;
     height: auto !important;
     min-height: 0 !important;
-    overflow: hidden !important;
     background: #fff !important;
   }
   .no-print { display: none !important; }
