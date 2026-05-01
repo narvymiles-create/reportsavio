@@ -22,6 +22,7 @@ import {
 type House = { id: string; name: string; color: string | null; sort_order: number };
 
 export default function SettingsPage() {
+  const { schoolId } = useAuth();
   const [houses, setHouses] = useState<House[]>([]);
   const [loadingHouses, setLoadingHouses] = useState(true);
   const [open, setOpen] = useState(false);
