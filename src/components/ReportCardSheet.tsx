@@ -566,8 +566,8 @@ export function ReportCardSheet({ learnerId, termId, onReady, onReadyChange, pag
                 <td className="rc-eot-subject">{s.name?.toUpperCase()}</td>
                 <td>{s.max_marks ?? 100}</td>
                 <td>{eotVal ?? ""}</td>
-                <td>{isCore ? (eotBand?.grade ?? "") : ""}</td>
-                <td>{isCore ? (eotBand?.remark ?? "") : ""}</td>
+                <td>{eotBand?.grade ?? ""}</td>
+                <td>{eotBand?.remark ?? ""}</td>
                 <td>{(s.subject_teacher_id && teachersById[s.subject_teacher_id]?.initials) || m?.teacher_initials || ""}</td>
               </tr>
             );
