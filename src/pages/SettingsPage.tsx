@@ -116,11 +116,17 @@ export default function SettingsPage() {
 
   const saveFlags = async (next: LearnerFieldFlags) => {
     setFlags(next);
+    if (!schoolId) {
+      toast({ title: "Save failed", description: "No school context found.", variant: "destructive" });
+      return;
+    }
     setSavingFlags(true);
     const { error } = await supabase
       .from("system_settings" as any)
-      .update({ value: next as any })
-      .eq("key", "learner_fields");
+      .upsert(
+        { key: "learner_fields", value: next as any, school_id: schoolId } as any,
+        { onConflict: "school_id,key" }
+      );
     setSavingFlags(false);
     if (error) toast({ title: "Save failed", description: error.message, variant: "destructive" });
   };
