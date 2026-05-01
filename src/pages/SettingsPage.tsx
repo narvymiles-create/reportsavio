@@ -59,11 +59,17 @@ export default function SettingsPage() {
 
   const saveOrder = async (next: LearnerInfoFieldKey[]) => {
     setOrder(next);
+    if (!schoolId) {
+      toast({ title: "Save failed", description: "No school context found.", variant: "destructive" });
+      return;
+    }
     setSavingOrder(true);
-    // upsert in case the row doesn't exist yet
     const { error } = await supabase
       .from("system_settings" as any)
-      .upsert({ key: "learner_info_order", value: next as any } as any, { onConflict: "key" });
+      .upsert(
+        { key: "learner_info_order", value: next as any, school_id: schoolId } as any,
+        { onConflict: "school_id,key" }
+      );
     setSavingOrder(false);
     if (error) toast({ title: "Save failed", description: error.message, variant: "destructive" });
   };
