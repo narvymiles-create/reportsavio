@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +22,7 @@ import {
 type House = { id: string; name: string; color: string | null; sort_order: number };
 
 export default function SettingsPage() {
+  const { schoolId } = useAuth();
   const [houses, setHouses] = useState<House[]>([]);
   const [loadingHouses, setLoadingHouses] = useState(true);
   const [open, setOpen] = useState(false);
@@ -57,11 +59,17 @@ export default function SettingsPage() {
 
   const saveOrder = async (next: LearnerInfoFieldKey[]) => {
     setOrder(next);
+    if (!schoolId) {
+      toast({ title: "Save failed", description: "No school context found.", variant: "destructive" });
+      return;
+    }
     setSavingOrder(true);
-    // upsert in case the row doesn't exist yet
     const { error } = await supabase
       .from("system_settings" as any)
-      .upsert({ key: "learner_info_order", value: next as any } as any, { onConflict: "key" });
+      .upsert(
+        { key: "learner_info_order", value: next as any, school_id: schoolId } as any,
+        { onConflict: "school_id,key" }
+      );
     setSavingOrder(false);
     if (error) toast({ title: "Save failed", description: error.message, variant: "destructive" });
   };
@@ -108,11 +116,17 @@ export default function SettingsPage() {
 
   const saveFlags = async (next: LearnerFieldFlags) => {
     setFlags(next);
+    if (!schoolId) {
+      toast({ title: "Save failed", description: "No school context found.", variant: "destructive" });
+      return;
+    }
     setSavingFlags(true);
     const { error } = await supabase
       .from("system_settings" as any)
-      .update({ value: next as any })
-      .eq("key", "learner_fields");
+      .upsert(
+        { key: "learner_fields", value: next as any, school_id: schoolId } as any,
+        { onConflict: "school_id,key" }
+      );
     setSavingFlags(false);
     if (error) toast({ title: "Save failed", description: error.message, variant: "destructive" });
   };

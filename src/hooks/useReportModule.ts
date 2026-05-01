@@ -44,17 +44,23 @@ export function useReportModule() {
   const setModule = useCallback(async (m: ReportModule) => {
     cached = m;
     listeners.forEach((l) => l(m));
-    // Upsert
-    const { data: existing } = await supabase
-      .from("system_settings" as any)
-      .select("id")
-      .eq("key", KEY)
+    // Resolve current user's school via school_members (RLS-safe)
+    const { data: auth } = await supabase.auth.getUser();
+    const userId = auth?.user?.id;
+    if (!userId) return;
+    const { data: mem } = await supabase
+      .from("school_members" as any)
+      .select("school_id")
+      .eq("user_id", userId)
       .maybeSingle();
-    if ((existing as any)?.id) {
-      await supabase.from("system_settings" as any).update({ value: m as any }).eq("key", KEY);
-    } else {
-      await supabase.from("system_settings" as any).insert({ key: KEY, value: m as any } as any);
-    }
+    const schoolId = (mem as any)?.school_id as string | undefined;
+    if (!schoolId) return;
+    await supabase
+      .from("system_settings" as any)
+      .upsert(
+        { key: KEY, value: m as any, school_id: schoolId } as any,
+        { onConflict: "school_id,key" }
+      );
   }, []);
 
   return { module, setModule, loading };
