@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useBorderStyle, BORDER_STYLES, type BorderStyleKey } from "@/hooks/useBorderStyle";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
+import { Check } from "lucide-react";
 import { Loader2, Pencil, Plus, Trash2, ArrowUp, ArrowDown, ListOrdered } from "lucide-react";
 import {
   DEFAULT_LEARNER_FIELDS,
@@ -298,6 +300,74 @@ export default function SettingsPage() {
           </p>
         </CardContent>
       </Card>
+
+      {/* SECTION D: BORDER TEMPLATE PICKER */}
+      <BorderTemplatePicker />
     </div>
+  );
+}
+
+function BorderTemplatePicker() {
+  const { borderStyle, setBorderStyle, loading } = useBorderStyle();
+
+  if (loading) {
+    return (
+      <Card>
+        <CardHeader><CardTitle>Report Card Border Style</CardTitle></CardHeader>
+        <CardContent><div className="flex justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div></CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Report Card Border Style</CardTitle>
+        <CardDescription>Select the border design applied to all report cards (preview, print, and PDF).</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+          {BORDER_STYLES.map((b, i) => {
+            const active = borderStyle === b.key;
+            return (
+              <button
+                key={b.key}
+                onClick={() => setBorderStyle(b.key)}
+                className={`relative group rounded-lg border-2 p-2 transition-all cursor-pointer ${
+                  active ? "border-primary ring-2 ring-primary/30 bg-primary/5" : "border-border hover:border-primary/50"
+                }`}
+              >
+                {active && (
+                  <div className="absolute top-2 right-2 bg-primary text-primary-foreground rounded-full w-5 h-5 flex items-center justify-center z-10">
+                    <Check className="h-3 w-3" />
+                  </div>
+                )}
+                <div className="flex items-center gap-1 mb-1">
+                  <span className="text-xs font-mono bg-muted rounded px-1.5 py-0.5">{i + 1}</span>
+                  <span className="text-xs font-semibold uppercase truncate">{b.label}</span>
+                </div>
+                <div className="relative bg-white border rounded aspect-[210/297] overflow-hidden">
+                  <img
+                    src={`/borders/${b.key}.svg`}
+                    alt={b.label}
+                    className="absolute inset-0 w-full h-full"
+                    draggable={false}
+                  />
+                  {/* Mini content placeholder */}
+                  <div className="absolute inset-0 flex flex-col items-center justify-start pt-[18%] px-[12%] pointer-events-none">
+                    <div className="w-6 h-6 rounded-full bg-muted mb-1" />
+                    <div className="w-3/4 h-1.5 bg-muted rounded mb-1" />
+                    <div className="w-1/2 h-1 bg-muted/60 rounded mb-2" />
+                    <div className="w-full h-1 bg-muted/40 rounded mb-0.5" />
+                    <div className="w-full h-1 bg-muted/40 rounded mb-0.5" />
+                    <div className="w-full h-1 bg-muted/40 rounded" />
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
