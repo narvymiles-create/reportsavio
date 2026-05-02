@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { calculateDivision, gradeFor, applyF9Override, isCriticalCoreSubject, type GradeBand } from "@/lib/grading";
 import { useLearnerFieldSettings } from "@/hooks/useLearnerFieldSettings";
 import { preloadImageAsBase64, waitForImagesAndFonts } from "@/lib/reportAssets";
+import { useBorderStyle } from "@/hooks/useBorderStyle";
 
 
 type Anything = Record<string, any>;
@@ -58,6 +59,7 @@ export function ReportCardSheet({ learnerId, termId, onReady, onReadyChange, pag
   const [reportDataReady, setReportDataReady] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   const { flags, order } = useLearnerFieldSettings();
+  const { borderStyle } = useBorderStyle();
 
   useEffect(() => {
     if (!learnerId || !termId) return;
@@ -408,6 +410,13 @@ export function ReportCardSheet({ learnerId, termId, onReady, onReadyChange, pag
 
   return (
     <div ref={pageRef} className="report-page" style={pageBreak ? { pageBreakAfter: "always" } : undefined}>
+      {/* Border SVG overlay */}
+      <img
+        src={`/borders/${borderStyle}.svg`}
+        alt=""
+        aria-hidden
+        className="border-svg"
+      />
       {wmEnabled && (
         <div
           aria-hidden
