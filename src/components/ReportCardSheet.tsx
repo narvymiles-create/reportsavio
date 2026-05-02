@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { calculateDivision, gradeFor, applyF9Override, isCriticalCoreSubject, type GradeBand } from "@/lib/grading";
 import { useLearnerFieldSettings } from "@/hooks/useLearnerFieldSettings";
 import { preloadImageAsBase64, waitForImagesAndFonts } from "@/lib/reportAssets";
+import { useBorderStyle } from "@/hooks/useBorderStyle";
 
 
 type Anything = Record<string, any>;
