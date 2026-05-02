@@ -59,6 +59,7 @@ export function ReportCardSheet({ learnerId, termId, onReady, onReadyChange, pag
   const [reportDataReady, setReportDataReady] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   const { flags, order } = useLearnerFieldSettings();
+  const { borderStyle } = useBorderStyle();
 
   useEffect(() => {
     if (!learnerId || !termId) return;
