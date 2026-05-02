@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 210 297" preserveAspectRatio="none">
+  <!-- Outer frame -->
+  <rect x="4" y="4" width="202" height="289" fill="none" stroke="#1a2a52" stroke-width="1.5"/>
+  <!-- Inner frame -->
+  <rect x="8" y="8" width="194" height="281" fill="none" stroke="#1a2a52" stroke-width="0.5"/>
+  <!-- Top-left ornament -->
+  <path d="M4,4 Q15,15 4,26" fill="none" stroke="#1a2a52" stroke-width="1"/>
+  <path d="M4,4 Q15,15 26,4" fill="none" stroke="#1a2a52" stroke-width="1"/>
+  <!-- Top-right ornament -->
+  <path d="M206,4 Q195,15 206,26" fill="none" stroke="#1a2a52" stroke-width="1"/>
+  <path d="M206,4 Q195,15 184,4" fill="none" stroke="#1a2a52" stroke-width="1"/>
+  <!-- Bottom-left ornament -->
+  <path d="M4,293 Q15,282 4,271" fill="none" stroke="#1a2a52" stroke-width="1"/>
+  <path d="M4,293 Q15,282 26,293" fill="none" stroke="#1a2a52" stroke-width="1"/>
+  <!-- Bottom-right ornament -->
+  <path d="M206,293 Q195,282 206,271" fill="none" stroke="#1a2a52" stroke-width="1"/>
+  <path d="M206,293 Q195,282 184,293" fill="none" stroke="#1a2a52" stroke-width="1"/>
+  <!-- Top center ornament -->
+  <path d="M95,4 Q105,12 115,4" fill="none" stroke="#1a2a52" stroke-width="0.8"/>
+  <!-- Bottom center ornament -->
+  <path d="M95,293 Q105,285 115,293" fill="none" stroke="#1a2a52" stroke-width="0.8"/>
+</svg>

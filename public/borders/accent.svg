@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 210 297" preserveAspectRatio="none">
+  <rect x="5" y="5" width="200" height="287" fill="none" stroke="#1a2a52" stroke-width="0.5"/>
+  <!-- Left accent bar -->
+  <rect x="5" y="20" width="4" height="257" fill="#1a2a52"/>
+  <!-- Right accent bar -->
+  <rect x="201" y="20" width="4" height="257" fill="#1a2a52"/>
+  <!-- Top line -->
+  <line x1="9" y1="5" x2="201" y2="5" stroke="#1a2a52" stroke-width="1.5"/>
+  <!-- Bottom line -->
+  <line x1="9" y1="292" x2="201" y2="292" stroke="#1a2a52" stroke-width="1.5"/>
+</svg>

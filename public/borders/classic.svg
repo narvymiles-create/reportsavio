@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 210 297" preserveAspectRatio="none">
+  <rect x="5" y="5" width="200" height="287" fill="none" stroke="#1a2a52" stroke-width="1.5"/>
+  <!-- corner dots -->
+  <circle cx="5" cy="5" r="2" fill="#1a2a52"/>
+  <circle cx="205" cy="5" r="2" fill="#1a2a52"/>
+  <circle cx="5" cy="292" r="2" fill="#1a2a52"/>
+  <circle cx="205" cy="292" r="2" fill="#1a2a52"/>
+  <!-- midpoint dots -->
+  <circle cx="105" cy="5" r="1.5" fill="#1a2a52"/>
+  <circle cx="105" cy="292" r="1.5" fill="#1a2a52"/>
+  <circle cx="5" cy="148.5" r="1.5" fill="#1a2a52"/>
+  <circle cx="205" cy="148.5" r="1.5" fill="#1a2a52"/>
+</svg>
