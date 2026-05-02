@@ -657,6 +657,10 @@ export function ReportCardSheet({ learnerId, termId, onReady, onReadyChange, pag
         </tbody>
       </table>
 
+      {school?.motto && (
+        <div className="rc-motto">{school.motto}</div>
+      )}
+
       {stampUrl && (
         <img
           src={stampUrl}
