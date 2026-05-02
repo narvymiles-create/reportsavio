@@ -52,18 +52,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [refreshFor, user?.id]);
 
   useEffect(() => {
+    let initialised = false;
+
     const { data: sub } = supabase.auth.onAuthStateChange((_event, newSession) => {
       setSession(newSession);
       setUser(newSession?.user ?? null);
-      setTimeout(() => {
-        refreshFor(newSession?.user?.id);
-      }, 0);
+      if (initialised) {
+        // After initial load, show loading while we refresh roles/school
+        setLoading(true);
+        refreshFor(newSession?.user?.id).finally(() => setLoading(false));
+      }
     });
 
     supabase.auth.getSession().then(({ data: { session: existing } }) => {
       setSession(existing);
       setUser(existing?.user ?? null);
-      refreshFor(existing?.user?.id).finally(() => setLoading(false));
+      refreshFor(existing?.user?.id).finally(() => {
+        initialised = true;
+        setLoading(false);
+      });
     });
 
     return () => sub.subscription.unsubscribe();
