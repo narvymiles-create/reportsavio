@@ -410,6 +410,13 @@ export function ReportCardSheet({ learnerId, termId, onReady, onReadyChange, pag
 
   return (
     <div ref={pageRef} className="report-page" style={pageBreak ? { pageBreakAfter: "always" } : undefined}>
+      {/* Border SVG overlay */}
+      <img
+        src={`/borders/${borderStyle}.svg`}
+        alt=""
+        aria-hidden
+        className="border-svg"
+      />
       {wmEnabled && (
         <div
           aria-hidden
