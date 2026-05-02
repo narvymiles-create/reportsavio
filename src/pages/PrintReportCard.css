@@ -28,24 +28,14 @@
   overflow: hidden;
 }
 
-/* Inner thin blue border frame */
-.report-page::before {
-  content: "";
+/* Border SVG overlay — sits behind content */
+.border-svg {
   position: absolute;
-  inset: 6mm;
-  border: 1.2px solid #1a2a52;
-  border-radius: 2px;
-  pointer-events: none;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   z-index: 0;
-}
-.report-page::after {
-  content: "";
-  position: absolute;
-  inset: 7.2mm;
-  border: 0.5px solid #1a2a52;
-  border-radius: 2px;
   pointer-events: none;
-  z-index: 0;
 }
 
 /* ---------- DECORATIVE FLORAL CORNERS (REMOVED) ---------- */
