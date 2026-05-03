@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useBorderStyle, BORDER_STYLES, type BorderStyleKey } from "@/hooks/useBorderStyle";
+import { useNurseryFontStyle, NURSERY_FONT_STYLES, type NurseryFontStyleKey } from "@/hooks/useNurseryFontStyle";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
