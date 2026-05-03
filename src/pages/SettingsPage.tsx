@@ -304,6 +304,9 @@ export default function SettingsPage() {
 
       {/* SECTION D: BORDER TEMPLATE PICKER */}
       <BorderTemplatePicker />
+
+      {/* SECTION E: NURSERY FONT STYLE */}
+      <NurseryFontStylePicker />
     </div>
   );
 }
