@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useBorderStyle, BORDER_STYLES, type BorderStyleKey } from "@/hooks/useBorderStyle";
+import { useNurseryFontStyle, NURSERY_FONT_STYLES, type NurseryFontStyleKey } from "@/hooks/useNurseryFontStyle";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -303,6 +304,9 @@ export default function SettingsPage() {
 
       {/* SECTION D: BORDER TEMPLATE PICKER */}
       <BorderTemplatePicker />
+
+      {/* SECTION E: NURSERY FONT STYLE */}
+      <NurseryFontStylePicker />
     </div>
   );
 }
@@ -362,6 +366,54 @@ function BorderTemplatePicker() {
                     <div className="w-full h-1 bg-muted/40 rounded mb-0.5" />
                     <div className="w-full h-1 bg-muted/40 rounded" />
                   </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function NurseryFontStylePicker() {
+  const { fontStyle, setFontStyle, loading } = useNurseryFontStyle();
+
+  if (loading) {
+    return (
+      <Card>
+        <CardHeader><CardTitle>Nursery Report Card Font Style</CardTitle></CardHeader>
+        <CardContent><div className="flex justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div></CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Nursery Report Card Font Style</CardTitle>
+        <CardDescription>Choose the font used for handwritten-style text on nursery report cards (comments, learner info, dates).</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {NURSERY_FONT_STYLES.map((f) => {
+            const active = fontStyle === f.key;
+            return (
+              <button
+                key={f.key}
+                onClick={() => setFontStyle(f.key)}
+                className={`relative rounded-lg border-2 p-3 text-left transition-all cursor-pointer ${
+                  active ? "border-primary ring-2 ring-primary/30 bg-primary/5" : "border-border hover:border-primary/50"
+                }`}
+              >
+                {active && (
+                  <div className="absolute top-2 right-2 bg-primary text-primary-foreground rounded-full w-5 h-5 flex items-center justify-center">
+                    <Check className="h-3 w-3" />
+                  </div>
+                )}
+                <div className="text-xs font-semibold uppercase mb-1">{f.label}</div>
+                <div className="text-lg text-blue-700" style={{ fontFamily: f.css }}>
+                  The quick brown fox
                 </div>
               </button>
             );

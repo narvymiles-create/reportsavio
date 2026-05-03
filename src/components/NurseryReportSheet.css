@@ -16,7 +16,7 @@
   position: relative;
   overflow: hidden;
   box-sizing: border-box;
-  padding: 6mm;
+  padding: 0;
   font-family: "Georgia", "Times New Roman", serif;
   color: #111;
 }
@@ -30,17 +30,26 @@
   color: #475569;
 }
 
-.nrc-frame {
+/* Border SVG overlay — full page behind content */
+.nrc-border-svg {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
-  border: 2px solid #1d4ed8;
-  border-radius: 6px;
-  padding: 4mm;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Inner frame replaces the old .nrc-frame — no CSS border, border comes from SVG */
+.nrc-frame-inner {
+  width: 100%;
+  height: 100%;
+  padding: 10mm;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
   position: relative;
-  background: rgba(255,255,255,0.9);
+  z-index: 1;
   overflow: hidden;
 }
 
@@ -53,17 +62,19 @@
   padding-bottom: 2mm;
   border-bottom: 1px dashed #cbd5e1;
 }
+
+/* Logo and photo boxes — BORDERLESS */
 .nrc-logo-box,
 .nrc-photo-box {
   width: 28mm;
   height: 32mm;
-  border: 1.5px dashed #1d4ed8;
+  border: none;
   border-radius: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  background: #fff;
+  background: transparent;
 }
 .nrc-logo-box img,
 .nrc-photo-box img {
@@ -171,7 +182,20 @@
 }
 .nrc-area-text { min-width: 0; }
 .nrc-area-name { font-weight: 700; font-size: 10pt; font-family: Georgia, serif; }
-.nrc-area-comment { font-size: 10pt; line-height: 1.2; margin-top: 1mm; min-width: 0; display: block; border: none; }
+
+/* Area comment — allow full display, no truncation */
+.nrc-area-comment {
+  font-size: 9pt;
+  line-height: 1.25;
+  margin-top: 0.5mm;
+  min-width: 0;
+  display: block;
+  border: none;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
+}
+
 .nrc-area-grade {
   width: 11mm;
   height: 11mm;
@@ -234,6 +258,8 @@
   border: none;
   display: block;
   padding-top: 0;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 .nrc-sign { display: flex; align-items: flex-end; gap: 2mm; font-size: 10pt; }
 .nrc-sig-stack { display: inline-flex; flex-direction: column; align-items: stretch; line-height: 0; }
@@ -284,11 +310,12 @@
 @media print {
   html, body { margin: 0; padding: 0; background: #fff; }
   .nrc-page { box-shadow: none; margin: 0; }
+  .nrc-border-svg { display: block !important; }
   .no-print { display: none !important; }
 }
 
 /* =====================================================================
-   STRICT CONTAINMENT — LOCK A4, NO OVERFLOW IN ANY DIRECTION
+   CONTAINMENT — keep content within A4
    ===================================================================== */
 .nrc-page,
 .nrc-page * {
@@ -308,32 +335,11 @@
   word-break: break-word;
 }
 
-/* Areas: clip names/comments so rows never grow beyond their flex slot */
+/* Area names can truncate if too long */
 .nrc-area-name {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-}
-.nrc-area-comment {
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  max-height: 2.6em;
-  white-space: normal;
-  overflow-wrap: break-word;
-  word-break: break-word;
-}
-
-/* Comments block: clamp body, prevent vertical push */
-.nrc-comment-body {
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  max-height: 18mm;
-  word-break: break-word;
-  overflow-wrap: break-word;
 }
 
 /* Pupil info — wrap, don't overflow */
@@ -347,6 +353,22 @@
   white-space: nowrap;
   max-width: 60mm;
   vertical-align: bottom;
+}
+
+/* Area comment — override .nrc-write truncation for this specific case */
+.nrc-area-comment.nrc-write {
+  white-space: normal;
+  text-overflow: unset;
+  overflow: visible;
+  max-width: none;
+}
+
+/* Comment body — override .nrc-write truncation */
+.nrc-comment-body.nrc-write {
+  white-space: normal;
+  text-overflow: unset;
+  overflow: visible;
+  max-width: none;
 }
 
 /* Signature names — clip if too long */
