@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { nurseryPublicUrl } from "@/lib/nurseryStorage";
 import { preloadImageAsBase64, waitForImagesAndFonts } from "@/lib/reportAssets";
+import { NURSERY_FONT_STYLES, type NurseryFontStyleKey } from "@/hooks/useNurseryFontStyle";
 import "./NurseryReportSheet.css";
 
 type Props = { learnerId: string; termId: string; onReady?: () => void; pageBreak?: boolean };
@@ -30,6 +31,8 @@ export function NurseryReportSheet({ learnerId, termId, onReady, pageBreak }: Pr
   const [classTeacher, setClassTeacher] = useState<any>(null);
   const [classSigUrl, setClassSigUrl] = useState<string | null>(null);
   const [headSigUrl, setHeadSigUrl] = useState<string | null>(null);
+  const [borderStyle, setBorderStyle] = useState<string>("double");
+  const [fontStyleCss, setFontStyleCss] = useState<string>(NURSERY_FONT_STYLES[0].css);
 
   useEffect(() => {
     let cancelled = false;
@@ -37,6 +40,22 @@ export function NurseryReportSheet({ learnerId, termId, onReady, pageBreak }: Pr
       setLoading(true);
       setReportDataReady(false);
       readySignaledRef.current = false;
+
+      // Load settings (border_style + nursery_font_style)
+      const { data: settingsRows } = await supabase
+        .from("system_settings" as any)
+        .select("key,value")
+        .in("key", ["border_style", "nursery_font_style"]);
+      if (!cancelled) {
+        const sMap: Record<string, any> = {};
+        ((settingsRows as any[]) ?? []).forEach((r: any) => { sMap[r.key] = r.value; });
+        if (typeof sMap.border_style === "string") setBorderStyle(sMap.border_style);
+        if (typeof sMap.nursery_font_style === "string") {
+          const match = NURSERY_FONT_STYLES.find((f) => f.key === sMap.nursery_font_style);
+          if (match) setFontStyleCss(match.css);
+        }
+      }
+
       // School
       const { data: s } = await supabase.from("school_info" as any).select("*").eq("is_active", true).order("created_at", { ascending: false }).limit(1).maybeSingle();
       if (cancelled) return;
@@ -106,9 +125,7 @@ export function NurseryReportSheet({ learnerId, termId, onReady, pageBreak }: Pr
       // Report card comments
       const { data: rc } = await supabase.from("nursery_report_cards" as any).select("*").eq("learner_id", learnerId).eq("term_id", termId).maybeSingle();
 
-      // Class teacher signature from class record (preferred over teacher record signature)
-      // already loaded above via teacher; if class has its own signature, prefer it
-      // (load using cls fetched above)
+      // Class signature override
       try {
         const { data: c2 } = await supabase.from("nursery_classes" as any).select("class_signature_path").eq("id", (l as any)?.class_id).maybeSingle();
         const csp = (c2 as any)?.class_signature_path;
@@ -170,138 +187,148 @@ export function NurseryReportSheet({ learnerId, termId, onReady, pageBreak }: Pr
     try { return new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }); } catch { return d; }
   };
 
-  // Adaptive row height based on number of areas (fits page)
   const rowHeightStyle = useMemo(() => {
     const n = Math.max(areas.length, 1);
     return { "--rc-rows": String(n) } as React.CSSProperties;
   }, [areas.length]);
 
+  const inputFontFamily = fontStyleCss;
+
   return (
     <div ref={pageRef} className="nrc-page" style={{ ...rowHeightStyle, ...(pageBreak ? { pageBreakAfter: "always" } : {}) }}>
       {loading && <div className="nrc-loading">Preparing report card...</div>}
       {!loading && (
-      <div className="nrc-frame">
-        {watermarkUrl && (school?.watermark_enabled !== false) && (
-          <img
-            src={watermarkUrl}
-            alt=""
-            className="nrc-watermark"
-            style={{
-              left: `${school?.watermark_x ?? 50}%`,
-              top: `${school?.watermark_y ?? 50}%`,
-              opacity: school?.watermark_opacity ?? 0.15,
-              transform: `translate(-50%,-50%) scale(${school?.watermark_scale ?? 1})`,
-            }}
-          />
-        )}
-        {/* Header */}
-        <div className="nrc-header">
-          <div className="nrc-logo-box">
-            {logoUrl ? <img src={logoUrl} alt="Logo" /> : <div className="nrc-logo-placeholder">SCHOOL<br/>LOGO<br/>HERE</div>}
-          </div>
-          <div className="nrc-school">
-            <div className="nrc-school-name">{school?.name?.toUpperCase() ?? "SCHOOL NAME"}</div>
-            {school?.motto && <div className="nrc-motto">{school.motto}</div>}
-            <div className="nrc-divider" />
-            <div className="nrc-assessment-title">{term ? `${term.name?.toUpperCase()} ASSESSMENT` : "TERM ASSESSMENT"}</div>
-            <div className="nrc-pupil">
-              <span>Pupil's Name:</span> <span className="nrc-write">{learner?.full_name ?? ""}</span>
+      <>
+        {/* Border SVG overlay */}
+        <img
+          src={`/borders/${borderStyle}.svg`}
+          alt=""
+          className="nrc-border-svg"
+          aria-hidden="true"
+        />
+        <div className="nrc-frame-inner">
+          {watermarkUrl && (school?.watermark_enabled !== false) && (
+            <img
+              src={watermarkUrl}
+              alt=""
+              className="nrc-watermark"
+              style={{
+                left: `${school?.watermark_x ?? 50}%`,
+                top: `${school?.watermark_y ?? 50}%`,
+                opacity: school?.watermark_opacity ?? 0.15,
+                transform: `translate(-50%,-50%) scale(${school?.watermark_scale ?? 1})`,
+              }}
+            />
+          )}
+          {/* Header */}
+          <div className="nrc-header">
+            <div className="nrc-logo-box">
+              {logoUrl ? <img src={logoUrl} alt="Logo" /> : <div className="nrc-logo-placeholder">SCHOOL<br/>LOGO<br/>HERE</div>}
             </div>
-            <div className="nrc-pupil-row">
-              <div><span>Age:</span> <span className="nrc-write">{learner?.age ? `${learner.age} years` : ""}</span></div>
-              <div><span>Class:</span> <span className="nrc-write nrc-write-red">{cls?.name ?? ""}</span></div>
-              <div><span>Stream:</span> <span className="nrc-write">{stream?.name ?? ""}</span></div>
-            </div>
-          </div>
-          <div className="nrc-photo-box">
-            {photoUrl ? <img src={photoUrl} alt="Pupil" /> : <div className="nrc-photo-placeholder">PHOTO</div>}
-          </div>
-        </div>
-
-        {/* Areas */}
-        <div className="nrc-areas">
-          {areas.map((a) => {
-            const ax = assessments[a.id];
-            const grade = (ax?.grade ?? "").toUpperCase();
-            const bg = grade ? colorMap.get(grade) ?? "#e5e7eb" : "transparent";
-            return (
-              <div key={a.id} className="nrc-area-row">
-                <div className="nrc-area-img">
-                  {a.imageBase64 ? <img src={a.imageBase64} alt={a.name} /> : <div className="nrc-area-img-empty" />}
-                </div>
-                <div className="nrc-area-text">
-                  <div className="nrc-area-name">{a.name}</div>
-                  <div className="nrc-area-comment nrc-write">{ax?.comment ?? ""}</div>
-                </div>
-                <div className="nrc-area-grade" style={{ background: bg, borderColor: grade ? "rgba(0,0,0,0.25)" : "transparent" }}>
-                  {grade || ""}
-                </div>
+            <div className="nrc-school">
+              <div className="nrc-school-name">{school?.name?.toUpperCase() ?? "SCHOOL NAME"}</div>
+              {school?.motto && <div className="nrc-motto">{school.motto}</div>}
+              <div className="nrc-divider" />
+              <div className="nrc-assessment-title">{term ? `${term.name?.toUpperCase()} ASSESSMENT` : "TERM ASSESSMENT"}</div>
+              <div className="nrc-pupil">
+                <span>Pupil's Name:</span> <span className="nrc-write" style={{ fontFamily: inputFontFamily }}>{learner?.full_name ?? ""}</span>
               </div>
-            );
-          })}
-        </div>
-
-        {/* Color key */}
-        <div className="nrc-key">
-          <span className="nrc-key-label">KEY</span>
-          {colors.map((c) => (
-            <span key={c.grade} className="nrc-key-item">
-              <span className="nrc-key-box" style={{ background: c.color }}>{c.grade}</span>
-              <span className="nrc-key-text">- {c.label}</span>
-            </span>
-          ))}
-        </div>
-
-        {/* Comments */}
-        <div className="nrc-comments">
-          <div className="nrc-comment-cell">
-            <div className="nrc-comment-title">Class teacher's Comment:</div>
-            <div className="nrc-comment-body nrc-write">{report.class_teacher_comment}</div>
-            <div className="nrc-sign">
-              <span>Sign:</span>
-              <span className="nrc-sig-stack">
-                {classSigUrl && <img src={classSigUrl} alt="sig" className="nrc-sig-img" />}
-                <span className="nrc-sig-line" />
-              </span>
-              <span className="nrc-sig-name">{classTeacher?.full_name?.toUpperCase() ?? ""}</span>
+              <div className="nrc-pupil-row">
+                <div><span>Age:</span> <span className="nrc-write" style={{ fontFamily: inputFontFamily }}>{learner?.age ? `${learner.age} years` : ""}</span></div>
+                <div><span>Class:</span> <span className="nrc-write nrc-write-red" style={{ fontFamily: inputFontFamily }}>{cls?.name ?? ""}</span></div>
+                <div><span>Stream:</span> <span className="nrc-write" style={{ fontFamily: inputFontFamily }}>{stream?.name ?? ""}</span></div>
+              </div>
+            </div>
+            <div className="nrc-photo-box">
+              {photoUrl ? <img src={photoUrl} alt="Pupil" /> : <div className="nrc-photo-placeholder">PHOTO</div>}
             </div>
           </div>
-          <div className="nrc-comment-cell">
-            <div className="nrc-comment-title">Head teacher's Comment:</div>
-            <div className="nrc-comment-body nrc-write">{report.head_teacher_comment}</div>
-            <div className="nrc-sign">
-              <span>Sign:</span>
-              <span className="nrc-sig-stack">
-                {headSigUrl && <img src={headSigUrl} alt="sig" className="nrc-sig-img" />}
-                <span className="nrc-sig-line" />
+
+          {/* Areas */}
+          <div className="nrc-areas">
+            {areas.map((a) => {
+              const ax = assessments[a.id];
+              const grade = (ax?.grade ?? "").toUpperCase();
+              const bg = grade ? colorMap.get(grade) ?? "#e5e7eb" : "transparent";
+              return (
+                <div key={a.id} className="nrc-area-row">
+                  <div className="nrc-area-img">
+                    {a.imageBase64 ? <img src={a.imageBase64} alt={a.name} /> : <div className="nrc-area-img-empty" />}
+                  </div>
+                  <div className="nrc-area-text">
+                    <div className="nrc-area-name">{a.name}</div>
+                    <div className="nrc-area-comment nrc-write" style={{ fontFamily: inputFontFamily }}>{ax?.comment ?? ""}</div>
+                  </div>
+                  <div className="nrc-area-grade" style={{ background: bg, borderColor: grade ? "rgba(0,0,0,0.25)" : "transparent" }}>
+                    {grade || ""}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Color key */}
+          <div className="nrc-key">
+            <span className="nrc-key-label">KEY</span>
+            {colors.map((c) => (
+              <span key={c.grade} className="nrc-key-item">
+                <span className="nrc-key-box" style={{ background: c.color }}>{c.grade}</span>
+                <span className="nrc-key-text">- {c.label}</span>
               </span>
-              <span className="nrc-sig-name">{(school?.nursery_head_teacher_name ?? school?.head_teacher_name ?? "").toUpperCase()}</span>
+            ))}
+          </div>
+
+          {/* Comments */}
+          <div className="nrc-comments">
+            <div className="nrc-comment-cell">
+              <div className="nrc-comment-title">Class teacher's Comment:</div>
+              <div className="nrc-comment-body nrc-write" style={{ fontFamily: inputFontFamily }}>{report.class_teacher_comment}</div>
+              <div className="nrc-sign">
+                <span>Sign:</span>
+                <span className="nrc-sig-stack">
+                  {classSigUrl && <img src={classSigUrl} alt="sig" className="nrc-sig-img" />}
+                  <span className="nrc-sig-line" />
+                </span>
+                <span className="nrc-sig-name">{classTeacher?.full_name?.toUpperCase() ?? ""}</span>
+              </div>
+            </div>
+            <div className="nrc-comment-cell">
+              <div className="nrc-comment-title">Head teacher's Comment:</div>
+              <div className="nrc-comment-body nrc-write" style={{ fontFamily: inputFontFamily }}>{report.head_teacher_comment}</div>
+              <div className="nrc-sign">
+                <span>Sign:</span>
+                <span className="nrc-sig-stack">
+                  {headSigUrl && <img src={headSigUrl} alt="sig" className="nrc-sig-img" />}
+                  <span className="nrc-sig-line" />
+                </span>
+                <span className="nrc-sig-name">{(school?.nursery_head_teacher_name ?? school?.head_teacher_name ?? "").toUpperCase()}</span>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Footer */}
-        <div className="nrc-footer">
-          <div>Next term begins on: <span className="nrc-write">{fmtDate(term?.next_begins_on)}</span></div>
-          <div>Ends on: <span className="nrc-write">{fmtDate(term?.ends_on)}</span></div>
-        </div>
-        {school?.motto && <div className="nrc-motto-bottom">{school.motto}</div>}
+          {/* Footer */}
+          <div className="nrc-footer">
+            <div>Next term begins on: <span className="nrc-write" style={{ fontFamily: inputFontFamily }}>{fmtDate(term?.next_begins_on)}</span></div>
+            <div>Ends on: <span className="nrc-write" style={{ fontFamily: inputFontFamily }}>{fmtDate(term?.ends_on)}</span></div>
+          </div>
+          {school?.motto && <div className="nrc-motto-bottom">{school.motto}</div>}
 
-        {/* Stamp */}
-        {stampUrl && (
-          <img
-            src={stampUrl}
-            alt="Stamp"
-            className="nrc-stamp"
-            style={{
-              left: `${school?.stamp_x ?? 75}%`,
-              top: `${school?.stamp_y ?? 78}%`,
-              opacity: school?.stamp_opacity ?? 0.6,
-              transform: `translate(-50%,-50%) scale(${school?.stamp_size ?? 1})`,
-            }}
-          />
-        )}
-      </div>
+          {/* Stamp */}
+          {stampUrl && (
+            <img
+              src={stampUrl}
+              alt="Stamp"
+              className="nrc-stamp"
+              style={{
+                left: `${school?.stamp_x ?? 75}%`,
+                top: `${school?.stamp_y ?? 78}%`,
+                opacity: school?.stamp_opacity ?? 0.6,
+                transform: `translate(-50%,-50%) scale(${school?.stamp_size ?? 1})`,
+              }}
+            />
+          )}
+        </div>
+      </>
       )}
     </div>
   );
