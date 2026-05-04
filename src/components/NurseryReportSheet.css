@@ -19,6 +19,8 @@
   padding: 0;
   font-family: "Georgia", "Times New Roman", serif;
   color: #111;
+  transform: scale(0.98);
+  transform-origin: top center;
 }
 
 .nrc-loading {
@@ -127,17 +129,26 @@
   font-size: 10pt;
   padding: 1mm 4mm 0;
   gap: 4mm;
+  flex-wrap: wrap;
 }
+.nrc-info-value {
+  font-family: "Brush Script MT", "Comic Sans MS", cursive;
+  font-style: italic;
+  color: #1d4ed8;
+  padding: 0 2px;
+  min-width: 14mm;
+  display: inline;
+}
+.nrc-info-value-red { color: #dc2626; }
 .nrc-write {
   font-family: "Brush Script MT", "Comic Sans MS", cursive;
   font-style: italic;
   color: #1d4ed8;
-  border-bottom: 1px dotted #1d4ed8;
   padding: 0 2px;
   min-width: 24mm;
   display: inline-block;
 }
-.nrc-write-red { color: #dc2626; border-color: #dc2626; }
+.nrc-write-red { color: #dc2626; }
 
 /* Areas — fills remaining vertical space evenly */
 .nrc-areas {
@@ -308,8 +319,28 @@
 /* Print */
 @page { size: A4; margin: 0; }
 @media print {
-  html, body { margin: 0; padding: 0; background: #fff; }
-  .nrc-page { box-shadow: none; margin: 0; }
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+  }
+  body * {
+    visibility: hidden;
+  }
+  .nrc-page, .nrc-page * {
+    visibility: visible !important;
+  }
+  .nrc-page {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 210mm;
+    height: 297mm;
+    margin: 0;
+    box-shadow: none;
+    transform: scale(0.98);
+    transform-origin: top center;
+  }
   .nrc-border-svg { display: block !important; }
   .no-print { display: none !important; }
 }
@@ -347,15 +378,8 @@
 .nrc-pupil-row {
   overflow: hidden;
 }
-.nrc-write {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 60mm;
-  vertical-align: bottom;
-}
 
-/* Area comment — override .nrc-write truncation for this specific case */
+/* Area comment — no truncation */
 .nrc-area-comment.nrc-write {
   white-space: normal;
   text-overflow: unset;
@@ -363,7 +387,7 @@
   max-width: none;
 }
 
-/* Comment body — override .nrc-write truncation */
+/* Comment body — no truncation */
 .nrc-comment-body.nrc-write {
   white-space: normal;
   text-overflow: unset;
