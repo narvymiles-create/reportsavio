@@ -7,8 +7,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
-import { FileText, Save, Eye, Printer, Users } from "lucide-react";
+import { FileText, Save, Eye, Printer, Users, Download, Loader2 } from "lucide-react";
 import { NurseryReportSheet } from "@/components/NurseryReportSheet";
+import { downloadNurseryReportCardPDF, downloadNurseryReportCardsZip, type BulkProgress } from "@/lib/nurseryPdfGenerator";
 
 type Cls = { id: string; name: string };
 type Stream = { id: string; name: string; class_id: string };
@@ -27,6 +28,9 @@ export default function NurseryReportsPage() {
   const [ctc, setCtc] = useState("");
   const [htc, setHtc] = useState("");
   const [bulkPreview, setBulkPreview] = useState(false);
+  const [singleDownloading, setSingleDownloading] = useState(false);
+  const [bulkDownloading, setBulkDownloading] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState<BulkProgress | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -45,8 +49,7 @@ export default function NurseryReportsPage() {
   useEffect(() => {
     if (!classId) { setLearners([]); setLearnerId(""); setStreams([]); setStreamId(""); return; }
     supabase.from("nursery_streams" as any).select("id,name,class_id").eq("class_id", classId).order("name").then(({ data }) => setStreams((data as any) ?? []));
-    let q = supabase.from("nursery_learners" as any).select("id,full_name,stream_id").eq("class_id", classId).order("full_name");
-    q.then(({ data }) => setLearners((data as any) ?? []));
+    supabase.from("nursery_learners" as any).select("id,full_name,stream_id").eq("class_id", classId).order("full_name").then(({ data }) => setLearners((data as any) ?? []));
   }, [classId]);
 
   const filteredLearners = streamId ? learners.filter(l => l.stream_id === streamId) : learners;
@@ -69,8 +72,46 @@ export default function NurseryReportsPage() {
     toast({ title: "Saved" });
   };
 
+  const handleSingleDownload = async () => {
+    if (!learnerId || !termId) return;
+    const learner = filteredLearners.find(l => l.id === learnerId);
+    setSingleDownloading(true);
+    try {
+      await downloadNurseryReportCardPDF(learnerId, termId, learner?.full_name ?? "nursery-report");
+      toast({ title: "PDF downloaded" });
+    } catch (e: any) {
+      toast({ title: "Download failed", description: e.message, variant: "destructive" });
+    } finally {
+      setSingleDownloading(false);
+    }
+  };
+
+  const handleBulkDownload = async () => {
+    if (!classId || !termId || filteredLearners.length === 0) return;
+    setBulkDownloading(true);
+    setBulkProgress(null);
+    try {
+      const className = classes.find(c => c.id === classId)?.name ?? "nursery";
+      const { failed } = await downloadNurseryReportCardsZip(
+        filteredLearners,
+        termId,
+        `${className}-reports`,
+        (p) => setBulkProgress(p),
+      );
+      if (failed.length) {
+        toast({ title: `Done with ${failed.length} error(s)`, description: failed.map(f => f.name).join(", "), variant: "destructive" });
+      } else {
+        toast({ title: "ZIP downloaded successfully" });
+      }
+    } catch (e: any) {
+      toast({ title: "Bulk download failed", description: e.message, variant: "destructive" });
+    } finally {
+      setBulkDownloading(false);
+      setBulkProgress(null);
+    }
+  };
+
   const bulkBase = classId && termId ? `/print/nursery-bulk/${termId}/${classId}${streamId ? `?stream=${streamId}` : ""}` : "";
-  const sep = streamId ? "&" : "?";
 
   return (
     <div className="p-6 space-y-6">
@@ -123,6 +164,12 @@ export default function NurseryReportsPage() {
               <Link to={`${bulkBase}${bulkBase.includes("?") ? "&" : "?"}mode=print`} target="_blank">
                 <Button variant="outline"><Printer className="h-4 w-4 mr-1" />Bulk Print</Button>
               </Link>
+              <Button variant="outline" onClick={handleBulkDownload} disabled={bulkDownloading || filteredLearners.length === 0}>
+                {bulkDownloading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Download className="h-4 w-4 mr-1" />}
+                {bulkDownloading && bulkProgress
+                  ? `Downloading ${bulkProgress.done}/${bulkProgress.total}…`
+                  : `Bulk Download ZIP (${filteredLearners.length})`}
+              </Button>
             </div>
           )}
 
@@ -137,6 +184,10 @@ export default function NurseryReportsPage() {
                 <Link to={`/print/nursery/${learnerId}/${termId}`} target="_blank">
                   <Button variant="outline"><FileText className="h-4 w-4 mr-1" />Open Print View</Button>
                 </Link>
+                <Button variant="outline" onClick={handleSingleDownload} disabled={singleDownloading}>
+                  {singleDownloading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Download className="h-4 w-4 mr-1" />}
+                  Download PDF
+                </Button>
               </div>
             </>
           )}

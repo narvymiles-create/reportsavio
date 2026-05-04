@@ -33,6 +33,7 @@ export function NurseryReportSheet({ learnerId, termId, onReady, pageBreak }: Pr
   const [headSigUrl, setHeadSigUrl] = useState<string | null>(null);
   const [borderStyle, setBorderStyle] = useState<string>("double");
   const [fontStyleCss, setFontStyleCss] = useState<string>(NURSERY_FONT_STYLES[0].css);
+  const [showPayCode, setShowPayCode] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -41,11 +42,11 @@ export function NurseryReportSheet({ learnerId, termId, onReady, pageBreak }: Pr
       setReportDataReady(false);
       readySignaledRef.current = false;
 
-      // Load settings (border_style + nursery_font_style)
+      // Load settings (border_style + nursery_font_style + learner_fields)
       const { data: settingsRows } = await supabase
         .from("system_settings" as any)
         .select("key,value")
-        .in("key", ["border_style", "nursery_font_style"]);
+        .in("key", ["border_style", "nursery_font_style", "learner_fields"]);
       if (!cancelled) {
         const sMap: Record<string, any> = {};
         ((settingsRows as any[]) ?? []).forEach((r: any) => { sMap[r.key] = r.value; });
@@ -53,6 +54,9 @@ export function NurseryReportSheet({ learnerId, termId, onReady, pageBreak }: Pr
         if (typeof sMap.nursery_font_style === "string") {
           const match = NURSERY_FONT_STYLES.find((f) => f.key === sMap.nursery_font_style);
           if (match) setFontStyleCss(match.css);
+        }
+        if (sMap.learner_fields && typeof sMap.learner_fields === "object") {
+          setShowPayCode(!!sMap.learner_fields.pay_code);
         }
       }
 
@@ -231,12 +235,19 @@ export function NurseryReportSheet({ learnerId, termId, onReady, pageBreak }: Pr
               <div className="nrc-divider" />
               <div className="nrc-assessment-title">{term ? `${term.name?.toUpperCase()} ASSESSMENT` : "TERM ASSESSMENT"}</div>
               <div className="nrc-pupil">
-                <span>Pupil's Name:</span> <span className="nrc-write" style={{ fontFamily: inputFontFamily }}>{learner?.full_name ?? ""}</span>
+                <span>Pupil's Name:</span>{" "}
+                <span className="nrc-info-value" style={{ fontFamily: inputFontFamily }}>{learner?.full_name ?? ""}</span>
               </div>
               <div className="nrc-pupil-row">
-                <div><span>Age:</span> <span className="nrc-write" style={{ fontFamily: inputFontFamily }}>{learner?.age ? `${learner.age} years` : ""}</span></div>
-                <div><span>Class:</span> <span className="nrc-write nrc-write-red" style={{ fontFamily: inputFontFamily }}>{cls?.name ?? ""}</span></div>
-                <div><span>Stream:</span> <span className="nrc-write" style={{ fontFamily: inputFontFamily }}>{stream?.name ?? ""}</span></div>
+                <div><span>Age:</span> <span className="nrc-info-value" style={{ fontFamily: inputFontFamily }}>{learner?.age ?? ""}</span></div>
+                <div><span>Class:</span> <span className="nrc-info-value nrc-info-value-red" style={{ fontFamily: inputFontFamily }}>{cls?.name ?? ""}</span></div>
+                <div><span>Stream:</span> <span className="nrc-info-value" style={{ fontFamily: inputFontFamily }}>{stream?.name ?? ""}</span></div>
+              </div>
+              <div className="nrc-pupil-row">
+                <div><span>Sex:</span> <span className="nrc-info-value" style={{ fontFamily: inputFontFamily }}>{learner?.sex ?? learner?.gender ?? ""}</span></div>
+                {showPayCode && (
+                  <div><span>Pay Code:</span> <span className="nrc-info-value" style={{ fontFamily: inputFontFamily }}>{learner?.pay_code ?? ""}</span></div>
+                )}
               </div>
             </div>
             <div className="nrc-photo-box">
