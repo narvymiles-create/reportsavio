@@ -61,7 +61,7 @@ export async function downloadNurseryReportCardFromElement(
  * Generate a PDF blob from a visible .nrc-page element.
  */
 async function generatePDFBlobFromElement(
-  element: Element,
+  element: HTMLElement,
   learnerName: string,
 ): Promise<Blob> {
   await waitForNurseryRender(element);
