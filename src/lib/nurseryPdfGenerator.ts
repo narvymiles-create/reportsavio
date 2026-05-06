@@ -38,8 +38,11 @@ const html2pdfOptions = (filename: string) => ({
   html2canvas: {
     scale: 3,
     useCORS: true,
+    allowTaint: false,
     logging: false,
     backgroundColor: "#ffffff",
+    imageTimeout: 5000,
+    removeContainer: true,
   },
   jsPDF: {
     unit: "mm" as const,
