@@ -167,8 +167,9 @@ export function NurseryReportSheet({ learnerId, termId, onReady, pageBreak }: Pr
 
   // Realtime sync of assessments
   useEffect(() => {
+    const channelName = `nursery-rt-${learnerId}-${termId}-${Date.now()}`;
     const ch = supabase
-      .channel(`nursery-rt-${learnerId}-${termId}`)
+      .channel(channelName)
       .on("postgres_changes", { event: "*", schema: "public", table: "nursery_assessments", filter: `learner_id=eq.${learnerId}` }, () => {
         supabase.from("nursery_assessments" as any).select("*").eq("learner_id", learnerId).eq("term_id", termId).then(({ data }) => {
           const map: Record<string, { grade: string | null; comment: string | null }> = {};
