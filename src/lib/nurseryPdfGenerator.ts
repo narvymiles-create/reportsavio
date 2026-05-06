@@ -49,7 +49,7 @@ function safeFilename(name: string) {
  * `element` must be the rendered report card DOM node.
  */
 export async function downloadNurseryReportCardFromElement(
-  element: Element,
+  element: HTMLElement,
   learnerName: string,
 ): Promise<void> {
   await waitForNurseryRender(element);
