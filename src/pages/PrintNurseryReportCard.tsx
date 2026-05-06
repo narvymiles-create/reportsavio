@@ -3,8 +3,7 @@ import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Printer, Download, Loader2 } from "lucide-react";
 import { NurseryReportSheet } from "@/components/NurseryReportSheet";
-import { waitForImagesAndFonts } from "@/lib/reportAssets";
-import { downloadNurseryReportCardPDF } from "@/lib/nurseryPdfGenerator";
+import { downloadNurseryReportCardFromElement } from "@/lib/nurseryPdfGenerator";
 import { toast } from "@/hooks/use-toast";
 
 export default function PrintNurseryReportCard() {
@@ -13,17 +12,19 @@ export default function PrintNurseryReportCard() {
   const [ready, setReady] = useState(false);
   const [downloading, setDownloading] = useState(false);
 
-  const runPrint = async () => {
+  const runPrint = () => {
     if (!ready || !sheetRef.current) return toast({ title: "Please wait, report still loading" });
-    await waitForImagesAndFonts(sheetRef.current);
-    window.print();
+    window.scrollTo(0, 0);
+    setTimeout(() => window.print(), 300);
   };
 
   const runDownload = async () => {
-    if (!ready || !learnerId || !termId) return;
+    if (!ready || !sheetRef.current) return;
+    const nrcPage = sheetRef.current.querySelector(".nrc-page") as HTMLElement | null;
+    if (!nrcPage) return toast({ title: "Report element not found", variant: "destructive" });
     setDownloading(true);
     try {
-      await downloadNurseryReportCardPDF(learnerId, termId, "nursery-report");
+      await downloadNurseryReportCardFromElement(nrcPage, "nursery-report");
       toast({ title: "PDF downloaded" });
     } catch (e: any) {
       toast({ title: "Download failed", description: e.message, variant: "destructive" });
