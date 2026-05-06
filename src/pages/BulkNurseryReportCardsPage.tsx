@@ -62,7 +62,6 @@ export default function BulkNurseryReportCardsPage() {
     window.scrollTo(0, 0);
     setTimeout(() => window.print(), 300);
   };
-  };
 
   if (loading) return <div className="flex items-center justify-center p-12"><Loader2 className="h-6 w-6 animate-spin" /></div>;
   if (errorMsg) return <div className="p-8 text-center text-destructive">{errorMsg}</div>;
