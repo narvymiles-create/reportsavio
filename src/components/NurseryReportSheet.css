@@ -192,8 +192,12 @@
   max-height: 100%;
   object-fit: contain;
 }
-/* Hide broken images — prevent dark blue rectangles */
-.nrc-page img[data-broken="true"] {
+/* Prevent broken images from showing as dark blocks in html2canvas */
+.nrc-page img {
+  background: transparent !important;
+}
+.nrc-page img:not([src]),
+.nrc-page img[src=""] {
   display: none !important;
 }
 .nrc-area-img-empty {
