@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
 import { FileText, Save, Eye, Printer, Users, Download, Loader2 } from "lucide-react";
 import { NurseryReportSheet } from "@/components/NurseryReportSheet";
-import { downloadNurseryReportCardPDF, downloadNurseryReportCardsZip, type BulkProgress } from "@/lib/nurseryPdfGenerator";
+import { downloadNurseryReportCardFromElement, downloadNurseryReportCardsZip, type BulkProgress } from "@/lib/nurseryPdfGenerator";
 
 type Cls = { id: string; name: string };
 type Stream = { id: string; name: string; class_id: string };
@@ -75,9 +75,11 @@ export default function NurseryReportsPage() {
   const handleSingleDownload = async () => {
     if (!learnerId || !termId) return;
     const learner = filteredLearners.find(l => l.id === learnerId);
+    const nrcPage = document.querySelector(".nrc-page") as HTMLElement | null;
+    if (!nrcPage) return toast({ title: "Preview not ready yet", variant: "destructive" });
     setSingleDownloading(true);
     try {
-      await downloadNurseryReportCardPDF(learnerId, termId, learner?.full_name ?? "nursery-report");
+      await downloadNurseryReportCardFromElement(nrcPage, learner?.full_name ?? "nursery-report");
       toast({ title: "PDF downloaded" });
     } catch (e: any) {
       toast({ title: "Download failed", description: e.message, variant: "destructive" });

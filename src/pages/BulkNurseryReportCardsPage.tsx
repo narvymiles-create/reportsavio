@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Loader2, Printer } from "lucide-react";
 import { NurseryReportSheet } from "@/components/NurseryReportSheet";
-import { waitForImagesAndFonts } from "@/lib/reportAssets";
+
 import { toast } from "@/hooks/use-toast";
 
 type Learner = { id: string; full_name: string; stream_id: string | null };
@@ -56,15 +56,11 @@ export default function BulkNurseryReportCardsPage() {
     return () => clearTimeout(t);
   }, [readyCount, learners.length, loading, autoPrint]);
 
-  const runBulkPrint = async () => {
+  const runBulkPrint = () => {
     if (!learners.length) return toast({ title: "No learners available", variant: "destructive" });
     if (readyCount < learners.length || !sheetsRef.current) return toast({ title: "Please wait, report still loading" });
-    try {
-      await waitForImagesAndFonts(sheetsRef.current);
-      window.print();
-    } catch (e: any) {
-      toast({ title: "Print failed", description: e.message, variant: "destructive" });
-    }
+    window.scrollTo(0, 0);
+    setTimeout(() => window.print(), 300);
   };
 
   if (loading) return <div className="flex items-center justify-center p-12"><Loader2 className="h-6 w-6 animate-spin" /></div>;
