@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Loader2, Printer } from "lucide-react";
 import { NurseryReportSheet } from "@/components/NurseryReportSheet";
-import { waitForImagesAndFonts } from "@/lib/reportAssets";
+
 import { toast } from "@/hooks/use-toast";
 
 type Learner = { id: string; full_name: string; stream_id: string | null };
