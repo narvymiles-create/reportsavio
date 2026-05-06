@@ -167,8 +167,9 @@ export function NurseryReportSheet({ learnerId, termId, onReady, pageBreak }: Pr
 
   // Realtime sync of assessments
   useEffect(() => {
+    const channelName = `nursery-rt-${learnerId}-${termId}-${Date.now()}`;
     const ch = supabase
-      .channel(`nursery-rt-${learnerId}-${termId}`)
+      .channel(channelName)
       .on("postgres_changes", { event: "*", schema: "public", table: "nursery_assessments", filter: `learner_id=eq.${learnerId}` }, () => {
         supabase.from("nursery_assessments" as any).select("*").eq("learner_id", learnerId).eq("term_id", termId).then(({ data }) => {
           const map: Record<string, { grade: string | null; comment: string | null }> = {};
@@ -197,6 +198,10 @@ export function NurseryReportSheet({ learnerId, termId, onReady, pageBreak }: Pr
   }, [areas.length]);
 
   const inputFontFamily = fontStyleCss;
+  const hideOnError = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    e.currentTarget.style.visibility = "hidden";
+    e.currentTarget.style.display = "none";
+  };
 
   return (
     <div ref={pageRef} className="nrc-page" style={{ ...rowHeightStyle, ...(pageBreak ? { pageBreakAfter: "always" } : {}) }}>
@@ -209,6 +214,7 @@ export function NurseryReportSheet({ learnerId, termId, onReady, pageBreak }: Pr
           alt=""
           className="nrc-border-svg"
           aria-hidden="true"
+          onError={hideOnError}
         />
         <div className="nrc-frame-inner">
           {watermarkUrl && (school?.watermark_enabled !== false) && (
@@ -216,6 +222,7 @@ export function NurseryReportSheet({ learnerId, termId, onReady, pageBreak }: Pr
               src={watermarkUrl}
               alt=""
               className="nrc-watermark"
+              onError={hideOnError}
               style={{
                 left: `${school?.watermark_x ?? 50}%`,
                 top: `${school?.watermark_y ?? 50}%`,
@@ -227,7 +234,7 @@ export function NurseryReportSheet({ learnerId, termId, onReady, pageBreak }: Pr
           {/* Header */}
           <div className="nrc-header">
             <div className="nrc-logo-box">
-              {logoUrl ? <img src={logoUrl} alt="Logo" /> : <div className="nrc-logo-placeholder">SCHOOL<br/>LOGO<br/>HERE</div>}
+              {logoUrl ? <img src={logoUrl} alt="Logo" onError={hideOnError} /> : <div className="nrc-logo-placeholder">SCHOOL<br/>LOGO<br/>HERE</div>}
             </div>
             <div className="nrc-school">
               <div className="nrc-school-name">{school?.name?.toUpperCase() ?? "SCHOOL NAME"}</div>
@@ -251,7 +258,7 @@ export function NurseryReportSheet({ learnerId, termId, onReady, pageBreak }: Pr
               </div>
             </div>
             <div className="nrc-photo-box">
-              {photoUrl ? <img src={photoUrl} alt="Pupil" /> : <div className="nrc-photo-placeholder">PHOTO</div>}
+              {photoUrl ? <img src={photoUrl} alt="Pupil" onError={hideOnError} /> : <div className="nrc-photo-placeholder">PHOTO</div>}
             </div>
           </div>
 
@@ -264,7 +271,7 @@ export function NurseryReportSheet({ learnerId, termId, onReady, pageBreak }: Pr
               return (
                 <div key={a.id} className="nrc-area-row">
                   <div className="nrc-area-img">
-                    {a.imageBase64 ? <img src={a.imageBase64} alt={a.name} onError={(e) => { (e.currentTarget as HTMLImageElement).setAttribute("data-broken", "true"); }} /> : <div className="nrc-area-img-empty" />}
+                    {a.imageBase64 ? <img src={a.imageBase64} alt={a.name} onError={hideOnError} /> : <div className="nrc-area-img-empty" />}
                   </div>
                   <div className="nrc-area-text">
                     <div className="nrc-area-name">{a.name}</div>
@@ -297,7 +304,7 @@ export function NurseryReportSheet({ learnerId, termId, onReady, pageBreak }: Pr
               <div className="nrc-sign">
                 <span>Sign:</span>
                 <span className="nrc-sig-stack">
-                  {classSigUrl && <img src={classSigUrl} alt="sig" className="nrc-sig-img" />}
+                  {classSigUrl && <img src={classSigUrl} alt="sig" className="nrc-sig-img" onError={hideOnError} />}
                   <span className="nrc-sig-line" />
                 </span>
                 <span className="nrc-sig-name">{classTeacher?.full_name?.toUpperCase() ?? ""}</span>
@@ -309,7 +316,7 @@ export function NurseryReportSheet({ learnerId, termId, onReady, pageBreak }: Pr
               <div className="nrc-sign">
                 <span>Sign:</span>
                 <span className="nrc-sig-stack">
-                  {headSigUrl && <img src={headSigUrl} alt="sig" className="nrc-sig-img" />}
+                  {headSigUrl && <img src={headSigUrl} alt="sig" className="nrc-sig-img" onError={hideOnError} />}
                   <span className="nrc-sig-line" />
                 </span>
                 <span className="nrc-sig-name">{(school?.nursery_head_teacher_name ?? school?.head_teacher_name ?? "").toUpperCase()}</span>
@@ -330,6 +337,7 @@ export function NurseryReportSheet({ learnerId, termId, onReady, pageBreak }: Pr
               src={stampUrl}
               alt="Stamp"
               className="nrc-stamp"
+              onError={hideOnError}
               style={{
                 left: `${school?.stamp_x ?? 75}%`,
                 top: `${school?.stamp_y ?? 78}%`,
