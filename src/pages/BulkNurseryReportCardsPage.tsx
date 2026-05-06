@@ -56,15 +56,12 @@ export default function BulkNurseryReportCardsPage() {
     return () => clearTimeout(t);
   }, [readyCount, learners.length, loading, autoPrint]);
 
-  const runBulkPrint = async () => {
+  const runBulkPrint = () => {
     if (!learners.length) return toast({ title: "No learners available", variant: "destructive" });
     if (readyCount < learners.length || !sheetsRef.current) return toast({ title: "Please wait, report still loading" });
-    try {
-      await waitForImagesAndFonts(sheetsRef.current);
-      window.print();
-    } catch (e: any) {
-      toast({ title: "Print failed", description: e.message, variant: "destructive" });
-    }
+    window.scrollTo(0, 0);
+    setTimeout(() => window.print(), 300);
+  };
   };
 
   if (loading) return <div className="flex items-center justify-center p-12"><Loader2 className="h-6 w-6 animate-spin" /></div>;
