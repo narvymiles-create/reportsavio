@@ -5,15 +5,25 @@
 import html2pdf from "html2pdf.js";
 import JSZip from "jszip";
 
-/** Wait for all images + fonts inside a container to finish loading. */
+/** Wait for all images + fonts inside a container to finish loading. Hide broken images. */
 async function waitForNurseryRender(container: Element): Promise<void> {
   const images = container.querySelectorAll("img");
   await Promise.all(
     Array.from(images).map((img) => {
-      if (img.complete) return Promise.resolve();
+      if (img.complete && img.naturalWidth > 0) return Promise.resolve();
+      if (img.complete && img.naturalWidth === 0) {
+        // Broken image — hide it to prevent dark blocks in html2canvas
+        img.style.visibility = "hidden";
+        img.style.display = "none";
+        return Promise.resolve();
+      }
       return new Promise<void>((resolve) => {
         img.onload = () => resolve();
-        img.onerror = () => resolve();
+        img.onerror = () => {
+          img.style.visibility = "hidden";
+          img.style.display = "none";
+          resolve();
+        };
       });
     }),
   );
