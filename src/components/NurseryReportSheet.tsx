@@ -197,6 +197,10 @@ export function NurseryReportSheet({ learnerId, termId, onReady, pageBreak }: Pr
   }, [areas.length]);
 
   const inputFontFamily = fontStyleCss;
+  const hideOnError = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    e.currentTarget.style.visibility = "hidden";
+    e.currentTarget.style.display = "none";
+  };
 
   return (
     <div ref={pageRef} className="nrc-page" style={{ ...rowHeightStyle, ...(pageBreak ? { pageBreakAfter: "always" } : {}) }}>
