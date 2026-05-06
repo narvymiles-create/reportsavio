@@ -257,7 +257,7 @@ export function NurseryReportSheet({ learnerId, termId, onReady, pageBreak }: Pr
               </div>
             </div>
             <div className="nrc-photo-box">
-              {photoUrl ? <img src={photoUrl} alt="Pupil" /> : <div className="nrc-photo-placeholder">PHOTO</div>}
+              {photoUrl ? <img src={photoUrl} alt="Pupil" onError={hideOnError} /> : <div className="nrc-photo-placeholder">PHOTO</div>}
             </div>
           </div>
 
@@ -270,7 +270,7 @@ export function NurseryReportSheet({ learnerId, termId, onReady, pageBreak }: Pr
               return (
                 <div key={a.id} className="nrc-area-row">
                   <div className="nrc-area-img">
-                    {a.imageBase64 ? <img src={a.imageBase64} alt={a.name} onError={(e) => { (e.currentTarget as HTMLImageElement).setAttribute("data-broken", "true"); }} /> : <div className="nrc-area-img-empty" />}
+                    {a.imageBase64 ? <img src={a.imageBase64} alt={a.name} onError={hideOnError} /> : <div className="nrc-area-img-empty" />}
                   </div>
                   <div className="nrc-area-text">
                     <div className="nrc-area-name">{a.name}</div>
@@ -303,7 +303,7 @@ export function NurseryReportSheet({ learnerId, termId, onReady, pageBreak }: Pr
               <div className="nrc-sign">
                 <span>Sign:</span>
                 <span className="nrc-sig-stack">
-                  {classSigUrl && <img src={classSigUrl} alt="sig" className="nrc-sig-img" />}
+                  {classSigUrl && <img src={classSigUrl} alt="sig" className="nrc-sig-img" onError={hideOnError} />}
                   <span className="nrc-sig-line" />
                 </span>
                 <span className="nrc-sig-name">{classTeacher?.full_name?.toUpperCase() ?? ""}</span>
@@ -315,7 +315,7 @@ export function NurseryReportSheet({ learnerId, termId, onReady, pageBreak }: Pr
               <div className="nrc-sign">
                 <span>Sign:</span>
                 <span className="nrc-sig-stack">
-                  {headSigUrl && <img src={headSigUrl} alt="sig" className="nrc-sig-img" />}
+                  {headSigUrl && <img src={headSigUrl} alt="sig" className="nrc-sig-img" onError={hideOnError} />}
                   <span className="nrc-sig-line" />
                 </span>
                 <span className="nrc-sig-name">{(school?.nursery_head_teacher_name ?? school?.head_teacher_name ?? "").toUpperCase()}</span>
@@ -336,6 +336,7 @@ export function NurseryReportSheet({ learnerId, termId, onReady, pageBreak }: Pr
               src={stampUrl}
               alt="Stamp"
               className="nrc-stamp"
+              onError={hideOnError}
               style={{
                 left: `${school?.stamp_x ?? 75}%`,
                 top: `${school?.stamp_y ?? 78}%`,
