@@ -185,6 +185,10 @@
   max-height: 100%;
   object-fit: contain;
 }
+/* Hide broken images — prevent dark blue rectangles */
+.nrc-page img[data-broken="true"] {
+  display: none !important;
+}
 .nrc-area-img-empty {
   width: 100%;
   height: 100%;

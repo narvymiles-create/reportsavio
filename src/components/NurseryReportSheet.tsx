@@ -264,7 +264,7 @@ export function NurseryReportSheet({ learnerId, termId, onReady, pageBreak }: Pr
               return (
                 <div key={a.id} className="nrc-area-row">
                   <div className="nrc-area-img">
-                    {a.imageBase64 ? <img src={a.imageBase64} alt={a.name} /> : <div className="nrc-area-img-empty" />}
+                    {a.imageBase64 ? <img src={a.imageBase64} alt={a.name} onError={(e) => { (e.currentTarget as HTMLImageElement).setAttribute("data-broken", "true"); }} /> : <div className="nrc-area-img-empty" />}
                   </div>
                   <div className="nrc-area-text">
                     <div className="nrc-area-name">{a.name}</div>
