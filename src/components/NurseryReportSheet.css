@@ -322,6 +322,9 @@
   html, body {
     margin: 0 !important;
     padding: 0 !important;
+    width: 210mm !important;
+    height: 297mm !important;
+    overflow: hidden !important;
     background: #fff !important;
   }
   body * {
@@ -338,8 +341,7 @@
     height: 297mm;
     margin: 0;
     box-shadow: none;
-    transform: scale(0.98);
-    transform-origin: top center;
+    transform: none;
   }
   .nrc-border-svg { display: block !important; }
   .no-print { display: none !important; }
