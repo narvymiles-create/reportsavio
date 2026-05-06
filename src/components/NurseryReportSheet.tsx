@@ -213,6 +213,7 @@ export function NurseryReportSheet({ learnerId, termId, onReady, pageBreak }: Pr
           alt=""
           className="nrc-border-svg"
           aria-hidden="true"
+          onError={hideOnError}
         />
         <div className="nrc-frame-inner">
           {watermarkUrl && (school?.watermark_enabled !== false) && (
@@ -220,6 +221,7 @@ export function NurseryReportSheet({ learnerId, termId, onReady, pageBreak }: Pr
               src={watermarkUrl}
               alt=""
               className="nrc-watermark"
+              onError={hideOnError}
               style={{
                 left: `${school?.watermark_x ?? 50}%`,
                 top: `${school?.watermark_y ?? 50}%`,
@@ -231,7 +233,7 @@ export function NurseryReportSheet({ learnerId, termId, onReady, pageBreak }: Pr
           {/* Header */}
           <div className="nrc-header">
             <div className="nrc-logo-box">
-              {logoUrl ? <img src={logoUrl} alt="Logo" /> : <div className="nrc-logo-placeholder">SCHOOL<br/>LOGO<br/>HERE</div>}
+              {logoUrl ? <img src={logoUrl} alt="Logo" onError={hideOnError} /> : <div className="nrc-logo-placeholder">SCHOOL<br/>LOGO<br/>HERE</div>}
             </div>
             <div className="nrc-school">
               <div className="nrc-school-name">{school?.name?.toUpperCase() ?? "SCHOOL NAME"}</div>
