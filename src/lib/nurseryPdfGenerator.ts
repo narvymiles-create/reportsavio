@@ -86,7 +86,7 @@ export type BulkProgress = {
  */
 export async function downloadNurseryReportCardsZipFromElements(
   learners: { id: string; full_name: string }[],
-  getElement: (learnerId: string) => Promise<Element | null>,
+  getElement: (learnerId: string) => Promise<HTMLElement | null>,
   zipFilename: string,
   onProgress?: (p: BulkProgress) => void,
 ): Promise<{ failed: { name: string; error: string }[] }> {
