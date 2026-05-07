@@ -3,8 +3,7 @@ import { useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Loader2, Printer } from "lucide-react";
-import { NurseryReportSheet } from "@/components/NurseryReportSheet";
-
+import { NurseryReportPDF } from "@/components/NurseryReportPDF";
 import { toast } from "@/hooks/use-toast";
 
 type Learner = { id: string; full_name: string; stream_id: string | null };
@@ -82,7 +81,7 @@ export default function BulkNurseryReportCardsPage() {
 
       <div ref={sheetsRef}>
         {learners.map((l, i) => (
-          <NurseryReportSheet
+          <NurseryReportPDF
             key={l.id}
             learnerId={l.id}
             termId={termId!}
