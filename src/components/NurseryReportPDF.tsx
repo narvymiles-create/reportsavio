@@ -41,7 +41,7 @@ export function NurseryReportPDF({ learnerId, termId, onReady, pageBreak }: Prop
   const [classSigB64, setClassSigB64] = useState<string | null>(null);
   const [headSigB64, setHeadSigB64] = useState<string | null>(null);
   const [borderStyle, setBorderStyle] = useState("double");
-  const [fontStyleCss, setFontStyleCss] = useState(NURSERY_FONT_STYLES[0].css);
+  const [fontStyleCss, setFontStyleCss] = useState<string>(NURSERY_FONT_STYLES[0].css);
   const [showPayCode, setShowPayCode] = useState(false);
 
   useEffect(() => {
