@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Printer, Download, Loader2 } from "lucide-react";
-import { NurseryReportSheet } from "@/components/NurseryReportSheet";
+import { NurseryReportPDF } from "@/components/NurseryReportPDF";
 import { downloadNurseryReportCardFromElement } from "@/lib/nurseryPdfGenerator";
 import { toast } from "@/hooks/use-toast";
 
@@ -20,11 +20,11 @@ export default function PrintNurseryReportCard() {
 
   const runDownload = async () => {
     if (!ready || !sheetRef.current) return;
-    const nrcPage = sheetRef.current.querySelector(".nrc-page") as HTMLElement | null;
-    if (!nrcPage) return toast({ title: "Report element not found", variant: "destructive" });
+    const pdfRoot = sheetRef.current.querySelector(".pdf-root") as HTMLElement | null;
+    if (!pdfRoot) return toast({ title: "Report element not found", variant: "destructive" });
     setDownloading(true);
     try {
-      await downloadNurseryReportCardFromElement(nrcPage, "nursery-report");
+      await downloadNurseryReportCardFromElement(pdfRoot, "nursery-report");
       toast({ title: "PDF downloaded" });
     } catch (e: any) {
       toast({ title: "Download failed", description: e.message, variant: "destructive" });
@@ -47,7 +47,7 @@ export default function PrintNurseryReportCard() {
         </Button>
       </div>
       <div ref={sheetRef}>
-        <NurseryReportSheet learnerId={learnerId} termId={termId} onReady={() => setReady(true)} />
+        <NurseryReportPDF learnerId={learnerId} termId={termId} onReady={() => setReady(true)} />
       </div>
     </div>
   );
