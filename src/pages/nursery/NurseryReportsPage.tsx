@@ -76,11 +76,9 @@ export default function NurseryReportsPage() {
   const handleSingleDownload = async () => {
     if (!learnerId || !termId) return;
     const learner = filteredLearners.find(l => l.id === learnerId);
-    const nrcPage = document.querySelector(".nrc-page") as HTMLElement | null;
-    if (!nrcPage) return toast({ title: "Preview not ready yet", variant: "destructive" });
     setSingleDownloading(true);
     try {
-      await downloadNurseryReportCardFromElement(nrcPage, learner?.full_name ?? "nursery-report");
+      await downloadNurseryReportCardPDF(learnerId, termId, learner?.full_name ?? "nursery-report");
       toast({ title: "PDF downloaded" });
     } catch (e: any) {
       toast({ title: "Download failed", description: e.message, variant: "destructive" });
