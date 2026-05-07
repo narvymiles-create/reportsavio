@@ -9,7 +9,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
 import { FileText, Save, Eye, Printer, Users, Download, Loader2 } from "lucide-react";
 import { NurseryReportSheet } from "@/components/NurseryReportSheet";
-import { NurseryReportPDF } from "@/components/NurseryReportPDF";
 import { downloadNurseryReportCardPDF, downloadNurseryReportCardsZip, type BulkProgress } from "@/lib/nurseryPdfGenerator";
 
 type Cls = { id: string; name: string };
