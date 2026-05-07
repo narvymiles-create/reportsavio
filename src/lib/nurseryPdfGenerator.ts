@@ -1,54 +1,49 @@
 /**
- * Nursery Report Card PDF generation — captures the VISIBLE .nrc-page element.
- * No hidden containers, no re-rendering, no re-fetching.
+ * Nursery Report Card PDF generation — rebuilt from scratch.
+ * Uses a dedicated NurseryReportPDF component rendered into a hidden container.
+ * NO cloning of interactive DOM. NO transforms. NO scaling hacks.
  */
 import html2pdf from "html2pdf.js";
 import JSZip from "jszip";
+import { createRoot, type Root } from "react-dom/client";
+import { createElement } from "react";
+import { NurseryReportPDF } from "@/components/NurseryReportPDF";
 
-/** Wait for all images + fonts inside a container to finish loading. Hide broken images. */
-async function waitForNurseryRender(container: Element): Promise<void> {
+/** Wait for all images + fonts inside the pdf-root */
+async function waitForPDFReady(container: Element): Promise<void> {
   const images = container.querySelectorAll("img");
   await Promise.all(
     Array.from(images).map((img) => {
       if (img.complete && img.naturalWidth > 0) return Promise.resolve();
       if (img.complete && img.naturalWidth === 0) {
-        // Broken image — hide it to prevent dark blocks in html2canvas
-        img.style.visibility = "hidden";
         img.style.display = "none";
         return Promise.resolve();
       }
       return new Promise<void>((resolve) => {
         img.onload = () => resolve();
-        img.onerror = () => {
-          img.style.visibility = "hidden";
-          img.style.display = "none";
-          resolve();
-        };
+        img.onerror = () => { img.style.display = "none"; resolve(); };
       });
     }),
   );
   await document.fonts.ready;
-  await new Promise((r) => setTimeout(r, 300));
+  await new Promise((r) => setTimeout(r, 500));
 }
 
-const html2pdfOptions = (filename: string) => ({
+const pdfOptions = (filename: string) => ({
   margin: 0,
   filename,
   image: { type: "jpeg" as const, quality: 1 },
   html2canvas: {
-    scale: 3,
+    scale: 2,
     useCORS: true,
-    allowTaint: false,
     logging: false,
+    letterRendering: true,
     backgroundColor: "#ffffff",
-    imageTimeout: 5000,
-    removeContainer: true,
   },
   jsPDF: {
     unit: "mm" as const,
     format: "a4",
     orientation: "portrait" as const,
-    compress: true,
   },
   pagebreak: { mode: ["avoid-all"] as string[] },
 });
@@ -57,33 +52,68 @@ function safeFilename(name: string) {
   return (name || "nursery-report").replace(/[^a-z0-9-_]+/gi, "_").slice(0, 80);
 }
 
+/** Create a hidden host container sized exactly to A4 */
+function createHost(): { host: HTMLDivElement; mount: HTMLDivElement } {
+  const host = document.createElement("div");
+  host.style.cssText = "position:fixed;left:-10000px;top:0;width:210mm;height:297mm;background:#fff;z-index:-1;pointer-events:none;overflow:hidden;";
+  const mount = document.createElement("div");
+  host.appendChild(mount);
+  document.body.appendChild(host);
+  return { host, mount };
+}
+
+/** Render NurseryReportPDF into a container and wait for onReady */
+async function renderPDF(mount: HTMLDivElement, learnerId: string, termId: string): Promise<Root> {
+  const root = createRoot(mount);
+  await new Promise<void>((resolve, reject) => {
+    const timeout = window.setTimeout(() => reject(new Error("PDF render timed out")), 30_000);
+    root.render(
+      createElement(NurseryReportPDF, {
+        learnerId,
+        termId,
+        onReady: () => {
+          window.clearTimeout(timeout);
+          resolve();
+        },
+      }),
+    );
+  });
+  return root;
+}
+
 /**
- * Download PDF from a visible .nrc-page element.
- * `element` must be the rendered report card DOM node.
+ * Download a single nursery report PDF.
+ */
+export async function downloadNurseryReportCardPDF(
+  learnerId: string,
+  termId: string,
+  learnerName: string,
+): Promise<void> {
+  const { host, mount } = createHost();
+  let root: Root | null = null;
+  try {
+    root = await renderPDF(mount, learnerId, termId);
+    const el = mount.querySelector(".pdf-root") as HTMLElement;
+    if (!el) throw new Error("PDF element not found");
+    await waitForPDFReady(el);
+    const filename = `${safeFilename(learnerName)}.pdf`;
+    await html2pdf().set(pdfOptions(filename)).from(el).save();
+  } finally {
+    try { root?.unmount(); } catch {}
+    host.remove();
+  }
+}
+
+/**
+ * Download from a visible .pdf-root element (used by preview pages).
  */
 export async function downloadNurseryReportCardFromElement(
   element: HTMLElement,
   learnerName: string,
 ): Promise<void> {
-  await waitForNurseryRender(element);
+  await waitForPDFReady(element);
   const filename = `${safeFilename(learnerName)}.pdf`;
-  await html2pdf().set(html2pdfOptions(filename)).from(element).save();
-}
-
-/**
- * Generate a PDF blob from a visible .nrc-page element.
- */
-async function generatePDFBlobFromElement(
-  element: HTMLElement,
-  learnerName: string,
-): Promise<Blob> {
-  await waitForNurseryRender(element);
-  const filename = `${safeFilename(learnerName)}.pdf`;
-  const blob: Blob = await html2pdf()
-    .set(html2pdfOptions(filename))
-    .from(element)
-    .outputPdf("blob");
-  return blob;
+  await html2pdf().set(pdfOptions(filename)).from(element).save();
 }
 
 export type BulkProgress = {
@@ -94,12 +124,11 @@ export type BulkProgress = {
 };
 
 /**
- * Bulk ZIP: caller provides a function that renders each learner and returns the .nrc-page element.
- * This keeps rendering in React land while PDF gen stays DOM-only.
+ * Bulk download as ZIP — renders each report one at a time in a hidden container.
  */
-export async function downloadNurseryReportCardsZipFromElements(
+export async function downloadNurseryReportCardsZip(
   learners: { id: string; full_name: string }[],
-  getElement: (learnerId: string) => Promise<HTMLElement | null>,
+  termId: string,
   zipFilename: string,
   onProgress?: (p: BulkProgress) => void,
 ): Promise<{ failed: { name: string; error: string }[] }> {
@@ -110,10 +139,22 @@ export async function downloadNurseryReportCardsZipFromElements(
   for (const learner of learners) {
     onProgress?.({ done, total: learners.length, current: learner.full_name, failed });
     try {
-      const el = await getElement(learner.id);
-      if (!el) throw new Error("Report element not found");
-      const blob = await generatePDFBlobFromElement(el, learner.full_name);
-      zip.file(`${safeFilename(learner.full_name)}.pdf`, blob);
+      const { host, mount } = createHost();
+      let root: Root | null = null;
+      try {
+        root = await renderPDF(mount, learner.id, termId);
+        const el = mount.querySelector(".pdf-root") as HTMLElement;
+        if (!el) throw new Error("PDF element not found");
+        await waitForPDFReady(el);
+        const blob: Blob = await html2pdf()
+          .set(pdfOptions(`${safeFilename(learner.full_name)}.pdf`))
+          .from(el)
+          .outputPdf("blob");
+        zip.file(`${safeFilename(learner.full_name)}.pdf`, blob);
+      } finally {
+        try { root?.unmount(); } catch {}
+        host.remove();
+      }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       console.error("[nursery bulk pdf] failed for", learner.full_name, err);
@@ -124,110 +165,13 @@ export async function downloadNurseryReportCardsZipFromElements(
   }
 
   const zipBlob = await zip.generateAsync({ type: "blob" });
-  triggerBlobDownload(zipBlob, `${safeFilename(zipFilename)}.zip`);
-  return { failed };
-}
-
-// ---- Legacy API kept for backward compat (re-render approach) ----
-// These are kept but should NOT be used — prefer the *FromElement variants.
-
-import { createRoot, type Root } from "react-dom/client";
-import { createElement } from "react";
-import { NurseryReportSheet } from "@/components/NurseryReportSheet";
-import { waitForImagesAndFonts } from "@/lib/reportAssets";
-
-const A4_WIDTH_MM = 210;
-const A4_HEIGHT_MM = 297;
-
-function buildHostContainer(): { host: HTMLDivElement; page: HTMLDivElement } {
-  const host = document.createElement("div");
-  host.setAttribute("data-nursery-pdf-host", "true");
-  host.style.cssText = [
-    "position:fixed", "left:-10000px", "top:0",
-    `width:${A4_WIDTH_MM}mm`, "height:auto",
-    "background:#ffffff", "z-index:-1", "pointer-events:none",
-  ].join(";");
-  const page = document.createElement("div");
-  page.style.cssText = [
-    `width:${A4_WIDTH_MM}mm`, `height:${A4_HEIGHT_MM}mm`,
-    "box-sizing:border-box", "overflow:hidden", "background:#ffffff", "position:relative",
-  ].join(";");
-  host.appendChild(page);
-  document.body.appendChild(host);
-  return { host, page };
-}
-
-async function renderSheetIntoPage(page: HTMLDivElement, learnerId: string, termId: string): Promise<Root> {
-  const root = createRoot(page);
-  await new Promise<void>((resolve, reject) => {
-    const timeoutId = window.setTimeout(() => reject(new Error("Nursery report card timed out")), 30_000);
-    root.render(createElement(NurseryReportSheet, {
-      learnerId, termId,
-      onReady: () => { window.clearTimeout(timeoutId); requestAnimationFrame(() => requestAnimationFrame(() => resolve())); },
-    }));
-  });
-  await waitForImagesAndFonts(page);
-  await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
-  return root;
-}
-
-/** Legacy: re-render in hidden container. Prefer downloadNurseryReportCardFromElement. */
-export async function downloadNurseryReportCardPDF(learnerId: string, termId: string, learnerName: string): Promise<void> {
-  const { host, page } = buildHostContainer();
-  let root: Root | null = null;
-  try {
-    root = await renderSheetIntoPage(page, learnerId, termId);
-    const filename = `${safeFilename(learnerName)}.pdf`;
-    await html2pdf().set(html2pdfOptions(filename)).from(page).save();
-  } finally {
-    try { root?.unmount(); } catch {}
-    host.remove();
-  }
-}
-
-/** Legacy bulk */
-export async function downloadNurseryReportCardsZip(
-  learners: { id: string; full_name: string }[], termId: string, zipFilename: string,
-  onProgress?: (p: BulkProgress) => void, batchSize = 3,
-): Promise<{ failed: { name: string; error: string }[] }> {
-  const zip = new JSZip();
-  const failed: { name: string; error: string }[] = [];
-  let done = 0;
-  for (let i = 0; i < learners.length; i += batchSize) {
-    const batch = learners.slice(i, i + batchSize);
-    for (const learner of batch) {
-      onProgress?.({ done, total: learners.length, current: learner.full_name, failed });
-      try {
-        const { host, page } = buildHostContainer();
-        let root: Root | null = null;
-        try {
-          root = await renderSheetIntoPage(page, learner.id, termId);
-          const blob: Blob = await html2pdf().set(html2pdfOptions(`${safeFilename(learner.full_name)}.pdf`)).from(page).outputPdf("blob");
-          zip.file(`${safeFilename(learner.full_name)}.pdf`, blob);
-        } finally {
-          try { root?.unmount(); } catch {}
-          host.remove();
-        }
-      } catch (err) {
-        failed.push({ name: learner.full_name, error: err instanceof Error ? err.message : String(err) });
-      }
-      done += 1;
-      onProgress?.({ done, total: learners.length, current: learner.full_name, failed });
-    }
-    await new Promise((r) => setTimeout(r, 100));
-  }
-  const zipBlob = await zip.generateAsync({ type: "blob" });
-  triggerBlobDownload(zipBlob, `${safeFilename(zipFilename)}.zip`);
-  return { failed };
-}
-
-function triggerBlobDownload(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob);
+  const url = URL.createObjectURL(zipBlob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = filename;
+  a.download = `${safeFilename(zipFilename)}.zip`;
   document.body.appendChild(a);
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+  return { failed };
 }
