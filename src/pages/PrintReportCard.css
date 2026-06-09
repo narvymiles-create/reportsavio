@@ -498,7 +498,9 @@ table.rc-phase-summary td {
   body.bulk-report-printing .report-job-overlay,
   body.bulk-report-printing .report-job-overlay *,
   body.bulk-report-printing .report-job-renderer,
-  body.bulk-report-printing .report-job-renderer * { visibility: visible !important; }
+  body.bulk-report-printing .report-job-renderer *,
+  body.bulk-report-printing .report-page,
+  body.bulk-report-printing .report-page * { visibility: visible !important; }
   body.bulk-report-printing .report-job-overlay {
     position: static !important;
     inset: auto !important;
@@ -524,16 +526,14 @@ table.rc-phase-summary td {
     overflow: hidden !important;
     page-break-inside: avoid !important;
     break-inside: avoid !important;
-    page-break-after: avoid !important;
-    break-after: avoid !important;
   }
 
-  /* Bulk: each sheet (except the last) forces a new page */
+  /* Bulk: each sheet (except the last) forces a new page; stacked statically */
   body.bulk-report-printing .report-page {
+    position: static !important;
+    transform: none !important;
     page-break-after: always !important;
     break-after: page !important;
-    transform: scale(0.98) !important;
-    transform-origin: top left !important;
   }
   body.bulk-report-printing .report-page:last-child {
     page-break-after: avoid !important;
