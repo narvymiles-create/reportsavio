@@ -31,13 +31,21 @@ export default function BulkNurseryReportCardsPage() {
     if (!termId || !classId) return;
     (async () => {
       try {
-        let q = supabase.from("nursery_learners" as any).select("id,full_name,stream_id").eq("class_id", classId).order("full_name");
-        if (streamId) q = q.eq("stream_id", streamId);
-        const { data, error } = await q;
+        const { data, error } = await supabase
+          .from("nursery_learners" as any)
+          .select("id,full_name,stream_id")
+          .eq("class_id", classId)
+          .order("full_name");
         if (error) throw error;
+        let rows = ((data ?? []) as unknown) as Learner[];
+        if (streamId) rows = rows.filter((l) => l.stream_id === streamId);
         if (!mountedRef.current) return;
-        setLearners((data ?? []) as any);
+        setLearners(rows);
+        if (rows.length === 0) {
+          console.warn("[BulkNurseryReportCardsPage] No learners", { classId, streamId, total: data?.length ?? 0 });
+        }
       } catch (err: any) {
+        console.error("[BulkNurseryReportCardsPage] Load failed", err);
         if (mountedRef.current) setErrorMsg(err.message || "Failed to load learners");
       } finally {
         if (mountedRef.current) setLoading(false);
