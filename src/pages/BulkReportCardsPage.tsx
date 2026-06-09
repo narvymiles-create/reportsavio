@@ -74,22 +74,11 @@ export default function BulkReportCardsPage() {
     if (readyCount < learners.length || !sheetsRef.current) return toast({ title: "Please wait, report still loading" });
     try {
       await waitForImagesAndFonts(sheetsRef.current);
-      document.body.classList.add("bulk-report-printing");
-      const cleanup = () => {
-        document.body.classList.remove("bulk-report-printing");
-        window.removeEventListener("afterprint", cleanup);
-      };
-      window.addEventListener("afterprint", cleanup);
-      setTimeout(() => window.print(), 100);
+      window.print();
     } catch (e: any) {
-      document.body.classList.remove("bulk-report-printing");
       toast({ title: "Print failed", description: e.message, variant: "destructive" });
     }
   };
-
-  useEffect(() => {
-    return () => { document.body.classList.remove("bulk-report-printing"); };
-  }, []);
 
   if (loading) return <div className="flex items-center justify-center p-12"><Loader2 className="h-6 w-6 animate-spin" /></div>;
   if (errorMsg) return <div className="p-8 text-center text-destructive">{errorMsg}</div>;
