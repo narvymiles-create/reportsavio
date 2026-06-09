@@ -80,7 +80,13 @@ export default function BulkNurseryReportCardsPage() {
 
   if (loading) return <div className="flex items-center justify-center p-12"><Loader2 className="h-6 w-6 animate-spin" /></div>;
   if (errorMsg) return <div className="p-8 text-center text-destructive">{errorMsg}</div>;
-  if (learners.length === 0) return <div className="p-8 text-center text-muted-foreground">No learners found for this class/stream.</div>;
+  if (learners.length === 0) return (
+    <div className="p-8 text-center text-muted-foreground">
+      <p>No learners found for this class/stream.</p>
+      <p className="text-xs mt-2">classId: <code>{classId}</code>{streamId && <> · streamId: <code>{streamId}</code></>}</p>
+      <p className="text-xs mt-1">Check the browser console for query details.</p>
+    </div>
+  );
 
   const allReady = readyCount >= learners.length;
 
