@@ -37,7 +37,7 @@ export default function BulkNurseryReportCardsPage() {
           .eq("class_id", classId)
           .order("full_name");
         if (error) throw error;
-        let rows = (data ?? []) as Learner[];
+        let rows = ((data ?? []) as unknown) as Learner[];
         if (streamId) rows = rows.filter((l) => l.stream_id === streamId);
         if (!mountedRef.current) return;
         setLearners(rows);
