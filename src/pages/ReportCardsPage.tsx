@@ -281,8 +281,17 @@ export default function ReportCardsPage() {
 
   const startReportJob = (selectedLearners?: Learner[], label?: string) => {
     if (!termId || !classId) return toast({ title: "Pick a term and class", variant: "destructive" });
-    const readyLearners = (selectedLearners ?? filtered).filter(l => reports[l.id]);
+    const pool = selectedLearners ?? filtered;
+    const readyLearners = pool.filter(l => reports[l.id]);
+    console.log("[PrimaryBulk] pool:", pool.length, "withReports:", readyLearners.length,
+      "missing:", pool.filter(l => !reports[l.id]).map(l => l.full_name));
     if (readyLearners.length === 0) return toast({ title: "No report cards generated yet", variant: "destructive" });
+    if (readyLearners.length < pool.length) {
+      toast({
+        title: `Printing ${readyLearners.length} of ${pool.length}`,
+        description: `${pool.length - readyLearners.length} learner(s) have no generated report card. Click "Generate / Refresh All" first.`,
+      });
+    }
     setReportJob({ id: ++jobCounterRef.current, learners: readyLearners, label: label ?? "Bulk print" });
   };
 
