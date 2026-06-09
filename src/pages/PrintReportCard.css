@@ -528,16 +528,20 @@ table.rc-phase-summary td {
     break-after: avoid !important;
   }
 
-  /* Bulk: each sheet (except the last) forces a new page */
+  /* Bulk: each sheet (except the last) forces a new page.
+     IMPORTANT: do NOT apply transform here — Chrome ignores page-break
+     on transformed elements, causing only the first sheet to print. */
   body.bulk-report-printing .report-page {
     page-break-after: always !important;
     break-after: page !important;
-    transform: scale(0.98) !important;
-    transform-origin: top left !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    transform: none !important;
+    display: block !important;
   }
   body.bulk-report-printing .report-page:last-child {
-    page-break-after: avoid !important;
-    break-after: avoid !important;
+    page-break-after: auto !important;
+    break-after: auto !important;
   }
 }
 
