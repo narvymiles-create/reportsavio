@@ -332,7 +332,7 @@
 }
 
 /* Print */
-@page { size: A4 portrait; margin: 8mm; }
+@page { size: A4 portrait; margin: 3mm; }
 @media print {
   html, body {
     margin: 0 !important;

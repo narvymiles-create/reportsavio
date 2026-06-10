@@ -455,7 +455,7 @@ table.rc-phase-summary td {
 /* ---------- PRINT ---------- */
 @page {
   size: A4 portrait;
-  margin: 8mm;
+  margin: 3mm;
 }
 
 @media print {
@@ -524,7 +524,7 @@ table.rc-phase-summary td {
     height: auto !important;
     min-height: 0 !important;
     max-height: none !important;
-    padding: 6mm !important;
+    padding: 13mm 11mm 9mm !important;
     overflow: hidden !important;
     page-break-inside: avoid !important;
     break-inside: avoid !important;
