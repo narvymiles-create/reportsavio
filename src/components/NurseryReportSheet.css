@@ -332,13 +332,12 @@
 }
 
 /* Print */
-@page { size: A4; margin: 0; }
+@page { size: A4 portrait; margin: 8mm; }
 @media print {
   html, body {
     margin: 0 !important;
     padding: 0 !important;
     width: 210mm !important;
-    height: 297mm !important;
     overflow: hidden !important;
     background: #fff !important;
   }
@@ -348,15 +347,24 @@
   .nrc-page, .nrc-page * {
     visibility: visible !important;
   }
+  /* Fit inside the @page printable area so the right border isn't clipped. */
   .nrc-page {
     position: absolute;
     top: 0;
     left: 0;
-    width: 210mm;
-    height: 297mm;
-    margin: 0;
+    right: 0;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    margin: 0 auto !important;
+    padding: 6mm !important;
+    box-sizing: border-box !important;
     box-shadow: none;
     transform: none;
+    overflow: hidden !important;
   }
   .nrc-border-svg { display: block !important; }
   .no-print { display: none !important; }
