@@ -455,7 +455,7 @@ table.rc-phase-summary td {
 /* ---------- PRINT ---------- */
 @page {
   size: A4 portrait;
-  margin: 8mm;
+  margin: 3mm;
 }
 
 @media print {
