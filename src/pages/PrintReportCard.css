@@ -454,8 +454,8 @@ table.rc-phase-summary td {
 
 /* ---------- PRINT ---------- */
 @page {
-  size: A4;
-  margin: 0;
+  size: A4 portrait;
+  margin: 8mm;
 }
 
 @media print {
@@ -463,7 +463,6 @@ table.rc-phase-summary td {
     margin: 0 !important;
     padding: 0 !important;
     width: 210mm !important;
-    height: 297mm !important;
     background: #fff !important;
   }
 
@@ -489,8 +488,6 @@ table.rc-phase-summary td {
     top: 0 !important;
     right: 0 !important;
     margin: 0 auto !important;
-    /* No transform/scale — it breaks centering and creates uneven margins.
-       The page is exactly 210mm × 297mm and @page margin is 0, so it fills A4. */
     transform: none !important;
   }
 
@@ -513,31 +510,36 @@ table.rc-phase-summary td {
     top: auto !important;
   }
 
+  /* The printable area is the @page box (A4 minus 8mm margins). The sheet
+     must fit inside that area — use width:100% + max-width:100% so the
+     right edge / outer border is never clipped by the browser's printable
+     region (a hard 210mm width exceeds the printable box when @page
+     margin > 0, and gets cropped on the right). */
   .report-page {
-    margin: 0 !important;
+    margin: 0 auto !important;
     box-shadow: none !important;
-    width: 210mm !important;
-    height: 297mm !important;
-    min-width: 210mm !important;
-    min-height: 297mm !important;
-    max-width: 210mm !important;
-    max-height: 297mm !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    padding: 6mm !important;
     overflow: hidden !important;
     page-break-inside: avoid !important;
     break-inside: avoid !important;
     page-break-after: avoid !important;
     break-after: avoid !important;
+    transform: none !important;
+    box-sizing: border-box !important;
   }
 
-  /* Bulk: each sheet (except the last) forces a new page.
-     IMPORTANT: do NOT apply transform here — Chrome ignores page-break
-     on transformed elements, causing only the first sheet to print. */
+  /* Bulk: each sheet (except the last) forces a new page. */
   body.bulk-report-printing .report-page {
     page-break-after: always !important;
     break-after: page !important;
     page-break-inside: avoid !important;
     break-inside: avoid !important;
-    transform: none !important;
     display: block !important;
   }
   body.bulk-report-printing .report-page:last-child {
