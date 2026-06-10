@@ -487,10 +487,11 @@ table.rc-phase-summary td {
     position: absolute !important;
     left: 0 !important;
     top: 0 !important;
-    margin: 0 !important;
-    /* Scale down slightly to prevent browser clipping right/bottom edges */
-    transform: scale(0.98) !important;
-    transform-origin: top left !important;
+    right: 0 !important;
+    margin: 0 auto !important;
+    /* No transform/scale — it breaks centering and creates uneven margins.
+       The page is exactly 210mm × 297mm and @page margin is 0, so it fills A4. */
+    transform: none !important;
   }
 
   /* === BULK REPORT PRINT === */
