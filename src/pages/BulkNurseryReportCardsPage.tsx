@@ -103,7 +103,7 @@ export default function BulkNurseryReportCardsPage() {
 
       <div ref={sheetsRef}>
         {learners.map((l, i) => (
-          <NurseryReportPDF
+          <NurseryReportSheet
             key={l.id}
             learnerId={l.id}
             termId={termId!}
