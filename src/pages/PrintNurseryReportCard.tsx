@@ -20,7 +20,7 @@ export default function PrintNurseryReportCard() {
 
   const runDownload = async () => {
     if (!ready || !sheetRef.current) return;
-    const pdfRoot = sheetRef.current.querySelector(".pdf-root") as HTMLElement | null;
+    const pdfRoot = sheetRef.current.querySelector(".nrc-page, .pdf-root") as HTMLElement | null;
     if (!pdfRoot) return toast({ title: "Report element not found", variant: "destructive" });
     setDownloading(true);
     try {
