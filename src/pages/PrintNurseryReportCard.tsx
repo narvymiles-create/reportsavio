@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Printer, Download, Loader2 } from "lucide-react";
-import { NurseryReportPDF } from "@/components/NurseryReportPDF";
+import { NurseryReportSheet } from "@/components/NurseryReportSheet";
 import { downloadNurseryReportCardFromElement } from "@/lib/nurseryPdfGenerator";
 import { toast } from "@/hooks/use-toast";
 
@@ -20,7 +20,7 @@ export default function PrintNurseryReportCard() {
 
   const runDownload = async () => {
     if (!ready || !sheetRef.current) return;
-    const pdfRoot = sheetRef.current.querySelector(".pdf-root") as HTMLElement | null;
+    const pdfRoot = sheetRef.current.querySelector(".nrc-page, .pdf-root") as HTMLElement | null;
     if (!pdfRoot) return toast({ title: "Report element not found", variant: "destructive" });
     setDownloading(true);
     try {
@@ -47,7 +47,7 @@ export default function PrintNurseryReportCard() {
         </Button>
       </div>
       <div ref={sheetRef}>
-        <NurseryReportPDF learnerId={learnerId} termId={termId} onReady={() => setReady(true)} />
+        <NurseryReportSheet learnerId={learnerId} termId={termId} onReady={() => setReady(true)} />
       </div>
     </div>
   );
