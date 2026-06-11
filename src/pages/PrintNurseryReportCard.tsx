@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Printer, Download, Loader2 } from "lucide-react";
-import { NurseryReportPDF } from "@/components/NurseryReportPDF";
+import { NurseryReportSheet } from "@/components/NurseryReportSheet";
 import { downloadNurseryReportCardFromElement } from "@/lib/nurseryPdfGenerator";
 import { toast } from "@/hooks/use-toast";
 
