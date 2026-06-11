@@ -47,7 +47,7 @@ export default function PrintNurseryReportCard() {
         </Button>
       </div>
       <div ref={sheetRef}>
-        <NurseryReportPDF learnerId={learnerId} termId={termId} onReady={() => setReady(true)} />
+        <NurseryReportSheet learnerId={learnerId} termId={termId} onReady={() => setReady(true)} />
       </div>
     </div>
   );
