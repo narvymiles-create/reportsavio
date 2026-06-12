@@ -358,9 +358,13 @@
     width: 100% !important;
     max-width: 100% !important;
     min-width: 0 !important;
-    height: auto !important;
-    min-height: 0 !important;
-    max-height: none !important;
+    /* Fixed height is REQUIRED: the learning-areas section uses flex:1 rows
+       that collapse to zero when the page height is auto, producing the
+       "half report card" print bug. 290mm fits A4 (297mm) minus 3mm+3mm
+       @page margins with a small safety gap. */
+    height: 290mm !important;
+    min-height: 290mm !important;
+    max-height: 290mm !important;
     margin: 0 auto !important;
     padding: 6mm !important;
     box-sizing: border-box !important;
