@@ -344,6 +344,10 @@
   body > *:not(#root) { display: none !important; }
   .no-print { display: none !important; }
 
+  /* Defensive: ensure the nursery sheet is always visible when printing,
+     even if another stylesheet hides body content. */
+  .nrc-page, .nrc-page * { visibility: visible !important; }
+
   /* Each report page renders as its own A4 sheet, in document flow, so multiple
      sheets (bulk print) each get their own physical page. */
   .nrc-page {
