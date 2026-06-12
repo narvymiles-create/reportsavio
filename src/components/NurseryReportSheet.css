@@ -338,21 +338,19 @@
     margin: 0 !important;
     padding: 0 !important;
     width: 210mm !important;
-    overflow: hidden !important;
     background: #fff !important;
   }
-  body * {
-    visibility: hidden;
-  }
-  .nrc-page, .nrc-page * {
-    visibility: visible !important;
-  }
-  /* Fit inside the @page printable area so the right border isn't clipped. */
+  /* Hide non-report chrome (toolbars, sidebars) without clipping the report itself. */
+  body > *:not(#root) { display: none !important; }
+  .no-print { display: none !important; }
+
+  /* Each report page renders as its own A4 sheet, in document flow, so multiple
+     sheets (bulk print) each get their own physical page. */
   .nrc-page {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    right: auto !important;
     width: 100% !important;
     max-width: 100% !important;
     min-width: 0 !important;
@@ -362,12 +360,17 @@
     margin: 0 auto !important;
     padding: 6mm !important;
     box-sizing: border-box !important;
-    box-shadow: none;
-    transform: none;
+    box-shadow: none !important;
+    transform: none !important;
     overflow: hidden !important;
+    page-break-after: always;
+    break-after: page;
+  }
+  .nrc-page:last-of-type {
+    page-break-after: auto;
+    break-after: auto;
   }
   .nrc-border-svg { display: block !important; }
-  .no-print { display: none !important; }
 }
 
 /* =====================================================================
