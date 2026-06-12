@@ -475,7 +475,10 @@ table.rc-phase-summary td {
   }
 
   /* === SINGLE REPORT PRINT === */
-  body:not(.bulk-report-printing) * {
+  /* Scoped with :has(.report-page) so these global rules NEVER blank out
+     other print pages (e.g. the Nursery report card) that don't contain
+     a .report-page element. */
+  body:not(.bulk-report-printing):has(.report-page) * {
     visibility: hidden !important;
   }
   body:not(.bulk-report-printing) .report-page,
@@ -492,7 +495,7 @@ table.rc-phase-summary td {
   }
 
   /* === BULK REPORT PRINT === */
-  body.bulk-report-printing * { visibility: hidden !important; }
+  body.bulk-report-printing:has(.report-job-renderer) * { visibility: hidden !important; }
   body.bulk-report-printing .report-job-overlay,
   body.bulk-report-printing .report-job-overlay *,
   body.bulk-report-printing .report-job-renderer,

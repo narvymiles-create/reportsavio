@@ -391,7 +391,8 @@
     width: 210mm !important;
     background: #fff !important;
   }
-  body * { visibility: hidden; }
+  /* Scoped with :has(.pdf-root) so this never blanks pages that don't use this template */
+  body:has(.pdf-root) * { visibility: hidden; }
   .pdf-root, .pdf-root * { visibility: visible !important; }
 
   /* Each report sheet fills the printable @page area (A4 minus 8mm margins).
