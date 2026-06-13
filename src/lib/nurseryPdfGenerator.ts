@@ -9,7 +9,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { createElement } from "react";
 import { NurseryReportSheet } from "@/components/NurseryReportSheet";
 
-/** Wait for all images + fonts inside the pdf-root */
+/** Wait for all images + fonts inside the rendered report sheet */
 async function waitForPDFReady(container: Element): Promise<void> {
   const images = container.querySelectorAll("img");
   await Promise.all(
