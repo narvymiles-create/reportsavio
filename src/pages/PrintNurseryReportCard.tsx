@@ -1,9 +1,10 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Printer, Download, Loader2 } from "lucide-react";
 import { NurseryReportSheet } from "@/components/NurseryReportSheet";
-import { downloadNurseryReportCardFromElement } from "@/lib/nurseryPdfGenerator";
+import { downloadNurseryReportCardPDF } from "@/lib/nurseryPdfGenerator";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
 export default function PrintNurseryReportCard() {
