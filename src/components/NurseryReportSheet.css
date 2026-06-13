@@ -399,6 +399,22 @@
 }
 .nrc-page { overflow: hidden !important; }
 
+/* Download/export uses this off-screen host to render the exact print sheet,
+   without changing the visible preview or browser print behavior. */
+.nrc-export-host .nrc-page {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  height: 290mm !important;
+  min-height: 290mm !important;
+  max-height: 290mm !important;
+  margin: 0 auto !important;
+  padding: 6mm !important;
+  box-sizing: border-box !important;
+  transform: none !important;
+  overflow: hidden !important;
+}
+
 .nrc-page td,
 .nrc-page th,
 .nrc-page p,
