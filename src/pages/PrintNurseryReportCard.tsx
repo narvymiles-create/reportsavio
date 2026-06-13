@@ -50,7 +50,7 @@ export default function PrintNurseryReportCard() {
   return (
     <div>
       <div className="no-print sticky top-0 z-10 bg-background border-b p-3 flex justify-end gap-2">
-        <Button onClick={runDownload} disabled={!ready || downloading} variant="outline">
+        <Button onClick={runDownload} disabled={downloading} variant="outline">
           {downloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
           Download PDF
         </Button>
