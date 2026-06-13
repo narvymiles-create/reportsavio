@@ -30,7 +30,7 @@ async function waitForPDFReady(container: Element): Promise<void> {
 }
 
 const pdfOptions = (filename: string) => ({
-  margin: 0,
+  margin: 3,
   filename,
   image: { type: "jpeg" as const, quality: 1 },
   html2canvas: {
@@ -56,7 +56,7 @@ function safeFilename(name: string) {
 function createHost(): { host: HTMLDivElement; mount: HTMLDivElement } {
   const host = document.createElement("div");
   host.className = "nrc-export-host";
-  host.style.cssText = "position:fixed;left:-10000px;top:0;width:210mm;height:290mm;background:#fff;z-index:-1;pointer-events:none;overflow:visible;";
+  host.style.cssText = "position:fixed;left:-10000px;top:0;width:204mm;height:290mm;background:#fff;z-index:-1;pointer-events:none;overflow:visible;";
   const mount = document.createElement("div");
   host.appendChild(mount);
   document.body.appendChild(host);
