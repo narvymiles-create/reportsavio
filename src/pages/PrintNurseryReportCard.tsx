@@ -1,9 +1,10 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Printer, Download, Loader2 } from "lucide-react";
 import { NurseryReportSheet } from "@/components/NurseryReportSheet";
-import { downloadNurseryReportCardFromElement } from "@/lib/nurseryPdfGenerator";
+import { downloadNurseryReportCardPDF } from "@/lib/nurseryPdfGenerator";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
 export default function PrintNurseryReportCard() {
@@ -11,6 +12,19 @@ export default function PrintNurseryReportCard() {
   const sheetRef = useRef<HTMLDivElement>(null);
   const [ready, setReady] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [learnerName, setLearnerName] = useState<string>("nursery-report");
+
+  useEffect(() => {
+    if (!learnerId) return;
+    (async () => {
+      const { data } = await supabase
+        .from("nursery_learners" as any)
+        .select("full_name")
+        .eq("id", learnerId)
+        .maybeSingle();
+      if ((data as any)?.full_name) setLearnerName((data as any).full_name);
+    })();
+  }, [learnerId]);
 
   const runPrint = () => {
     if (!ready || !sheetRef.current) return toast({ title: "Please wait, report still loading" });
@@ -19,12 +33,10 @@ export default function PrintNurseryReportCard() {
   };
 
   const runDownload = async () => {
-    if (!ready || !sheetRef.current) return;
-    const pdfRoot = sheetRef.current.querySelector(".nrc-page, .pdf-root") as HTMLElement | null;
-    if (!pdfRoot) return toast({ title: "Report element not found", variant: "destructive" });
+    if (!learnerId || !termId) return;
     setDownloading(true);
     try {
-      await downloadNurseryReportCardFromElement(pdfRoot, "nursery-report");
+      await downloadNurseryReportCardPDF(learnerId, termId, learnerName);
       toast({ title: "PDF downloaded" });
     } catch (e: any) {
       toast({ title: "Download failed", description: e.message, variant: "destructive" });
@@ -38,7 +50,7 @@ export default function PrintNurseryReportCard() {
   return (
     <div>
       <div className="no-print sticky top-0 z-10 bg-background border-b p-3 flex justify-end gap-2">
-        <Button onClick={runDownload} disabled={!ready || downloading} variant="outline">
+        <Button onClick={runDownload} disabled={downloading} variant="outline">
           {downloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
           Download PDF
         </Button>
