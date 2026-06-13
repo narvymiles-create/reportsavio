@@ -12,6 +12,19 @@ export default function PrintNurseryReportCard() {
   const sheetRef = useRef<HTMLDivElement>(null);
   const [ready, setReady] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [learnerName, setLearnerName] = useState<string>("nursery-report");
+
+  useEffect(() => {
+    if (!learnerId) return;
+    (async () => {
+      const { data } = await supabase
+        .from("nursery_learners" as any)
+        .select("full_name")
+        .eq("id", learnerId)
+        .maybeSingle();
+      if ((data as any)?.full_name) setLearnerName((data as any).full_name);
+    })();
+  }, [learnerId]);
 
   const runPrint = () => {
     if (!ready || !sheetRef.current) return toast({ title: "Please wait, report still loading" });
@@ -20,12 +33,10 @@ export default function PrintNurseryReportCard() {
   };
 
   const runDownload = async () => {
-    if (!ready || !sheetRef.current) return;
-    const pdfRoot = sheetRef.current.querySelector(".nrc-page, .pdf-root") as HTMLElement | null;
-    if (!pdfRoot) return toast({ title: "Report element not found", variant: "destructive" });
+    if (!learnerId || !termId) return;
     setDownloading(true);
     try {
-      await downloadNurseryReportCardFromElement(pdfRoot, "nursery-report");
+      await downloadNurseryReportCardPDF(learnerId, termId, learnerName);
       toast({ title: "PDF downloaded" });
     } catch (e: any) {
       toast({ title: "Download failed", description: e.message, variant: "destructive" });
