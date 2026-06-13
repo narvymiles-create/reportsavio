@@ -1,13 +1,13 @@
 /**
- * Nursery Report Card PDF generation — rebuilt from scratch.
- * Uses a dedicated NurseryReportPDF component rendered into a hidden container.
- * NO cloning of interactive DOM. NO transforms. NO scaling hacks.
+ * Nursery Report Card PDF generation.
+ * Uses the same NurseryReportSheet component as the working print view, rendered
+ * off-screen with print-equivalent sizing so export cannot fall back to another template.
  */
 import html2pdf from "html2pdf.js";
 import JSZip from "jszip";
 import { createRoot, type Root } from "react-dom/client";
 import { createElement } from "react";
-import { NurseryReportPDF } from "@/components/NurseryReportPDF";
+import { NurseryReportSheet } from "@/components/NurseryReportSheet";
 
 /** Wait for all images + fonts inside the pdf-root */
 async function waitForPDFReady(container: Element): Promise<void> {
@@ -52,23 +52,24 @@ function safeFilename(name: string) {
   return (name || "nursery-report").replace(/[^a-z0-9-_]+/gi, "_").slice(0, 80);
 }
 
-/** Create a hidden host container sized exactly to A4 */
+/** Create a hidden host container sized exactly to the working print sheet */
 function createHost(): { host: HTMLDivElement; mount: HTMLDivElement } {
   const host = document.createElement("div");
-  host.style.cssText = "position:fixed;left:-10000px;top:0;width:210mm;height:297mm;background:#fff;z-index:-1;pointer-events:none;overflow:hidden;";
+  host.className = "nrc-export-host";
+  host.style.cssText = "position:fixed;left:-10000px;top:0;width:210mm;height:290mm;background:#fff;z-index:-1;pointer-events:none;overflow:visible;";
   const mount = document.createElement("div");
   host.appendChild(mount);
   document.body.appendChild(host);
   return { host, mount };
 }
 
-/** Render NurseryReportPDF into a container and wait for onReady */
+/** Render the print report sheet into a container and wait for onReady */
 async function renderPDF(mount: HTMLDivElement, learnerId: string, termId: string): Promise<Root> {
   const root = createRoot(mount);
   await new Promise<void>((resolve, reject) => {
     const timeout = window.setTimeout(() => reject(new Error("PDF render timed out")), 30_000);
     root.render(
-      createElement(NurseryReportPDF, {
+      createElement(NurseryReportSheet, {
         learnerId,
         termId,
         onReady: () => {
@@ -93,7 +94,7 @@ export async function downloadNurseryReportCardPDF(
   let root: Root | null = null;
   try {
     root = await renderPDF(mount, learnerId, termId);
-    const el = mount.querySelector(".pdf-root") as HTMLElement;
+    const el = mount.querySelector(".nrc-page") as HTMLElement;
     if (!el) throw new Error("PDF element not found");
     await waitForPDFReady(el);
     const filename = `${safeFilename(learnerName)}.pdf`;
@@ -105,7 +106,7 @@ export async function downloadNurseryReportCardPDF(
 }
 
 /**
- * Download from a visible .pdf-root element (used by preview pages).
+ * Download from a visible report element (kept for compatibility with preview pages).
  */
 export async function downloadNurseryReportCardFromElement(
   element: HTMLElement,
@@ -143,7 +144,7 @@ export async function downloadNurseryReportCardsZip(
       let root: Root | null = null;
       try {
         root = await renderPDF(mount, learner.id, termId);
-        const el = mount.querySelector(".pdf-root") as HTMLElement;
+        const el = mount.querySelector(".nrc-page") as HTMLElement;
         if (!el) throw new Error("PDF element not found");
         await waitForPDFReady(el);
         const blob: Blob = await html2pdf()
