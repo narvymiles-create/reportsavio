@@ -446,17 +446,21 @@
   word-break: break-word;
 }
 
-/* Area names can truncate if too long */
+/* Area names — allow descenders to render fully */
 .nrc-area-name {
-  overflow: hidden;
+  overflow: visible;
   white-space: nowrap;
   text-overflow: ellipsis;
+  line-height: 1.45;
+  padding-bottom: 0.6mm;
 }
 
-/* Pupil info — wrap, don't overflow */
+/* Pupil info — wrap, but never clip descenders vertically */
 .nrc-pupil,
 .nrc-pupil-row {
-  overflow: hidden;
+  overflow: visible;
+  line-height: 1.5;
+  padding-bottom: 0.4mm;
 }
 
 /* Area comment — no truncation */
