@@ -215,7 +215,7 @@ export function NurseryReportSheet({ learnerId, termId, onReady, pageBreak }: Pr
       <>
         {/* Border SVG overlay */}
         <img
-          src={`/borders/${borderStyle}.svg`}
+          src={borderSrc}
           alt=""
           className="nrc-border-svg"
           aria-hidden="true"
