@@ -399,21 +399,44 @@
 }
 .nrc-page { overflow: hidden !important; }
 
-/* Download/export uses this off-screen host to render the exact print sheet,
-   without changing the visible preview or browser print behavior. */
+/* Download/export uses this off-screen host to render a clean A4 sheet.
+   We deliberately avoid html2canvas trouble spots:
+   - swap the SVG border for CSS borders (the SVG occasionally drops out)
+   - replace the dashed-line linear-gradient on comment bodies with a
+     repeating gradient of horizontal rules (html2canvas misrenders the
+     original multi-stop gradient as a solid dark fill).
+*/
 .nrc-export-host .nrc-page {
-  width: 100% !important;
-  max-width: 100% !important;
-  min-width: 0 !important;
-  height: 290mm !important;
-  min-height: 290mm !important;
-  max-height: 290mm !important;
-  margin: 0 auto !important;
-  padding: 6mm !important;
+  width: 210mm !important;
+  height: 297mm !important;
+  min-height: 297mm !important;
+  max-height: 297mm !important;
+  margin: 0 !important;
+  padding: 0 !important;
   box-sizing: border-box !important;
   transform: none !important;
   overflow: hidden !important;
 }
+.nrc-export-host .nrc-frame-inner {
+  padding: 8mm !important;
+  border: 1.2px solid #1a2a52;
+  outline: 0.5px solid #1a2a52;
+  outline-offset: 3px;
+}
+.nrc-export-host .nrc-border-svg { display: none !important; }
+.nrc-export-host .nrc-comment-body {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent calc(6mm - 1px),
+    #475569 calc(6mm - 1px),
+    #475569 6mm
+  ) !important;
+  background-size: 100% 6mm !important;
+  background-position: top left !important;
+  background-repeat: repeat !important;
+}
+.nrc-export-host .nrc-pupil-row { flex-wrap: nowrap !important; }
 
 .nrc-page td,
 .nrc-page th,
