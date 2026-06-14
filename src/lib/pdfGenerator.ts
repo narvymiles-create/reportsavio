@@ -1,192 +1,93 @@
 /**
- * Fresh PDF download system (independent of screen UI/print logic).
+ * Primary Report Card PDF generation.
  *
- * Strategy:
- *  1. Render an A4-locked container offscreen.
- *  2. Mount the report sheet React tree inside it, using the same data hooks
- *     so the PDF matches print output exactly.
- *  3. Wait for all images + fonts to fully load (preloaded as base64 already).
- *  4. Auto-shrink content (transform: scale) so it fits one A4 page.
- *  5. Hand to html2pdf with clean, fixed config.
+ * Renders the ReportCardSheet (the same component the print view uses) into an
+ * off-screen host, captures its .report-page element with html2canvas, and emits
+ * a single-page A4 PDF via jsPDF. No transforms, no extra padding wrappers, so
+ * the downloaded PDF matches the printed output.
  */
-import html2pdf from "html2pdf.js";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 import JSZip from "jszip";
 import { createRoot, type Root } from "react-dom/client";
 import { createElement } from "react";
 import { ReportCardSheet } from "@/components/ReportCardSheet";
 import { waitForImagesAndFonts } from "@/lib/reportAssets";
 
-const A4_WIDTH_MM = 210;
-const A4_HEIGHT_MM = 297;
-const PAGE_PADDING_MM = 8;
+const A4_W_MM = 210;
+const A4_H_MM = 297;
 
-function buildHostContainer(): { host: HTMLDivElement; page: HTMLDivElement } {
+function buildHost(): { host: HTMLDivElement; mount: HTMLDivElement } {
   const host = document.createElement("div");
   host.setAttribute("data-pdf-host", "true");
-  host.style.cssText = [
-    "position:fixed",
-    "left:-10000px",
-    "top:0",
-    "width:" + A4_WIDTH_MM + "mm",
-    "height:auto",
-    "background:#ffffff",
-    "z-index:-1",
-    "pointer-events:none",
-  ].join(";");
-
-  const page = document.createElement("div");
-  page.setAttribute("data-pdf-page", "true");
-  page.style.cssText = [
-    "width:" + A4_WIDTH_MM + "mm",
-    "height:" + A4_HEIGHT_MM + "mm",
-    "padding:" + PAGE_PADDING_MM + "mm",
-    "box-sizing:border-box",
-    "overflow:hidden",
-    "background:#ffffff",
-    "color:#000000",
-    "position:relative",
-    "font-family:'Times New Roman', Times, serif",
-  ].join(";");
-
-  // Inner wrapper that we shrink-to-fit.
-  const inner = document.createElement("div");
-  inner.setAttribute("data-pdf-inner", "true");
-  inner.style.cssText = [
-    "transform-origin:top left",
-    "width:100%",
-    "height:auto",
-  ].join(";");
-
-  page.appendChild(inner);
-  host.appendChild(page);
+  host.style.cssText = `position:fixed;left:-10000px;top:0;width:${A4_W_MM}mm;height:${A4_H_MM}mm;background:#ffffff;z-index:-1;pointer-events:none;overflow:hidden;`;
+  const mount = document.createElement("div");
+  mount.style.cssText = `width:${A4_W_MM}mm;height:${A4_H_MM}mm;`;
+  host.appendChild(mount);
   document.body.appendChild(host);
-  return { host, page };
+  return { host, mount };
 }
 
-function autoShrinkToFit(page: HTMLDivElement) {
-  const inner = page.querySelector<HTMLDivElement>("[data-pdf-inner]");
-  if (!inner) return;
-  // Reset first
-  inner.style.transform = "none";
-  inner.style.width = "100%";
-
-  const availableHeightPx = page.clientHeight - mmToPx(PAGE_PADDING_MM * 2);
-  const availableWidthPx = page.clientWidth - mmToPx(PAGE_PADDING_MM * 2);
-  const contentHeight = inner.scrollHeight;
-  const contentWidth = inner.scrollWidth;
-
-  const scaleH = contentHeight > availableHeightPx ? availableHeightPx / contentHeight : 1;
-  const scaleW = contentWidth > availableWidthPx ? availableWidthPx / contentWidth : 1;
-  const scale = Math.min(scaleH, scaleW, 1);
-
-  if (scale < 1) {
-    inner.style.transform = `scale(${scale})`;
-    // Compensate width so layout doesn't get cut horizontally after scale.
-    inner.style.width = `${100 / scale}%`;
-  }
-}
-
-function mmToPx(mm: number) {
-  // 1mm = 3.7795275591 px at 96dpi
-  return mm * 3.7795275591;
-}
-
-async function renderSheetIntoPage(
-  page: HTMLDivElement,
-  learnerId: string,
-  termId: string,
-): Promise<Root> {
-  const inner = page.querySelector<HTMLDivElement>("[data-pdf-inner]")!;
-  const root = createRoot(inner);
-
+async function renderSheet(mount: HTMLDivElement, learnerId: string, termId: string): Promise<Root> {
+  const root = createRoot(mount);
   await new Promise<void>((resolve, reject) => {
-    const timeoutId = window.setTimeout(() => {
-      reject(new Error("Report card timed out while loading"));
-    }, 30_000);
-
+    const timeoutId = window.setTimeout(() => reject(new Error("Report card timed out while loading")), 30_000);
     root.render(
       createElement(ReportCardSheet, {
         learnerId,
         termId,
         onReady: () => {
           window.clearTimeout(timeoutId);
-          // Give the DOM one paint cycle after onReady fires.
           requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
         },
       }),
     );
   });
-
-  // Final guard: ensure all images decoded + fonts ready
-  await waitForImagesAndFonts(inner);
-  autoShrinkToFit(page);
-  // Allow layout to settle after transform.
+  await waitForImagesAndFonts(mount);
   await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
   return root;
 }
 
-const html2pdfOptions = (filename: string) => ({
-  margin: 0,
-  filename,
-  image: { type: "jpeg" as const, quality: 0.98 },
-  html2canvas: {
+async function captureToPdfBlob(el: HTMLElement): Promise<Blob> {
+  const canvas = await html2canvas(el, {
     scale: 2,
     useCORS: true,
     backgroundColor: "#ffffff",
     logging: false,
-    windowWidth: mmToPx(A4_WIDTH_MM),
-  },
-  jsPDF: {
-    unit: "mm",
-    format: "a4",
-    orientation: "portrait" as const,
-    compress: true,
-  },
-  pagebreak: { mode: ["avoid-all"] as string[] },
-});
+    windowWidth: el.offsetWidth,
+    windowHeight: el.offsetHeight,
+  });
+  const imgData = canvas.toDataURL("image/jpeg", 0.95);
+  const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait", compress: true });
+  pdf.addImage(imgData, "JPEG", 0, 0, A4_W_MM, A4_H_MM, undefined, "FAST");
+  return pdf.output("blob");
+}
 
 function safeFilename(name: string) {
   return (name || "report-card").replace(/[^a-z0-9-_]+/gi, "_").slice(0, 80);
 }
 
-/** Generate a single learner's report card PDF and trigger a browser download. */
+async function generatePDFBlobFor(learnerId: string, termId: string): Promise<Blob> {
+  const { host, mount } = buildHost();
+  let root: Root | null = null;
+  try {
+    root = await renderSheet(mount, learnerId, termId);
+    const page = mount.querySelector(".report-page") as HTMLElement | null;
+    if (!page) throw new Error("Report page element not found");
+    return await captureToPdfBlob(page);
+  } finally {
+    try { root?.unmount(); } catch {}
+    host.remove();
+  }
+}
+
 export async function downloadReportCardPDF(
   learnerId: string,
   termId: string,
   learnerName: string,
 ): Promise<void> {
-  const { host, page } = buildHostContainer();
-  let root: Root | null = null;
-  try {
-    root = await renderSheetIntoPage(page, learnerId, termId);
-    const filename = `${safeFilename(learnerName)}.pdf`;
-    await html2pdf().set(html2pdfOptions(filename)).from(page).save();
-  } finally {
-    try { root?.unmount(); } catch { /* noop */ }
-    host.remove();
-  }
-}
-
-/** Generate one PDF blob (used internally by bulk). */
-async function generatePDFBlob(
-  learnerId: string,
-  termId: string,
-  learnerName: string,
-): Promise<Blob> {
-  const { host, page } = buildHostContainer();
-  let root: Root | null = null;
-  try {
-    root = await renderSheetIntoPage(page, learnerId, termId);
-    const filename = `${safeFilename(learnerName)}.pdf`;
-    const blob: Blob = await html2pdf()
-      .set(html2pdfOptions(filename))
-      .from(page)
-      .outputPdf("blob");
-    return blob;
-  } finally {
-    try { root?.unmount(); } catch { /* noop */ }
-    host.remove();
-  }
+  const blob = await generatePDFBlobFor(learnerId, termId);
+  triggerBlobDownload(blob, `${safeFilename(learnerName)}.pdf`);
 }
 
 export type BulkProgress = {
@@ -196,7 +97,6 @@ export type BulkProgress = {
   failed: { name: string; error: string }[];
 };
 
-/** Bulk: generates each learner's PDF in small batches and zips them. */
 export async function downloadReportCardsZip(
   learners: { id: string; full_name: string }[],
   termId: string,
@@ -210,11 +110,10 @@ export async function downloadReportCardsZip(
 
   for (let i = 0; i < learners.length; i += batchSize) {
     const batch = learners.slice(i, i + batchSize);
-    // Sequential within a batch keeps DOM/render predictable.
     for (const learner of batch) {
       onProgress?.({ done, total: learners.length, current: learner.full_name, failed });
       try {
-        const blob = await generatePDFBlob(learner.id, termId, learner.full_name);
+        const blob = await generatePDFBlobFor(learner.id, termId);
         zip.file(`${safeFilename(learner.full_name)}.pdf`, blob);
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
@@ -224,7 +123,6 @@ export async function downloadReportCardsZip(
       done += 1;
       onProgress?.({ done, total: learners.length, current: learner.full_name, failed });
     }
-    // Small breather between batches so the browser stays responsive.
     await new Promise((r) => setTimeout(r, 100));
   }
 
