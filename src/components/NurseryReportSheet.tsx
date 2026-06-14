@@ -32,6 +32,7 @@ export function NurseryReportSheet({ learnerId, termId, onReady, pageBreak }: Pr
   const [classSigUrl, setClassSigUrl] = useState<string | null>(null);
   const [headSigUrl, setHeadSigUrl] = useState<string | null>(null);
   const [borderStyle, setBorderStyle] = useState<string>("double");
+  const [borderSrc, setBorderSrc] = useState<string>("/borders/double.svg");
   const [fontStyleCss, setFontStyleCss] = useState<string>(NURSERY_FONT_STYLES[0].css);
   const [showPayCode, setShowPayCode] = useState(false);
 
@@ -51,6 +52,10 @@ export function NurseryReportSheet({ learnerId, termId, onReady, pageBreak }: Pr
         const sMap: Record<string, any> = {};
         ((settingsRows as any[]) ?? []).forEach((r: any) => { sMap[r.key] = r.value; });
         if (typeof sMap.border_style === "string") setBorderStyle(sMap.border_style);
+        const bStyle = typeof sMap.border_style === "string" ? sMap.border_style : "double";
+        const bUrl = `/borders/${bStyle}.svg`;
+        const b64 = await preloadImageAsBase64(bUrl);
+        if (!cancelled) setBorderSrc(b64 ?? bUrl);
         if (typeof sMap.nursery_font_style === "string") {
           const match = NURSERY_FONT_STYLES.find((f) => f.key === sMap.nursery_font_style);
           if (match) setFontStyleCss(match.css);
@@ -210,7 +215,7 @@ export function NurseryReportSheet({ learnerId, termId, onReady, pageBreak }: Pr
       <>
         {/* Border SVG overlay */}
         <img
-          src={`/borders/${borderStyle}.svg`}
+          src={borderSrc}
           alt=""
           className="nrc-border-svg"
           aria-hidden="true"
