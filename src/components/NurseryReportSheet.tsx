@@ -32,6 +32,7 @@ export function NurseryReportSheet({ learnerId, termId, onReady, pageBreak }: Pr
   const [classSigUrl, setClassSigUrl] = useState<string | null>(null);
   const [headSigUrl, setHeadSigUrl] = useState<string | null>(null);
   const [borderStyle, setBorderStyle] = useState<string>("double");
+  const [borderSrc, setBorderSrc] = useState<string>("/borders/double.svg");
   const [fontStyleCss, setFontStyleCss] = useState<string>(NURSERY_FONT_STYLES[0].css);
   const [showPayCode, setShowPayCode] = useState(false);
 
