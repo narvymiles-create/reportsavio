@@ -11,11 +11,31 @@ import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import JSZip from "jszip";
 import { createRoot, type Root } from "react-dom/client";
-import { createElement } from "react";
+import { Component, createElement, type ReactNode } from "react";
 import { NurseryReportSheet } from "@/components/NurseryReportSheet";
 
 const A4_W_MM = 210;
 const A4_H_MM = 297;
+const MIN_VALID_PDF_BYTES = 2500;
+
+class ExportErrorBoundary extends Component<
+  { children?: ReactNode; onError: (error: Error) => void },
+  { failed: boolean }
+> {
+  state = { failed: false };
+
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+
+  componentDidCatch(error: Error) {
+    this.props.onError(error);
+  }
+
+  render() {
+    return this.state.failed ? null : this.props.children;
+  }
+}
 
 async function waitForPDFReady(container: Element): Promise<void> {
   const images = container.querySelectorAll("img");
@@ -44,7 +64,7 @@ function safeFilename(name: string) {
 function createHost(): { host: HTMLDivElement; mount: HTMLDivElement } {
   const host = document.createElement("div");
   host.className = "nrc-export-host";
-  host.style.cssText = `position:fixed;left:-10000px;top:0;width:${A4_W_MM}mm;height:${A4_H_MM}mm;background:#fff;z-index:-1;pointer-events:none;overflow:hidden;`;
+  host.style.cssText = `position:fixed;left:-10000px;top:0;width:${A4_W_MM}mm;height:${A4_H_MM}mm;background:#fff;z-index:0;pointer-events:none;overflow:hidden;`;
   const mount = document.createElement("div");
   mount.style.cssText = `width:${A4_W_MM}mm;height:${A4_H_MM}mm;`;
   host.appendChild(mount);
@@ -57,14 +77,23 @@ async function renderSheet(mount: HTMLDivElement, learnerId: string, termId: str
   await new Promise<void>((resolve, reject) => {
     const timeout = window.setTimeout(() => reject(new Error("PDF render timed out")), 30_000);
     root.render(
-      createElement(NurseryReportSheet, {
-        learnerId,
-        termId,
-        onReady: () => {
-          window.clearTimeout(timeout);
-          requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+      createElement(
+        ExportErrorBoundary,
+        {
+          onError: (error: Error) => {
+            window.clearTimeout(timeout);
+            reject(error);
+          },
         },
-      }),
+        createElement(NurseryReportSheet, {
+          learnerId,
+          termId,
+          onReady: () => {
+            window.clearTimeout(timeout);
+            requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+          },
+        }),
+      ),
     );
   });
   return root;
@@ -73,6 +102,9 @@ async function renderSheet(mount: HTMLDivElement, learnerId: string, termId: str
 /** Capture the rendered .nrc-page and return a single-page A4 PDF blob. */
 async function captureToPdfBlob(el: HTMLElement, filename: string): Promise<Blob> {
   await waitForPDFReady(el);
+  if (el.offsetWidth === 0 || el.offsetHeight === 0) {
+    throw new Error("Nursery report card rendered with no visible size");
+  }
   const canvas = await html2canvas(el, {
     scale: 2,
     useCORS: true,
@@ -81,11 +113,22 @@ async function captureToPdfBlob(el: HTMLElement, filename: string): Promise<Blob
     windowWidth: el.offsetWidth,
     windowHeight: el.offsetHeight,
   });
+  if (canvas.width === 0 || canvas.height === 0) {
+    throw new Error("Nursery report card snapshot was empty");
+  }
   const imgData = canvas.toDataURL("image/jpeg", 0.95);
   const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait", compress: true });
   pdf.addImage(imgData, "JPEG", 0, 0, A4_W_MM, A4_H_MM, undefined, "FAST");
   pdf.setProperties({ title: filename });
-  return pdf.output("blob");
+  const blob = pdf.output("blob");
+  assertValidPdfBlob(blob);
+  return blob;
+}
+
+function assertValidPdfBlob(blob: Blob): void {
+  if (!(blob instanceof Blob) || blob.size < MIN_VALID_PDF_BYTES) {
+    throw new Error("Generated nursery report card PDF is empty");
+  }
 }
 
 /** Download a single nursery report PDF. */
@@ -102,6 +145,7 @@ export async function downloadNurseryReportCardPDF(
     if (!el) throw new Error("PDF element not found");
     const filename = `${safeFilename(learnerName)}.pdf`;
     const blob = await captureToPdfBlob(el, filename);
+    assertValidPdfBlob(blob);
     triggerBlobDownload(blob, filename);
   } finally {
     try { root?.unmount(); } catch {}
@@ -136,6 +180,7 @@ export async function downloadNurseryReportCardsZip(
   const zip = new JSZip();
   const failed: { name: string; error: string }[] = [];
   let done = 0;
+  let added = 0;
 
   for (const learner of learners) {
     onProgress?.({ done, total: learners.length, current: learner.full_name, failed });
@@ -148,7 +193,9 @@ export async function downloadNurseryReportCardsZip(
         if (!el) throw new Error("PDF element not found");
         const filename = `${safeFilename(learner.full_name)}.pdf`;
         const blob = await captureToPdfBlob(el, filename);
+        assertValidPdfBlob(blob);
         zip.file(filename, blob);
+        added += 1;
       } finally {
         try { root?.unmount(); } catch {}
         host.remove();
@@ -162,7 +209,17 @@ export async function downloadNurseryReportCardsZip(
     onProgress?.({ done, total: learners.length, current: learner.full_name, failed });
   }
 
+  if (added === 0) {
+    throw new Error(failed.length ? `No nursery report cards were generated. First error: ${failed[0].error}` : "No nursery report cards were generated.");
+  }
+  if (added !== learners.length || failed.length > 0) {
+    throw new Error(`Generated ${added} of ${learners.length} nursery report card(s). ZIP was not created because every selected learner must be included.`);
+  }
+
   const zipBlob = await zip.generateAsync({ type: "blob" });
+  if (!(zipBlob instanceof Blob) || zipBlob.size === 0 || Object.keys(zip.files).length !== learners.length) {
+    throw new Error("Nursery ZIP archive was empty or incomplete");
+  }
   triggerBlobDownload(zipBlob, `${safeFilename(zipFilename)}.zip`);
   return { failed };
 }

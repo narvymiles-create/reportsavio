@@ -54,9 +54,21 @@ export async function waitForImagesAndFonts(root?: ParentNode | null): Promise<v
     if (img.complete && img.naturalWidth > 0) {
       return img.decode?.().catch(() => undefined) ?? Promise.resolve();
     }
+    if (img.complete) {
+      img.style.display = "none";
+      return Promise.resolve();
+    }
     return new Promise<void>((resolve) => {
-      img.addEventListener("load", () => resolve(), { once: true });
-      img.addEventListener("error", () => resolve(), { once: true });
+      const timeout = window.setTimeout(() => resolve(), 5000);
+      img.addEventListener("load", () => {
+        window.clearTimeout(timeout);
+        resolve();
+      }, { once: true });
+      img.addEventListener("error", () => {
+        window.clearTimeout(timeout);
+        img.style.display = "none";
+        resolve();
+      }, { once: true });
     });
   }));
 
