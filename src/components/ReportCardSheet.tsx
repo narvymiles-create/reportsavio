@@ -60,6 +60,22 @@ export function ReportCardSheet({ learnerId, termId, onReady, onReadyChange, pag
   const [reloadKey, setReloadKey] = useState(0);
   const { flags, order } = useLearnerFieldSettings();
   const { borderStyle } = useBorderStyle();
+  const [borderSrc, setBorderSrc] = useState<string>(`/borders/${borderStyle}.svg`);
+
+  // Preload the border SVG as a base64 data URI so html2canvas (PDF export)
+  // renders it reliably — external <img src="/borders/*.svg"> often fails to
+  // rasterize inside html2canvas, producing a missing border or a solid
+  // fallback block.
+  useEffect(() => {
+    let cancelled = false;
+    const url = `/borders/${borderStyle}.svg`;
+    setBorderSrc(url);
+    preloadImageAsBase64(url).then((b64) => {
+      if (!cancelled && b64) setBorderSrc(b64);
+    });
+    return () => { cancelled = true; };
+  }, [borderStyle]);
+
 
   useEffect(() => {
     if (!learnerId || !termId) return;
@@ -412,11 +428,12 @@ export function ReportCardSheet({ learnerId, termId, onReady, onReadyChange, pag
     <div ref={pageRef} className="report-page" style={pageBreak ? { pageBreakAfter: "always" } : undefined}>
       {/* Border SVG overlay */}
       <img
-        src={`/borders/${borderStyle}.svg`}
+        src={borderSrc}
         alt=""
         aria-hidden
         className="border-svg"
       />
+
       {wmEnabled && (
         <div
           aria-hidden
