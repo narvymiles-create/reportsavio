@@ -628,3 +628,58 @@ body.bulk-report-printing .report-job-renderer {
 
 /* Table cells never push width */
 .report-page table { table-layout: fixed; width: 100%; }
+
+/* =====================================================================
+   PDF EXPORT HOST — html2canvas snapshot target
+   Ensures borders/tables render crisply and no ghost background bleeds
+   into the captured image.
+   ===================================================================== */
+[data-pdf-host] .report-page {
+  margin: 0 !important;
+  box-shadow: none !important;
+  background: #ffffff !important;
+  transform: none !important;
+  overflow: hidden !important;
+}
+[data-pdf-host] .report-page,
+[data-pdf-host] .report-page * {
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
+}
+/* Force all table borders visible in the snapshot */
+[data-pdf-host] .rc-phase,
+[data-pdf-host] .rc-eot,
+[data-pdf-host] table.rc-phase-summary,
+[data-pdf-host] .rc-grading {
+  border-collapse: collapse !important;
+}
+[data-pdf-host] .rc-phase th,
+[data-pdf-host] .rc-phase td,
+[data-pdf-host] .rc-eot th,
+[data-pdf-host] .rc-eot td,
+[data-pdf-host] table.rc-phase-summary td,
+[data-pdf-host] .rc-grading td {
+  border: 1px solid #111 !important;
+  background: #ffffff !important;
+}
+[data-pdf-host] .rc-student,
+[data-pdf-host] .rc-bottom {
+  border: 1.2px solid #111 !important;
+  background: #ffffff !important;
+}
+[data-pdf-host] .rc-b-tl,
+[data-pdf-host] .rc-b-bl { border-right: 1px solid #111 !important; }
+[data-pdf-host] .rc-b-tl,
+[data-pdf-host] .rc-b-tr { border-bottom: 1px solid #111 !important; }
+/* Safety fallback border in case the SVG frame fails to rasterize */
+[data-pdf-host] .report-page::after {
+  content: "";
+  position: absolute;
+  inset: 4mm;
+  border: 1.2px solid #1a2a52;
+  outline: 0.5px solid #1a2a52;
+  outline-offset: 3mm;
+  pointer-events: none;
+  z-index: 1;
+}
+[data-pdf-host] .border-svg { display: block !important; z-index: 0 !important; }
