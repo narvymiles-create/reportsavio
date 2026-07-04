@@ -651,7 +651,10 @@ body.bulk-report-printing .report-job-renderer {
   box-shadow: none !important;
   background: #ffffff !important;
   transform: none !important;
-  overflow: hidden !important;
+  height: auto !important;
+  min-height: 297mm !important;
+  max-height: none !important;
+  overflow: visible !important;
 }
 [data-pdf-host] .report-page,
 [data-pdf-host] .report-page * {
@@ -692,6 +695,32 @@ body.bulk-report-printing .report-job-renderer {
   border-style: solid !important;
   background: #ffffff !important;
   background-image: none !important;
+}
+[data-pdf-host] .rc-bottom,
+[data-pdf-host] .rc-bottom td.rc-b-cell,
+[data-pdf-host] .rc-b-block,
+[data-pdf-host] .rc-b-row-split,
+[data-pdf-host] .rc-b-text,
+[data-pdf-host] .rc-b-text-col,
+[data-pdf-host] .rc-b-label,
+[data-pdf-host] .rc-b-label-col,
+[data-pdf-host] .rc-sig-block,
+[data-pdf-host] .rc-sig-stack,
+[data-pdf-host] .rc-sig-name,
+[data-pdf-host] .rc-sig-position {
+  overflow: visible !important;
+  max-height: none !important;
+}
+[data-pdf-host] .rc-b-block.rc-b-inline {
+  white-space: normal !important;
+  text-overflow: clip !important;
+}
+[data-pdf-host] .rc-b-text,
+[data-pdf-host] .rc-b-text-col {
+  display: block !important;
+  -webkit-line-clamp: unset !important;
+  -webkit-box-orient: unset !important;
+  white-space: normal !important;
 }
 [data-pdf-host] .rc-b-tl,
 [data-pdf-host] .rc-b-bl { border-right: 1px solid #111 !important; }

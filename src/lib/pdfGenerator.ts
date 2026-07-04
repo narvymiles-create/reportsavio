@@ -42,9 +42,9 @@ class ExportErrorBoundary extends Component<
 function buildHost(): { host: HTMLDivElement; mount: HTMLDivElement } {
   const host = document.createElement("div");
   host.setAttribute("data-pdf-host", "true");
-  host.style.cssText = `position:fixed;left:-10000px;top:0;width:${A4_W_MM}mm;height:${A4_H_MM}mm;background:#ffffff;z-index:0;pointer-events:none;overflow:hidden;`;
+  host.style.cssText = `position:fixed;left:-10000px;top:0;width:${A4_W_MM}mm;min-height:${A4_H_MM}mm;background:#ffffff;z-index:0;pointer-events:none;overflow:visible;`;
   const mount = document.createElement("div");
-  mount.style.cssText = `width:${A4_W_MM}mm;height:${A4_H_MM}mm;`;
+  mount.style.cssText = `width:${A4_W_MM}mm;min-height:${A4_H_MM}mm;overflow:visible;`;
   host.appendChild(mount);
   document.body.appendChild(host);
   return { host, mount };
