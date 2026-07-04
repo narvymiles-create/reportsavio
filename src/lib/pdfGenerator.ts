@@ -97,9 +97,10 @@ async function captureToPdfBlob(el: HTMLElement): Promise<Blob> {
   if (canvas.width === 0 || canvas.height === 0) {
     throw new Error("Report card snapshot was empty");
   }
-  const imgData = canvas.toDataURL("image/jpeg", 0.95);
+  const imgData = canvas.toDataURL("image/png");
   const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait", compress: true });
-  pdf.addImage(imgData, "JPEG", 0, 0, A4_W_MM, A4_H_MM, undefined, "FAST");
+  pdf.addImage(imgData, "PNG", 0, 0, A4_W_MM, A4_H_MM, undefined, "FAST");
+
   const blob = pdf.output("blob");
   assertValidPdfBlob(blob);
   return blob;
