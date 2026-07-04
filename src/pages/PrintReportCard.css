@@ -671,15 +671,4 @@ body.bulk-report-printing .report-job-renderer {
 [data-pdf-host] .rc-b-bl { border-right: 1px solid #111 !important; }
 [data-pdf-host] .rc-b-tl,
 [data-pdf-host] .rc-b-tr { border-bottom: 1px solid #111 !important; }
-/* Safety fallback border in case the SVG frame fails to rasterize */
-[data-pdf-host] .report-page::after {
-  content: "";
-  position: absolute;
-  inset: 4mm;
-  border: 1.2px solid #1a2a52;
-  outline: 0.5px solid #1a2a52;
-  outline-offset: 3mm;
-  pointer-events: none;
-  z-index: 1;
-}
 [data-pdf-host] .border-svg { display: block !important; z-index: 0 !important; }
