@@ -4,6 +4,7 @@ import { calculateDivision, gradeFor, applyF9Override, isCriticalCoreSubject, ty
 import { useLearnerFieldSettings } from "@/hooks/useLearnerFieldSettings";
 import { preloadImageAsBase64, waitForImagesAndFonts } from "@/lib/reportAssets";
 import { useBorderStyle } from "@/hooks/useBorderStyle";
+import { ReportBorderOverlay } from "@/components/ReportBorderOverlay";
 
 
 type Anything = Record<string, any>;
@@ -433,6 +434,7 @@ export function ReportCardSheet({ learnerId, termId, onReady, onReadyChange, pag
         aria-hidden
         className="border-svg"
       />
+      <ReportBorderOverlay borderStyle={borderStyle} className="border-svg-inline" />
 
       {wmEnabled && (
         <div

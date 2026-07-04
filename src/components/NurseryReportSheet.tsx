@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { nurseryPublicUrl } from "@/lib/nurseryStorage";
 import { preloadImageAsBase64, waitForImagesAndFonts } from "@/lib/reportAssets";
 import { NURSERY_FONT_STYLES, type NurseryFontStyleKey } from "@/hooks/useNurseryFontStyle";
+import { ReportBorderOverlay } from "@/components/ReportBorderOverlay";
 import "./NurseryReportSheet.css";
 
 type Props = { learnerId: string; termId: string; onReady?: () => void; pageBreak?: boolean };
@@ -221,6 +222,7 @@ export function NurseryReportSheet({ learnerId, termId, onReady, pageBreak }: Pr
           aria-hidden="true"
           onError={hideOnError}
         />
+        <ReportBorderOverlay borderStyle={borderStyle} className="nrc-border-svg-inline" />
         <div className="nrc-frame-inner">
           {watermarkUrl && (school?.watermark_enabled !== false) && (
             <img
