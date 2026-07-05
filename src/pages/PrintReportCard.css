@@ -728,3 +728,97 @@ body.bulk-report-printing .report-job-renderer {
 [data-pdf-host] .rc-b-tr { border-bottom: 1px solid #111 !important; }
 [data-pdf-host] .border-svg { display: none !important; }
 [data-pdf-host] .border-svg-inline { display: block !important; z-index: 0 !important; }
+
+/* ---- PDF-only layout polish (does not affect print/preview) ---- */
+
+/* Safe internal padding so nothing sits on top of the border */
+[data-pdf-host] .report-page {
+  padding: 14mm 12mm 12mm !important;
+}
+
+/* Center all text in the student information table */
+[data-pdf-host] .rc-student td {
+  text-align: center !important;
+  white-space: normal !important;
+  overflow: visible !important;
+  vertical-align: middle !important;
+}
+[data-pdf-host] .rc-student .rc-lbl,
+[data-pdf-host] .rc-student .rc-fill {
+  display: inline-block !important;
+  text-align: center !important;
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  vertical-align: middle !important;
+}
+
+/* Phase/EOT tables — grades, totals, aggregates centered and fully visible */
+[data-pdf-host] .rc-phase th,
+[data-pdf-host] .rc-phase td,
+[data-pdf-host] .rc-eot th,
+[data-pdf-host] .rc-eot td,
+[data-pdf-host] table.rc-phase-summary td {
+  text-align: center !important;
+  vertical-align: middle !important;
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  word-break: normal !important;
+  overflow-wrap: normal !important;
+}
+[data-pdf-host] .rc-phase-rowlabel,
+[data-pdf-host] .rc-eot-subject {
+  text-align: left !important;
+}
+[data-pdf-host] .rc-ps-label,
+[data-pdf-host] .rc-ps-val {
+  display: inline-block !important;
+  text-align: center !important;
+  white-space: normal !important;
+  overflow: visible !important;
+}
+
+/* Grading system table — centered, spaced, no clipping */
+[data-pdf-host] .rc-grading-title {
+  text-align: center !important;
+  margin-top: 6px !important;
+  margin-bottom: 3px !important;
+}
+[data-pdf-host] .rc-grading {
+  margin: 0 auto !important;
+  width: 96% !important;
+}
+[data-pdf-host] .rc-grading td {
+  text-align: center !important;
+  vertical-align: middle !important;
+  padding: 3px 4px !important;
+  white-space: normal !important;
+  overflow: visible !important;
+}
+[data-pdf-host] .rc-g-label {
+  text-align: center !important;
+  padding-left: 4px !important;
+}
+
+/* Next term begins / ends — centered, spaced, inside the page margins */
+[data-pdf-host] .rc-term-dates {
+  justify-content: center !important;
+  gap: 14mm !important;
+  padding: 0 8mm !important;
+  margin: 6px 0 4px !important;
+  flex-wrap: wrap !important;
+  text-align: center !important;
+}
+[data-pdf-host] .rc-term-dates .rc-fill {
+  overflow: visible !important;
+  text-overflow: clip !important;
+  white-space: normal !important;
+}
+
+/* Motto — keep centered with breathing room above */
+[data-pdf-host] .rc-motto {
+  margin-top: 6px !important;
+  padding: 0 8mm !important;
+  text-align: center !important;
+}
