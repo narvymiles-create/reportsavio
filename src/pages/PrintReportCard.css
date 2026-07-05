@@ -822,3 +822,97 @@ body.bulk-report-printing .report-job-renderer {
   padding: 0 8mm !important;
   text-align: center !important;
 }
+
+/* =====================================================================
+   PDF-ONLY SINGLE-PAGE FIT + COMPACT SPACING
+   Locks the sheet to exactly A4 and tightens student info + grading so
+   nothing spills to a second page. Print view is untouched.
+   ===================================================================== */
+[data-pdf-host] .report-page {
+  height: 297mm !important;
+  min-height: 297mm !important;
+  max-height: 297mm !important;
+  overflow: hidden !important;
+  padding: 10mm 10mm 8mm !important;
+}
+
+/* Student info — reduce padding, keep label + value tight on one line */
+[data-pdf-host] .rc-student { margin-bottom: 4px !important; }
+[data-pdf-host] .rc-student td {
+  padding: 3px 6px !important;
+  font-size: 9.5pt !important;
+  white-space: nowrap !important;
+  text-align: center !important;
+  vertical-align: middle !important;
+}
+[data-pdf-host] .rc-student .rc-lbl { margin-right: 4px !important; }
+[data-pdf-host] .rc-student .rc-fill {
+  min-width: 0 !important;
+  padding: 0 2px !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+/* Section labels — trim vertical space */
+[data-pdf-host] .rc-section-label { margin: 3px 0 2px !important; font-size: 10.5pt !important; }
+
+/* Phase / EOT — compact rows, center Total & Grade with inner spacing */
+[data-pdf-host] .rc-phase th,
+[data-pdf-host] .rc-phase td,
+[data-pdf-host] .rc-eot th,
+[data-pdf-host] .rc-eot td {
+  padding: 2px 6px !important;
+  height: auto !important;
+  line-height: 1.15 !important;
+  text-align: center !important;
+  vertical-align: middle !important;
+}
+[data-pdf-host] .rc-phase-rowlabel,
+[data-pdf-host] .rc-eot-subject { text-align: left !important; }
+
+/* Give the last two columns (Total / Grade) internal breathing room */
+[data-pdf-host] .rc-phase td:nth-last-child(-n+2),
+[data-pdf-host] .rc-phase th:nth-last-child(-n+2),
+[data-pdf-host] .rc-eot td:nth-last-child(-n+2),
+[data-pdf-host] .rc-eot th:nth-last-child(-n+2) {
+  padding-left: 8px !important;
+  padding-right: 8px !important;
+  text-align: center !important;
+}
+
+/* Phase summary — compact */
+[data-pdf-host] table.rc-phase-summary { margin: 2px 0 4px !important; }
+[data-pdf-host] table.rc-phase-summary td {
+  padding: 2px 4px !important;
+  height: auto !important;
+  font-size: 9pt !important;
+}
+
+/* EOT wrapper — no fixed height in PDF, let content flow within A4 */
+[data-pdf-host] .rc-eot-section {
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+/* Bottom conduct/comments box — trim padding */
+[data-pdf-host] .rc-bottom { margin-top: 4px !important; }
+[data-pdf-host] .rc-bottom td.rc-b-cell { padding: 4px 8px !important; font-size: 9.5pt !important; }
+
+/* Grading system — compact and guaranteed on page */
+[data-pdf-host] .rc-grading-title { margin: 3px 0 2px !important; font-size: 10pt !important; }
+[data-pdf-host] .rc-grading td {
+  padding: 2px 4px !important;
+  height: auto !important;
+  font-size: 9pt !important;
+  line-height: 1.15 !important;
+}
+
+/* Term dates + motto — compact bottom */
+[data-pdf-host] .rc-term-dates {
+  margin: 3px 0 2px !important;
+  font-size: 9.5pt !important;
+  gap: 10mm !important;
+}
+[data-pdf-host] .rc-motto { margin-top: 3px !important; font-size: 10.5pt !important; }

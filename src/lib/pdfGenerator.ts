@@ -118,9 +118,9 @@ async function captureToPdfBlob(el: HTMLElement): Promise<Blob> {
   if (el.offsetWidth === 0 || el.offsetHeight === 0) {
     throw new Error("Report card rendered with no visible size");
   }
-  const captureWidth = Math.ceil(Math.max(el.scrollWidth, el.offsetWidth));
-  const captureHeight = Math.ceil(Math.max(el.scrollHeight, el.offsetHeight));
-  const extendsPastPage = captureHeight > el.offsetHeight + 8;
+  // Force strict A4 dimensions so nothing spills to a second page
+  const captureWidth = Math.ceil(el.offsetWidth);
+  const captureHeight = Math.ceil(el.offsetHeight);
   const canvas = await html2canvas(el, {
     scale: 2,
     useCORS: true,
@@ -136,18 +136,16 @@ async function captureToPdfBlob(el: HTMLElement): Promise<Blob> {
       page.style.background = "#ffffff";
       page.style.boxShadow = "none";
       page.style.transform = "none";
-      if (extendsPastPage) {
-        page.style.height = `${captureHeight}px`;
-        page.style.maxHeight = "none";
-        page.style.overflow = "visible";
-      }
+      page.style.height = `${captureHeight}px`;
+      page.style.maxHeight = `${captureHeight}px`;
+      page.style.overflow = "hidden";
     },
   });
   if (canvas.width === 0 || canvas.height === 0) {
     throw new Error("Report card snapshot was empty");
   }
-  const pdf = addCanvasToPdf(canvas);
-
+  const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait", compress: true });
+  pdf.addImage(canvas.toDataURL("image/png"), "PNG", 0, 0, A4_W_MM, A4_H_MM, undefined, "FAST");
   const blob = pdf.output("blob");
   assertValidPdfBlob(blob);
   return blob;
