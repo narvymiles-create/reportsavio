@@ -822,3 +822,74 @@ body.bulk-report-printing .report-job-renderer {
   padding: 0 8mm !important;
   text-align: center !important;
 }
+
+/* =====================================================================
+   PDF EXPORT — FINAL POLISH (single A4, tighter label/value spacing,
+   inline conduct fields, vertically centered table cells)
+   Overrides earlier PDF host rules where needed. Preview/Print untouched.
+   ===================================================================== */
+
+/* Lock to exactly one A4 page — clip anything past it instead of paginating. */
+[data-pdf-host] .report-page {
+  height: 297mm !important;
+  min-height: 297mm !important;
+  max-height: 297mm !important;
+  overflow: hidden !important;
+  padding: 12mm 11mm 10mm !important;
+}
+
+/* Learner info: labels immediately followed by values — no huge gaps. */
+[data-pdf-host] .rc-student td {
+  text-align: left !important;
+  padding: 5px 10px !important;
+  vertical-align: middle !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+}
+[data-pdf-host] .rc-student .rc-lbl {
+  display: inline !important;
+  text-align: left !important;
+  margin-right: 4px !important;
+}
+[data-pdf-host] .rc-student .rc-fill {
+  display: inline !important;
+  min-width: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  text-align: left !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+/* Vertically center all exam-table + grading-table cells with equal padding. */
+[data-pdf-host] .rc-phase th,
+[data-pdf-host] .rc-phase td,
+[data-pdf-host] .rc-eot th,
+[data-pdf-host] .rc-eot td,
+[data-pdf-host] table.rc-phase-summary td,
+[data-pdf-host] .rc-grading td {
+  vertical-align: middle !important;
+  padding-top: 5px !important;
+  padding-bottom: 5px !important;
+  line-height: 1.15 !important;
+}
+
+/* Conduct & Co-curricular — keep label + value on the SAME line in PDF. */
+[data-pdf-host] .rc-b-block.rc-b-inline {
+  display: block !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  margin-bottom: 4px !important;
+}
+[data-pdf-host] .rc-b-block.rc-b-inline .rc-b-label {
+  display: inline !important;
+  margin-right: 4px !important;
+}
+[data-pdf-host] .rc-b-block.rc-b-inline .rc-b-text {
+  display: inline !important;
+  white-space: nowrap !important;
+  padding-left: 0 !important;
+}
+
