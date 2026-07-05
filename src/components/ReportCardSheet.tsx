@@ -644,11 +644,11 @@ export function ReportCardSheet({ learnerId, termId, onReady, onReadyChange, pag
           <tr>
             <td className="rc-b-cell rc-b-bl">
               <div className="rc-b-row-split">
-                <div className="rc-b-label-col">Class Teacher&rsquo;s final comment:</div>
+                <div className="rc-b-label-col">Class Teacher&rsquo;s comment:</div>
                 <div className="rc-b-text-col">{report?.class_teacher_comment ?? ""}</div>
               </div>
               <div className="rc-b-row-split">
-                <div className="rc-b-label-col">Head Teacher&rsquo;s final comment:</div>
+                <div className="rc-b-label-col">Head Teacher&rsquo;s comment:</div>
                 <div className="rc-b-text-col">{report?.head_teacher_comment ?? ""}</div>
               </div>
             </td>
