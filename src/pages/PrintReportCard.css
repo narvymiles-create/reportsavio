@@ -893,3 +893,65 @@ body.bulk-report-printing .report-job-renderer {
   padding-left: 0 !important;
 }
 
+/* =====================================================================
+   PDF EXPORT — CIRCLED-AREA FIXES
+   1) Student details: no bottom clipping of descenders
+   2) Conduct + Co-curricular: label & data fully visible, aligned
+   3) Motto: centered inside border, clear of dashed lines
+   ===================================================================== */
+
+/* Give the whole page a little more bottom breathing room so the motto
+   sits well inside the border without overlapping the dashed lines. */
+[data-pdf-host] .report-page {
+  padding: 12mm 11mm 14mm !important;
+}
+
+/* Student info rows — taller cells, generous bottom padding, no clipping. */
+[data-pdf-host] .rc-student td {
+  padding: 7px 10px 9px !important;
+  line-height: 1.35 !important;
+  height: auto !important;
+  overflow: visible !important;
+  white-space: nowrap !important;
+}
+[data-pdf-host] .rc-student .rc-lbl,
+[data-pdf-host] .rc-student .rc-fill {
+  line-height: 1.35 !important;
+  overflow: visible !important;
+  padding-bottom: 2px !important;
+}
+
+/* Conduct & Co-curricular — align label + value on same baseline,
+   show full text without descender clipping. */
+[data-pdf-host] .rc-b-block.rc-b-inline {
+  display: flex !important;
+  align-items: baseline !important;
+  gap: 6px !important;
+  white-space: nowrap !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  line-height: 1.4 !important;
+  padding: 3px 0 5px !important;
+  margin-bottom: 2px !important;
+}
+[data-pdf-host] .rc-b-block.rc-b-inline .rc-b-label,
+[data-pdf-host] .rc-b-block.rc-b-inline .rc-b-text {
+  display: inline-block !important;
+  overflow: visible !important;
+  line-height: 1.4 !important;
+  padding-bottom: 2px !important;
+  white-space: nowrap !important;
+}
+
+/* Motto — centered horizontally, lifted above the bottom dashed border. */
+[data-pdf-host] .rc-motto {
+  position: relative !important;
+  text-align: center !important;
+  margin: 8px auto 4px !important;
+  padding: 4px 10mm 6px !important;
+  line-height: 1.4 !important;
+  overflow: visible !important;
+  background: #ffffff !important;
+}
+
+
