@@ -980,4 +980,122 @@ body.bulk-report-printing .report-job-renderer {
 }
 
 
+/* =====================================================================
+   PDF EXPORT — FINAL BALANCING PASS
+   Shrink upper tables just enough to leave real room at the bottom for
+   the grading table AND the motto to sit fully inside the dashed border
+   (never touching or crossing it). Center every cell's content.
+   ===================================================================== */
+
+/* Give bottom of the page enough clearance so nothing can touch the
+   dashed border (dashed frame sits roughly 8mm from the paper edge). */
+[data-pdf-host] .report-page {
+  padding: 10mm 11mm 22mm !important;
+}
+
+/* --- Center all cell content (student info + exam tables + grading) --- */
+[data-pdf-host] .rc-student td,
+[data-pdf-host] .rc-student .rc-lbl,
+[data-pdf-host] .rc-student .rc-fill,
+[data-pdf-host] .rc-phase th,
+[data-pdf-host] .rc-phase td,
+[data-pdf-host] .rc-eot th,
+[data-pdf-host] .rc-eot td,
+[data-pdf-host] table.rc-phase-summary td,
+[data-pdf-host] .rc-grading td {
+  text-align: center !important;
+  vertical-align: middle !important;
+}
+
+/* --- Student info: tighter rows to reclaim vertical space --- */
+[data-pdf-host] .rc-student td {
+  padding: 3px 8px 3px !important;
+  line-height: 1.2 !important;
+  height: auto !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+}
+[data-pdf-host] .rc-student .rc-lbl {
+  display: inline !important;
+  margin-right: 4px !important;
+  padding-bottom: 0 !important;
+}
+[data-pdf-host] .rc-student .rc-fill {
+  display: inline !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  min-width: 0 !important;
+  line-height: 1.2 !important;
+  text-overflow: ellipsis !important;
+}
+
+/* --- Exam / summary tables: slightly tighter to save vertical space --- */
+[data-pdf-host] .rc-phase th,
+[data-pdf-host] .rc-phase td,
+[data-pdf-host] .rc-eot th,
+[data-pdf-host] .rc-eot td,
+[data-pdf-host] table.rc-phase-summary td {
+  padding-top: 3px !important;
+  padding-bottom: 3px !important;
+  line-height: 1.15 !important;
+}
+
+/* --- Conduct + Comments block: shorter rows, no descender clipping --- */
+[data-pdf-host] .rc-bottom td {
+  padding: 4px 8px !important;
+  line-height: 1.25 !important;
+  vertical-align: middle !important;
+}
+[data-pdf-host] .rc-b-block.rc-b-inline {
+  display: flex !important;
+  align-items: baseline !important;
+  gap: 6px !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  line-height: 1.25 !important;
+  padding: 2px 0 !important;
+  margin: 0 !important;
+}
+[data-pdf-host] .rc-b-row-split {
+  padding: 2px 0 !important;
+  line-height: 1.25 !important;
+}
+
+/* --- Next term dates: compact --- */
+[data-pdf-host] .rc-term-dates {
+  margin: 4px 0 2px !important;
+  padding: 0 8mm !important;
+  justify-content: center !important;
+  gap: 14mm !important;
+}
+
+/* --- Grading title + table: compact, centered, above the motto --- */
+[data-pdf-host] .rc-grading-title {
+  text-align: center !important;
+  margin: 2px 0 2px !important;
+  font-weight: bold !important;
+}
+[data-pdf-host] .rc-grading {
+  margin: 0 auto 4mm !important;
+  width: 96% !important;
+}
+[data-pdf-host] .rc-grading td {
+  padding: 3px 4px !important;
+  line-height: 1.15 !important;
+}
+
+/* --- Motto: pinned safely INSIDE the dashed border, never touching it --- */
+[data-pdf-host] .rc-motto {
+  position: absolute !important;
+  left: 14mm !important;
+  right: 14mm !important;
+  bottom: 12mm !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  text-align: center !important;
+  line-height: 1.25 !important;
+  background: transparent !important;
+  overflow: visible !important;
+  z-index: 3 !important;
+}
 
