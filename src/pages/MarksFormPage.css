@@ -183,35 +183,13 @@
 
 /* Print */
 @media print {
-  @page { size: A4 landscape; margin: 8mm; }
+  @page { size: A4 landscape; margin: 10mm; }
   body { background: #fff; }
   .no-print { display: none !important; }
   /* Hide app chrome */
   [data-sidebar], header, nav, aside { display: none !important; }
-  .marks-form { padding: 0; width: 281mm; }
-  .marks-form__table { font-size: 10.5px; }
-  .marks-form__table th, .marks-form__table td { padding: 2px 3px; height: 22px; }
-  .marks-form__table input { color: #0a2472; width: 30px; }
-  .mark-grade { font-size: 9px; min-width: 16px; }
+  .marks-form { padding: 0; }
+  .marks-form__table input { color: #0a2472; }
   .marks-form__footer { display: flex !important; }
-  [data-skavio-footer="true"] { display: none !important; }
+  [data-skavio-footer="true"] { display: none !important; } /* avoid duplicate global footer in print */
 }
-
-/* PDF export mode: force landscape A4 layout so nothing is cut on the sides */
-.marks-form.pdf-export {
-  width: 281mm;   /* A4 landscape (297mm) minus ~8mm margins each side */
-  max-width: 281mm;
-  padding: 4mm 4mm 6mm;
-  box-sizing: border-box;
-  font-size: 10.5px;
-}
-.marks-form.pdf-export .marks-form__table { font-size: 10.5px; }
-.marks-form.pdf-export .marks-form__table th,
-.marks-form.pdf-export .marks-form__table td { padding: 2px 3px; height: 22px; }
-.marks-form.pdf-export .marks-form__table .col-name { width: 16%; }
-.marks-form.pdf-export .mark-cell input { width: 28px; padding: 1px; }
-.marks-form.pdf-export .mark-grade { font-size: 9px; min-width: 16px; }
-.marks-form.pdf-export .marks-form__summary { font-size: 10.5px; }
-.marks-form.pdf-export .marks-form__summary th,
-.marks-form.pdf-export .marks-form__summary td { padding: 3px 8px; }
-

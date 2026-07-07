@@ -5,9 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
-import { Loader2, Save, Printer, Upload, Download } from "lucide-react";
-import html2canvas from "html2canvas";
-import jsPDF from "jspdf";
+import { Loader2, Save, Printer, Upload } from "lucide-react";
 import { calculateDivision, computeTotal, gradeFor, applyF9Override, isCriticalCoreSubject, type GradeBand } from "@/lib/grading";
 import Papa from "papaparse";
 import skavioLogoUrl from "@/assets/skavio-logo-transparent.png";
@@ -297,56 +295,6 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
 
   const handlePrint = () => window.print();
 
-  const printableRef = useRef<HTMLDivElement | null>(null);
-  const [downloading, setDownloading] = useState(false);
-
-  const handleDownloadPDF = async () => {
-    const el = printableRef.current;
-    if (!el) return;
-    setDownloading(true);
-    try {
-      el.classList.add("pdf-export");
-      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-      const canvas = await html2canvas(el, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: "#ffffff",
-        logging: false,
-        windowWidth: el.scrollWidth,
-      });
-      el.classList.remove("pdf-export");
-      const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "landscape", compress: true });
-      const pageW = 297; const pageH = 210;
-      const imgH = (canvas.height * pageW) / canvas.width;
-      if (imgH <= pageH) {
-        pdf.addImage(canvas.toDataURL("image/png"), "PNG", 0, 0, pageW, imgH, undefined, "FAST");
-      } else {
-        // slice into multiple landscape pages
-        const pageHeightPx = Math.floor((canvas.width * pageH) / pageW);
-        let sy = 0; let idx = 0;
-        while (sy < canvas.height) {
-          const sh = Math.min(pageHeightPx, canvas.height - sy);
-          const pc = document.createElement("canvas");
-          pc.width = canvas.width; pc.height = sh;
-          const ctx = pc.getContext("2d")!;
-          ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, pc.width, pc.height);
-          ctx.drawImage(canvas, 0, sy, canvas.width, sh, 0, 0, canvas.width, sh);
-          if (idx > 0) pdf.addPage();
-          pdf.addImage(pc.toDataURL("image/png"), "PNG", 0, 0, pageW, (sh * pageW) / canvas.width, undefined, "FAST");
-          sy += sh; idx += 1;
-        }
-      }
-      const fname = `${TITLES[exam].replace(/\s+/g, "_")}_${cls?.name ?? "class"}_${term?.name ?? ""}${term?.year ?? ""}`.replace(/[^a-z0-9_-]+/gi, "_");
-      pdf.save(`${fname}.pdf`);
-      toast({ title: "Downloaded PDF" });
-    } catch (e: any) {
-      el.classList.remove("pdf-export");
-      toast({ title: "Download failed", description: e?.message ?? String(e), variant: "destructive" });
-    } finally {
-      setDownloading(false);
-    }
-  };
-
   const handleImportFile = (file: File) => {
     Papa.parse<Record<string, string>>(file, {
       header: true, skipEmptyLines: true,
@@ -462,10 +410,6 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
           <Button variant="outline" onClick={handlePrint} disabled={!classId || filteredLearners.length === 0}>
             <Printer className="mr-2 h-4 w-4" /> Print
           </Button>
-          <Button variant="outline" onClick={handleDownloadPDF} disabled={downloading || !classId || filteredLearners.length === 0}>
-            {downloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-            Download PDF
-          </Button>
           <Button variant="outline" onClick={() => setImportOpen(true)} disabled={!classId || subjects.length === 0}>
             <Upload className="mr-2 h-4 w-4" /> Import Marks (CSV)
           </Button>
@@ -518,7 +462,7 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
       </Dialog>
 
       {/* Printable area */}
-      <div className="marks-form" ref={printableRef}>
+      <div className="marks-form">
         <div className="marks-form__header">
           <div className="marks-form__school">{school?.name ?? ""}</div>
           <h2 className="marks-form__title">{TITLES[exam]}</h2>
