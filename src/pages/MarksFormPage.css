@@ -39,6 +39,8 @@
   border-collapse: collapse;
   table-layout: fixed;
   font-size: 13px;
+  border: 1.5px solid #0a2472;
+  box-sizing: border-box;
 }
 .marks-form__table th,
 .marks-form__table td {
