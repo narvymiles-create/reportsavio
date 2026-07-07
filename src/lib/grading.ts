@@ -41,12 +41,12 @@ export function calculateDivision(aggregate: number | null | undefined): string 
 
 export const divisionFor = calculateDivision;
 
-/** Downgrade a base division by ONE level (1→2, 2→3, 3→4, 4→4). X/U unchanged. */
+/** Downgrade a base division by ONE level (1→2, 2→3, 3→4, 4→U). X/U unchanged. */
 export function downgradeDivision(div: string): string {
   if (div === "1") return "2";
   if (div === "2") return "3";
   if (div === "3") return "4";
-  if (div === "4") return "4";
+  if (div === "4") return "U";
   return div; // X or U or empty - unchanged
 }
 
