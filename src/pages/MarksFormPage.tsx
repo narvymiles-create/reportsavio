@@ -297,6 +297,56 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
 
   const handlePrint = () => window.print();
 
+  const printableRef = useRef<HTMLDivElement | null>(null);
+  const [downloading, setDownloading] = useState(false);
+
+  const handleDownloadPDF = async () => {
+    const el = printableRef.current;
+    if (!el) return;
+    setDownloading(true);
+    try {
+      el.classList.add("pdf-export");
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      const canvas = await html2canvas(el, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#ffffff",
+        logging: false,
+        windowWidth: el.scrollWidth,
+      });
+      el.classList.remove("pdf-export");
+      const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "landscape", compress: true });
+      const pageW = 297; const pageH = 210;
+      const imgH = (canvas.height * pageW) / canvas.width;
+      if (imgH <= pageH) {
+        pdf.addImage(canvas.toDataURL("image/png"), "PNG", 0, 0, pageW, imgH, undefined, "FAST");
+      } else {
+        // slice into multiple landscape pages
+        const pageHeightPx = Math.floor((canvas.width * pageH) / pageW);
+        let sy = 0; let idx = 0;
+        while (sy < canvas.height) {
+          const sh = Math.min(pageHeightPx, canvas.height - sy);
+          const pc = document.createElement("canvas");
+          pc.width = canvas.width; pc.height = sh;
+          const ctx = pc.getContext("2d")!;
+          ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, pc.width, pc.height);
+          ctx.drawImage(canvas, 0, sy, canvas.width, sh, 0, 0, canvas.width, sh);
+          if (idx > 0) pdf.addPage();
+          pdf.addImage(pc.toDataURL("image/png"), "PNG", 0, 0, pageW, (sh * pageW) / canvas.width, undefined, "FAST");
+          sy += sh; idx += 1;
+        }
+      }
+      const fname = `${TITLES[exam].replace(/\s+/g, "_")}_${cls?.name ?? "class"}_${term?.name ?? ""}${term?.year ?? ""}`.replace(/[^a-z0-9_-]+/gi, "_");
+      pdf.save(`${fname}.pdf`);
+      toast({ title: "Downloaded PDF" });
+    } catch (e: any) {
+      el.classList.remove("pdf-export");
+      toast({ title: "Download failed", description: e?.message ?? String(e), variant: "destructive" });
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   const handleImportFile = (file: File) => {
     Papa.parse<Record<string, string>>(file, {
       header: true, skipEmptyLines: true,
