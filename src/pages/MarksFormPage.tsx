@@ -518,7 +518,7 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
       </Dialog>
 
       {/* Printable area */}
-      <div className="marks-form">
+      <div className="marks-form" ref={printableRef}>
         <div className="marks-form__header">
           <div className="marks-form__school">{school?.name ?? ""}</div>
           <h2 className="marks-form__title">{TITLES[exam]}</h2>
