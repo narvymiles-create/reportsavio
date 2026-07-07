@@ -183,13 +183,63 @@
 
 /* Print */
 @media print {
-  @page { size: A4 landscape; margin: 10mm; }
-  body { background: #fff; }
+  @page { size: A4 landscape; margin: 8mm; }
+  html, body { background: #fff !important; margin: 0 !important; padding: 0 !important; width: 100% !important; }
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
   .no-print { display: none !important; }
   /* Hide app chrome */
   [data-sidebar], header, nav, aside { display: none !important; }
-  .marks-form { padding: 0; }
-  .marks-form__table input { color: #0a2472; }
+  /* Neutralise the app shell padding/width so the sheet spans the full printable area */
+  #root, main, .app-main, [data-main-content], .container {
+    display: block !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+  .marks-form {
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: 281mm; /* A4 landscape printable width @ 8mm margins */
+    box-sizing: border-box;
+    font-size: 11px;
+  }
+  .marks-form__header { margin-bottom: 6px; }
+  .marks-form__school { font-size: 14px; }
+  .marks-form__title { font-size: 18px; margin: 4px 0; }
+  .marks-form__meta { font-size: 11px; }
+
+  .marks-form__table {
+    width: 100% !important;
+    max-width: 100% !important;
+    table-layout: fixed;
+    font-size: 10.5px;
+    page-break-inside: auto;
+  }
+  .marks-form__table th,
+  .marks-form__table td {
+    padding: 2px 3px;
+    height: 22px;
+    word-break: break-word;
+    overflow: hidden;
+  }
+  .marks-form__table .col-name { width: 15%; padding-left: 4px; font-size: 10px; }
+  .marks-form__table input {
+    color: #0a2472;
+    width: 100% !important;
+    max-width: 32px;
+    padding: 0;
+    font-size: 10.5px;
+  }
+  .mark-cell { gap: 2px; }
+  .mark-grade { font-size: 9px; min-width: 16px; }
+
+  .marks-form__summary { font-size: 11px; }
+  .marks-form__summary th,
+  .marks-form__summary td { padding: 3px 8px; }
+
   .marks-form__footer { display: flex !important; }
-  [data-skavio-footer="true"] { display: none !important; } /* avoid duplicate global footer in print */
+  [data-skavio-footer="true"] { display: none !important; }
 }
