@@ -462,6 +462,10 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
           <Button variant="outline" onClick={handlePrint} disabled={!classId || filteredLearners.length === 0}>
             <Printer className="mr-2 h-4 w-4" /> Print
           </Button>
+          <Button variant="outline" onClick={handleDownloadPDF} disabled={downloading || !classId || filteredLearners.length === 0}>
+            {downloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+            Download PDF
+          </Button>
           <Button variant="outline" onClick={() => setImportOpen(true)} disabled={!classId || subjects.length === 0}>
             <Upload className="mr-2 h-4 w-4" /> Import Marks (CSV)
           </Button>
