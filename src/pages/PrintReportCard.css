@@ -214,6 +214,7 @@
   border: 1px solid #111;
   padding: 3px 4px;
   text-align: center;
+  vertical-align: middle;
   font-size: 10pt;
   height: 18px;
   overflow: hidden;
@@ -236,8 +237,8 @@
 .rc-eot[data-subjects="7"] td,
 .rc-eot[data-subjects="7"] th { font-size: 9.5pt; }
 
-.rc-phase th { font-weight: 700; background: #fff; }
-.rc-phase-rowlabel { text-align: left !important; font-weight: 700; width: 18%; padding-left: 10px !important; }
+.rc-phase th { font-weight: 700; background: #fff; vertical-align: middle; }
+.rc-phase-rowlabel { text-align: left !important; font-weight: 700; width: 18%; padding-left: 10px !important; vertical-align: middle; }
 
 /* Phase summary as bordered table — each value in its own cell */
 table.rc-phase-summary {
@@ -252,6 +253,7 @@ table.rc-phase-summary td {
   border: 1px solid #111;
   padding: 3px 4px;
   text-align: center;
+  vertical-align: middle;
   height: 20px;
   white-space: normal;
   overflow: hidden;
@@ -278,13 +280,14 @@ table.rc-phase-summary td {
   border: 1px solid #111;
   padding: 2px 6px;
   text-align: center;
+  vertical-align: middle;
   font-size: 10pt;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
-.rc-eot th { font-weight: 700; }
-.rc-eot-subject { text-align: left !important; font-weight: 600; width: 26%; padding-left: 10px !important; }
+.rc-eot th { font-weight: 700; vertical-align: middle; }
+.rc-eot-subject { text-align: left !important; font-weight: 600; width: 26%; padding-left: 10px !important; vertical-align: middle; }
 
 /* ---------- BOTTOM (conduct/comments + signatures) — 2x2 GRID ---------- */
 .rc-bottom {
