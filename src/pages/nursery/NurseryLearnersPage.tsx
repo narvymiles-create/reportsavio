@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Trash2, Upload } from "lucide-react";
-import { uploadNurseryAsset, nurseryPublicUrl } from "@/lib/nurseryStorage";
+import { uploadNurseryAsset, nurserySignedUrl } from "@/lib/nurseryStorage";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -19,6 +19,7 @@ export default function NurseryLearnersPage() {
   const [learners, setLearners] = useState<L[]>([]);
   const [classes, setClasses] = useState<Cls[]>([]);
   const [streams, setStreams] = useState<Stream[]>([]);
+  const [photoUrls, setPhotoUrls] = useState<Record<string, string>>({});
   const [name, setName] = useState("");
   const [age, setAge] = useState("");
   const [sex, setSex] = useState("");
@@ -32,9 +33,14 @@ export default function NurseryLearnersPage() {
       supabase.from("nursery_classes" as any).select("id,name").order("sort_order"),
       supabase.from("nursery_streams" as any).select("*"),
     ]);
-    setLearners((lr.data as any) ?? []);
+    const ls = ((lr.data as any) ?? []) as L[];
+    setLearners(ls);
     setClasses((cr.data as any) ?? []);
     setStreams((sr.data as any) ?? []);
+    const entries = await Promise.all(
+      ls.filter((l) => l.photo_path).map(async (l) => [l.id, await nurserySignedUrl(l.photo_path)] as const),
+    );
+    setPhotoUrls(Object.fromEntries(entries.filter(([, u]) => !!u)) as Record<string, string>);
   };
   useEffect(() => { load(); }, []);
 
@@ -101,7 +107,7 @@ export default function NurseryLearnersPage() {
           <Button onClick={add}>Add Learner</Button>
           <div className="space-y-2">
             {learners.map((l) => {
-              const url = nurseryPublicUrl(l.photo_path);
+              const url = photoUrls[l.id] ?? null;
               const cls = classes.find((c) => c.id === l.class_id);
               const st = streams.find((s) => s.id === l.stream_id);
               return (

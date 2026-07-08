@@ -2,10 +2,23 @@ import { supabase } from "@/integrations/supabase/client";
 
 const BUCKET = "nursery-assets";
 
-export function nurseryPublicUrl(path: string | null | undefined): string | null {
+/**
+ * Returns a time-limited signed URL for a file in the private nursery-assets bucket.
+ * Bucket is private — public URLs will not work.
+ */
+export async function nurserySignedUrl(
+  path: string | null | undefined,
+  expiresInSeconds: number = 3600,
+): Promise<string | null> {
   if (!path) return null;
-  const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
-  return data.publicUrl ?? null;
+  const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(path, expiresInSeconds);
+  if (error) return null;
+  return data?.signedUrl ?? null;
+}
+
+/** @deprecated bucket is private — use nurserySignedUrl instead. */
+export function nurseryPublicUrl(_path: string | null | undefined): string | null {
+  return null;
 }
 
 export async function uploadNurseryAsset(file: File, prefix: string, schoolId: string): Promise<string> {

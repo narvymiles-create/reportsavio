@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { Trash2, Upload, ArrowUp, ArrowDown } from "lucide-react";
-import { uploadNurseryAsset, nurseryPublicUrl } from "@/lib/nurseryStorage";
+import { uploadNurseryAsset, nurserySignedUrl } from "@/lib/nurseryStorage";
 import { useAuth } from "@/contexts/AuthContext";
 
 type Area = { id: string; name: string; image_path: string | null; sort_order: number };
@@ -14,13 +14,19 @@ type Area = { id: string; name: string; image_path: string | null; sort_order: n
 export default function NurseryLearningAreasPage() {
   const { schoolId } = useAuth();
   const [areas, setAreas] = useState<Area[]>([]);
+  const [imageUrls, setImageUrls] = useState<Record<string, string>>({});
   const [name, setName] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
   const fileRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const load = async () => {
     const { data } = await supabase.from("nursery_learning_areas" as any).select("*").order("sort_order");
-    setAreas((data as any) ?? []);
+    const list = ((data as any) ?? []) as Area[];
+    setAreas(list);
+    const entries = await Promise.all(
+      list.filter((a) => a.image_path).map(async (a) => [a.id, await nurserySignedUrl(a.image_path)] as const),
+    );
+    setImageUrls(Object.fromEntries(entries.filter(([, u]) => !!u)) as Record<string, string>);
   };
   useEffect(() => { load(); }, []);
 
@@ -70,7 +76,7 @@ export default function NurseryLearningAreasPage() {
           </div>
           <div className="space-y-2">
             {areas.map((a, i) => {
-              const url = nurseryPublicUrl(a.image_path);
+              const url = imageUrls[a.id] ?? null;
               return (
                 <div key={a.id} className="flex items-center gap-3 border rounded-md p-2">
                   <div className="w-14 h-14 bg-muted rounded overflow-hidden flex items-center justify-center text-xs text-muted-foreground">
