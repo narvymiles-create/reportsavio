@@ -473,10 +473,12 @@ table.rc-phase-summary td {
   z-index: 3;
 }
 
-/* ---------- PRINT ---------- */
+/* ---------- PRINT ----------
+   Use the SAME layout as preview. @page margin: 0 so the 210×297 mm sheet
+   maps exactly onto the physical A4 page — no shrink, no scale, no reflow. */
 @page {
   size: A4 portrait;
-  margin: 3mm;
+  margin: 0;
 }
 
 @media print {
@@ -484,6 +486,7 @@ table.rc-phase-summary td {
     margin: 0 !important;
     padding: 0 !important;
     width: 210mm !important;
+    height: 297mm !important;
     background: #fff !important;
   }
 
@@ -496,9 +499,6 @@ table.rc-phase-summary td {
   }
 
   /* === SINGLE REPORT PRINT === */
-  /* Scoped with :has(.report-page) so these global rules NEVER blank out
-     other print pages (e.g. the Nursery report card) that don't contain
-     a .report-page element. */
   body:not(.bulk-report-printing):has(.report-page) * {
     visibility: hidden !important;
   }
@@ -534,21 +534,17 @@ table.rc-phase-summary td {
     top: auto !important;
   }
 
-  /* The printable area is the @page box (A4 minus 8mm margins). The sheet
-     must fit inside that area — use width:100% + max-width:100% so the
-     right edge / outer border is never clipped by the browser's printable
-     region (a hard 210mm width exceeds the printable box when @page
-     margin > 0, and gets cropped on the right). */
+  /* Preserve exact preview dimensions in print — do NOT shrink to fit. */
   .report-page {
     margin: 0 auto !important;
     box-shadow: none !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    min-width: 0 !important;
-    height: auto !important;
-    min-height: 0 !important;
-    max-height: none !important;
-    padding: 13mm 11mm 9mm !important;
+    width: 210mm !important;
+    max-width: 210mm !important;
+    min-width: 210mm !important;
+    height: 297mm !important;
+    min-height: 297mm !important;
+    max-height: 297mm !important;
+    padding: 14mm 12mm 10mm !important;
     overflow: hidden !important;
     page-break-inside: avoid !important;
     break-inside: avoid !important;
