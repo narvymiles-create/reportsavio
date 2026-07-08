@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { nurseryPublicUrl } from "@/lib/nurseryStorage";
+import { nurserySignedUrl } from "@/lib/nurseryStorage";
 import { preloadImageAsBase64, waitForImagesAndFonts } from "@/lib/reportAssets";
 import { NURSERY_FONT_STYLES, type NurseryFontStyleKey } from "@/hooks/useNurseryFontStyle";
 import { ReportBorderOverlay } from "@/components/ReportBorderOverlay";
@@ -94,7 +94,7 @@ export function NurseryReportSheet({ learnerId, termId, onReady, pageBreak }: Pr
       // Learner
       const { data: l } = await supabase.from("nursery_learners" as any).select("*").eq("id", learnerId).maybeSingle();
       let photoBase64: string | null = null;
-      if ((l as any)?.photo_path) photoBase64 = await preloadImageAsBase64(nurseryPublicUrl((l as any).photo_path));
+      if ((l as any)?.photo_path) photoBase64 = await preloadImageAsBase64(await nurserySignedUrl((l as any).photo_path));
 
       let classData: any = null;
       let streamData: any = null;
@@ -124,7 +124,7 @@ export function NurseryReportSheet({ learnerId, termId, onReady, pageBreak }: Pr
       // Areas + colors
       const { data: a } = await supabase.from("nursery_learning_areas" as any).select("*").order("sort_order");
       const areaRows = ((a as any) ?? []) as Area[];
-      const areaImages = await Promise.all(areaRows.map((area) => preloadImageAsBase64(nurseryPublicUrl(area.image_path))));
+      const areaImages = await Promise.all(areaRows.map(async (area) => preloadImageAsBase64(await nurserySignedUrl(area.image_path))));
       const { data: g } = await supabase.from("nursery_grade_colors" as any).select("grade,label,color").order("sort_order");
 
       // Assessments
