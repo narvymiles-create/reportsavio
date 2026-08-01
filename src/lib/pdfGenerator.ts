@@ -19,8 +19,6 @@ import "@/pages/PrintReportCard.css";
 const A4_W_MM = 210;
 const A4_H_MM = 297;
 const MIN_VALID_PDF_BYTES = 2500;
-const A4_ASPECT_RATIO = A4_W_MM / A4_H_MM;
-const ASPECT_RATIO_TOLERANCE = 0.002;
 
 class ExportErrorBoundary extends Component<
   { children?: ReactNode; onError: (error: Error) => void },
@@ -44,12 +42,9 @@ class ExportErrorBoundary extends Component<
 function buildHost(): { host: HTMLDivElement; mount: HTMLDivElement } {
   const host = document.createElement("div");
   host.setAttribute("data-pdf-host", "true");
-  // Keep the export sheet in the same document and viewport as Preview. Moving
-  // it off-canvas is safe; changing html2canvas's viewport is not, because it
-  // makes responsive/global CSS recompute and causes the A4 content to reflow.
-  host.style.cssText = `position:fixed;left:-10000px;top:0;width:${A4_W_MM}mm;height:${A4_H_MM}mm;background:#ffffff;z-index:0;pointer-events:none;overflow:hidden;`;
+  host.style.cssText = `position:fixed;left:-10000px;top:0;width:${A4_W_MM}mm;min-height:${A4_H_MM}mm;background:#ffffff;z-index:0;pointer-events:none;overflow:visible;`;
   const mount = document.createElement("div");
-  mount.style.cssText = `width:${A4_W_MM}mm;height:${A4_H_MM}mm;overflow:hidden;`;
+  mount.style.cssText = `width:${A4_W_MM}mm;min-height:${A4_H_MM}mm;overflow:visible;`;
   host.appendChild(mount);
   document.body.appendChild(host);
   return { host, mount };
@@ -90,9 +85,32 @@ async function renderSheet(mount: HTMLDivElement, learnerId: string, termId: str
 
 function addCanvasToPdf(canvas: HTMLCanvasElement): jsPDF {
   const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait", compress: true });
-  // The captured canvas represents exactly one 210×297mm sheet. Place it
-  // 1:1 onto the PDF page — no scaling, no pagination.
-  pdf.addImage(canvas.toDataURL("image/png"), "PNG", 0, 0, A4_W_MM, A4_H_MM, undefined, "FAST");
+  const pageHeightPx = Math.floor((canvas.width * A4_H_MM) / A4_W_MM);
+
+  if (canvas.height <= pageHeightPx + 8) {
+    pdf.addImage(canvas.toDataURL("image/png"), "PNG", 0, 0, A4_W_MM, A4_H_MM, undefined, "FAST");
+    return pdf;
+  }
+
+  let sourceY = 0;
+  let pageIndex = 0;
+  while (sourceY < canvas.height) {
+    const sliceHeight = Math.min(pageHeightPx, canvas.height - sourceY);
+    const pageCanvas = document.createElement("canvas");
+    pageCanvas.width = canvas.width;
+    pageCanvas.height = sliceHeight;
+    const ctx = pageCanvas.getContext("2d");
+    if (!ctx) throw new Error("Could not prepare report card PDF page");
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
+    ctx.drawImage(canvas, 0, sourceY, canvas.width, sliceHeight, 0, 0, canvas.width, sliceHeight);
+
+    if (pageIndex > 0) pdf.addPage();
+    const pageHeightMm = (sliceHeight * A4_W_MM) / canvas.width;
+    pdf.addImage(pageCanvas.toDataURL("image/png"), "PNG", 0, 0, A4_W_MM, pageHeightMm, undefined, "FAST");
+    sourceY += sliceHeight;
+    pageIndex += 1;
+  }
   return pdf;
 }
 
@@ -100,20 +118,9 @@ async function captureToPdfBlob(el: HTMLElement): Promise<Blob> {
   if (el.offsetWidth === 0 || el.offsetHeight === 0) {
     throw new Error("Report card rendered with no visible size");
   }
-  // Capture the fixed-size Preview sheet exactly as laid out. Use the element's
-  // actual border-box dimensions, but preserve the browser's current viewport;
-  // supplying windowWidth/windowHeight here previously caused a second layout
-  // pass at ~794px and made sections exchange space during export.
-  const rect = el.getBoundingClientRect();
-  // Keep the fractional mm-to-pixel dimensions. Rounding 210mm/297mm before
-  // capture changes fixed-table column allocation by sub-pixels and is enough
-  // to make the exported sheet differ from the already-rendered Preview.
-  const captureWidth = rect.width;
-  const captureHeight = rect.height;
-  const aspectRatio = captureWidth / captureHeight;
-  if (Math.abs(aspectRatio - A4_ASPECT_RATIO) > ASPECT_RATIO_TOLERANCE) {
-    throw new Error("Report card export did not render at the fixed A4 size");
-  }
+  const captureWidth = Math.ceil(Math.max(el.scrollWidth, el.offsetWidth));
+  const captureHeight = Math.ceil(Math.max(el.scrollHeight, el.offsetHeight));
+  const extendsPastPage = captureHeight > el.offsetHeight + 8;
   const canvas = await html2canvas(el, {
     scale: 2,
     useCORS: true,
@@ -121,12 +128,19 @@ async function captureToPdfBlob(el: HTMLElement): Promise<Blob> {
     logging: false,
     width: captureWidth,
     height: captureHeight,
+    windowWidth: captureWidth,
+    windowHeight: captureHeight,
     imageTimeout: 15000,
     onclone: (_doc, clonedElement) => {
       const page = clonedElement as HTMLElement;
       page.style.background = "#ffffff";
       page.style.boxShadow = "none";
       page.style.transform = "none";
+      if (extendsPastPage) {
+        page.style.height = `${captureHeight}px`;
+        page.style.maxHeight = "none";
+        page.style.overflow = "visible";
+      }
     },
   });
   if (canvas.width === 0 || canvas.height === 0) {
@@ -138,7 +152,6 @@ async function captureToPdfBlob(el: HTMLElement): Promise<Blob> {
   assertValidPdfBlob(blob);
   return blob;
 }
-
 
 function assertValidPdfBlob(blob: Blob): void {
   if (!(blob instanceof Blob) || blob.size < MIN_VALID_PDF_BYTES) {
