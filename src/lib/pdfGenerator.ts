@@ -47,7 +47,7 @@ function buildHost(): { host: HTMLDivElement; mount: HTMLDivElement } {
   // Keep the export sheet in the same document and viewport as Preview. Moving
   // it off-canvas is safe; changing html2canvas's viewport is not, because it
   // makes responsive/global CSS recompute and causes the A4 content to reflow.
-  host.style.cssText = `position:fixed;left:-10000px;top:0;width:${A4_W_MM}mm;height:${A4_H_MM}mm;background:#ffffff;z-index:-1;pointer-events:none;overflow:hidden;`;
+  host.style.cssText = `position:fixed;left:-10000px;top:0;width:${A4_W_MM}mm;height:${A4_H_MM}mm;background:#ffffff;z-index:0;pointer-events:none;overflow:hidden;`;
   const mount = document.createElement("div");
   mount.style.cssText = `width:${A4_W_MM}mm;height:${A4_H_MM}mm;overflow:hidden;`;
   host.appendChild(mount);
