@@ -105,8 +105,11 @@ async function captureToPdfBlob(el: HTMLElement): Promise<Blob> {
   // supplying windowWidth/windowHeight here previously caused a second layout
   // pass at ~794px and made sections exchange space during export.
   const rect = el.getBoundingClientRect();
-  const captureWidth = Math.round(rect.width);
-  const captureHeight = Math.round(rect.height);
+  // Keep the fractional mm-to-pixel dimensions. Rounding 210mm/297mm before
+  // capture changes fixed-table column allocation by sub-pixels and is enough
+  // to make the exported sheet differ from the already-rendered Preview.
+  const captureWidth = rect.width;
+  const captureHeight = rect.height;
   const aspectRatio = captureWidth / captureHeight;
   if (Math.abs(aspectRatio - A4_ASPECT_RATIO) > ASPECT_RATIO_TOLERANCE) {
     throw new Error("Report card export did not render at the fixed A4 size");
