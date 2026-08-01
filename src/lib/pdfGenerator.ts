@@ -19,6 +19,8 @@ import "@/pages/PrintReportCard.css";
 const A4_W_MM = 210;
 const A4_H_MM = 297;
 const MIN_VALID_PDF_BYTES = 2500;
+const A4_ASPECT_RATIO = A4_W_MM / A4_H_MM;
+const ASPECT_RATIO_TOLERANCE = 0.002;
 
 class ExportErrorBoundary extends Component<
   { children?: ReactNode; onError: (error: Error) => void },
@@ -42,9 +44,12 @@ class ExportErrorBoundary extends Component<
 function buildHost(): { host: HTMLDivElement; mount: HTMLDivElement } {
   const host = document.createElement("div");
   host.setAttribute("data-pdf-host", "true");
-  host.style.cssText = `position:fixed;left:-10000px;top:0;width:${A4_W_MM}mm;min-height:${A4_H_MM}mm;background:#ffffff;z-index:0;pointer-events:none;overflow:visible;`;
+  // Keep the export sheet in the same document and viewport as Preview. Moving
+  // it off-canvas is safe; changing html2canvas's viewport is not, because it
+  // makes responsive/global CSS recompute and causes the A4 content to reflow.
+  host.style.cssText = `position:fixed;left:-10000px;top:0;width:${A4_W_MM}mm;height:${A4_H_MM}mm;background:#ffffff;z-index:0;pointer-events:none;overflow:hidden;`;
   const mount = document.createElement("div");
-  mount.style.cssText = `width:${A4_W_MM}mm;min-height:${A4_H_MM}mm;overflow:visible;`;
+  mount.style.cssText = `width:${A4_W_MM}mm;height:${A4_H_MM}mm;overflow:hidden;`;
   host.appendChild(mount);
   document.body.appendChild(host);
   return { host, mount };
@@ -95,9 +100,20 @@ async function captureToPdfBlob(el: HTMLElement): Promise<Blob> {
   if (el.offsetWidth === 0 || el.offsetHeight === 0) {
     throw new Error("Report card rendered with no visible size");
   }
-  // Capture the fixed-size preview sheet exactly as it renders on screen.
-  const captureWidth = el.offsetWidth;
-  const captureHeight = el.offsetHeight;
+  // Capture the fixed-size Preview sheet exactly as laid out. Use the element's
+  // actual border-box dimensions, but preserve the browser's current viewport;
+  // supplying windowWidth/windowHeight here previously caused a second layout
+  // pass at ~794px and made sections exchange space during export.
+  const rect = el.getBoundingClientRect();
+  // Keep the fractional mm-to-pixel dimensions. Rounding 210mm/297mm before
+  // capture changes fixed-table column allocation by sub-pixels and is enough
+  // to make the exported sheet differ from the already-rendered Preview.
+  const captureWidth = rect.width;
+  const captureHeight = rect.height;
+  const aspectRatio = captureWidth / captureHeight;
+  if (Math.abs(aspectRatio - A4_ASPECT_RATIO) > ASPECT_RATIO_TOLERANCE) {
+    throw new Error("Report card export did not render at the fixed A4 size");
+  }
   const canvas = await html2canvas(el, {
     scale: 2,
     useCORS: true,
@@ -105,8 +121,6 @@ async function captureToPdfBlob(el: HTMLElement): Promise<Blob> {
     logging: false,
     width: captureWidth,
     height: captureHeight,
-    windowWidth: captureWidth,
-    windowHeight: captureHeight,
     imageTimeout: 15000,
     onclone: (_doc, clonedElement) => {
       const page = clonedElement as HTMLElement;

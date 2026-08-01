@@ -657,6 +657,7 @@ body.bulk-report-printing .report-job-renderer {
   box-shadow: none !important;
   background: #ffffff !important;
   transform: none !important;
+  isolation: isolate;
 }
 [data-pdf-host] .report-page,
 [data-pdf-host] .report-page * {
@@ -667,35 +668,23 @@ body.bulk-report-printing .report-job-renderer {
 [data-pdf-host] .rc-watermark,
 [data-pdf-host] .rc-watermark img { background: transparent !important; }
 
-/* Force all table borders visible in the snapshot (html2canvas can drop
-   collapsed borders otherwise). */
-[data-pdf-host] .rc-phase,
-[data-pdf-host] .rc-eot,
-[data-pdf-host] table.rc-phase-summary,
-[data-pdf-host] .rc-grading {
-  border-collapse: collapse !important;
-}
-[data-pdf-host] .rc-phase th,
-[data-pdf-host] .rc-phase td,
-[data-pdf-host] .rc-eot th,
-[data-pdf-host] .rc-eot td,
-[data-pdf-host] table.rc-phase-summary td,
-[data-pdf-host] .rc-grading td {
-  border: 1px solid #111 !important;
-  background: #ffffff !important;
-  background-image: none !important;
-  box-shadow: none !important;
-}
+/* Preserve the Preview's transparent table layers so the watermark remains a
+   single continuous background. Do not restyle cells here: the base A4
+   template is the source of truth for borders, dimensions and alignment. */
+[data-pdf-host] .rc-watermark { z-index: 1 !important; }
+[data-pdf-host] .rc-head,
+[data-pdf-host] .rc-title,
 [data-pdf-host] .rc-student,
-[data-pdf-host] .rc-bottom {
-  border: 1.2px solid #111 !important;
-  background: #ffffff !important;
-  background-image: none !important;
-}
-[data-pdf-host] .rc-b-tl,
-[data-pdf-host] .rc-b-bl { border-right: 1px solid #111 !important; }
-[data-pdf-host] .rc-b-tl,
-[data-pdf-host] .rc-b-tr { border-bottom: 1px solid #111 !important; }
+[data-pdf-host] .rc-section-label,
+[data-pdf-host] .rc-phase,
+[data-pdf-host] .rc-phase-summary,
+[data-pdf-host] .rc-eot,
+[data-pdf-host] .rc-bottom,
+[data-pdf-host] .rc-grading-title,
+[data-pdf-host] .rc-grading,
+[data-pdf-host] .rc-term-dates,
+[data-pdf-host] .rc-motto { z-index: 2 !important; }
+[data-pdf-host] .rc-stamp { z-index: 3 !important; }
 
 /* Swap external SVG for inline SVG so html2canvas can rasterize it */
 [data-pdf-host] .border-svg { display: none !important; }
