@@ -214,7 +214,6 @@
   border: 1px solid #111;
   padding: 3px 4px;
   text-align: center;
-  vertical-align: middle;
   font-size: 10pt;
   height: 18px;
   overflow: hidden;
@@ -237,8 +236,8 @@
 .rc-eot[data-subjects="7"] td,
 .rc-eot[data-subjects="7"] th { font-size: 9.5pt; }
 
-.rc-phase th { font-weight: 700; background: #fff; vertical-align: middle; }
-.rc-phase-rowlabel { text-align: left !important; font-weight: 700; width: 18%; padding-left: 10px !important; vertical-align: middle; }
+.rc-phase th { font-weight: 700; background: #fff; }
+.rc-phase-rowlabel { text-align: left !important; font-weight: 700; width: 18%; padding-left: 10px !important; }
 
 /* Phase summary as bordered table — each value in its own cell */
 table.rc-phase-summary {
@@ -253,7 +252,6 @@ table.rc-phase-summary td {
   border: 1px solid #111;
   padding: 3px 4px;
   text-align: center;
-  vertical-align: middle;
   height: 20px;
   white-space: normal;
   overflow: hidden;
@@ -280,14 +278,13 @@ table.rc-phase-summary td {
   border: 1px solid #111;
   padding: 2px 6px;
   text-align: center;
-  vertical-align: middle;
   font-size: 10pt;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
-.rc-eot th { font-weight: 700; vertical-align: middle; }
-.rc-eot-subject { text-align: left !important; font-weight: 600; width: 26%; padding-left: 10px !important; vertical-align: middle; }
+.rc-eot th { font-weight: 700; }
+.rc-eot-subject { text-align: left !important; font-weight: 600; width: 26%; padding-left: 10px !important; }
 
 /* ---------- BOTTOM (conduct/comments + signatures) — 2x2 GRID ---------- */
 .rc-bottom {
@@ -441,7 +438,7 @@ table.rc-phase-summary td {
   margin-top: 2px;
 }
 .rc-grading {
-  margin: 2px auto 10mm;   /* reserve space for the pinned motto */
+  margin: 2px auto 0;
   border-collapse: collapse;
   table-layout: fixed;
   width: 100%;
@@ -450,35 +447,27 @@ table.rc-phase-summary td {
   border: 1px solid #111;
   padding: 2px 4px;
   text-align: center;
-  vertical-align: middle;
   font-size: 9.5pt;
   height: 16px;
 }
-.rc-g-label { font-weight: 700; width: 14%; padding-left: 10px !important; text-align: left !important; vertical-align: middle; }
+.rc-g-label { font-weight: 700; width: 14%; padding-left: 10px !important; text-align: left !important; }
 
-/* ---------- MOTTO — pinned inside the A4 page border for all outputs ---------- */
+/* ---------- MOTTO ---------- */
 .rc-motto {
-  position: absolute;
-  left: 12mm;
-  right: 12mm;
-  bottom: 6mm;
   text-align: center;
   font-weight: 700;
   font-size: 11pt;
   font-style: italic;
+  margin-top: 4px;
   letter-spacing: 0.5px;
-  line-height: 1.3;
-  margin: 0;
-  padding: 2px 0;
-  z-index: 3;
+  position: relative;
+  z-index: 2;
 }
 
-/* ---------- PRINT ----------
-   Use the SAME layout as preview. @page margin: 0 so the 210×297 mm sheet
-   maps exactly onto the physical A4 page — no shrink, no scale, no reflow. */
+/* ---------- PRINT ---------- */
 @page {
   size: A4 portrait;
-  margin: 0;
+  margin: 3mm;
 }
 
 @media print {
@@ -486,7 +475,6 @@ table.rc-phase-summary td {
     margin: 0 !important;
     padding: 0 !important;
     width: 210mm !important;
-    height: 297mm !important;
     background: #fff !important;
   }
 
@@ -499,6 +487,9 @@ table.rc-phase-summary td {
   }
 
   /* === SINGLE REPORT PRINT === */
+  /* Scoped with :has(.report-page) so these global rules NEVER blank out
+     other print pages (e.g. the Nursery report card) that don't contain
+     a .report-page element. */
   body:not(.bulk-report-printing):has(.report-page) * {
     visibility: hidden !important;
   }
@@ -534,17 +525,21 @@ table.rc-phase-summary td {
     top: auto !important;
   }
 
-  /* Preserve exact preview dimensions in print — do NOT shrink to fit. */
+  /* The printable area is the @page box (A4 minus 8mm margins). The sheet
+     must fit inside that area — use width:100% + max-width:100% so the
+     right edge / outer border is never clipped by the browser's printable
+     region (a hard 210mm width exceeds the printable box when @page
+     margin > 0, and gets cropped on the right). */
   .report-page {
     margin: 0 auto !important;
     box-shadow: none !important;
-    width: 210mm !important;
-    max-width: 210mm !important;
-    min-width: 210mm !important;
-    height: 297mm !important;
-    min-height: 297mm !important;
-    max-height: 297mm !important;
-    padding: 14mm 12mm 10mm !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    padding: 13mm 11mm 9mm !important;
     overflow: hidden !important;
     page-break-inside: avoid !important;
     break-inside: avoid !important;
@@ -648,27 +643,32 @@ body.bulk-report-printing .report-job-renderer {
 
 /* =====================================================================
    PDF EXPORT HOST — html2canvas snapshot target
-   ONLY rendering hints. Layout, spacing, fonts, padding and cell
-   alignment all come from the base preview styles above — so
-   Preview = Print = Download by construction.
+   Ensures borders/tables render crisply and no ghost background bleeds
+   into the captured image.
    ===================================================================== */
 [data-pdf-host] .report-page {
   margin: 0 !important;
   box-shadow: none !important;
   background: #ffffff !important;
   transform: none !important;
+  height: auto !important;
+  min-height: 297mm !important;
+  max-height: none !important;
+  overflow: visible !important;
 }
 [data-pdf-host] .report-page,
 [data-pdf-host] .report-page * {
   -webkit-print-color-adjust: exact !important;
   print-color-adjust: exact !important;
 }
-[data-pdf-host] .report-page img { background: transparent !important; }
+[data-pdf-host] .report-page img {
+  background: transparent !important;
+}
 [data-pdf-host] .rc-watermark,
-[data-pdf-host] .rc-watermark img { background: transparent !important; }
-
-/* Force all table borders visible in the snapshot (html2canvas can drop
-   collapsed borders otherwise). */
+[data-pdf-host] .rc-watermark img {
+  background: transparent !important;
+}
+/* Force all table borders visible in the snapshot */
 [data-pdf-host] .rc-phase,
 [data-pdf-host] .rc-eot,
 [data-pdf-host] table.rc-phase-summary,
@@ -682,6 +682,8 @@ body.bulk-report-printing .report-job-renderer {
 [data-pdf-host] table.rc-phase-summary td,
 [data-pdf-host] .rc-grading td {
   border: 1px solid #111 !important;
+  border-color: #111 !important;
+  border-style: solid !important;
   background: #ffffff !important;
   background-image: none !important;
   box-shadow: none !important;
@@ -689,18 +691,293 @@ body.bulk-report-printing .report-job-renderer {
 [data-pdf-host] .rc-student,
 [data-pdf-host] .rc-bottom {
   border: 1.2px solid #111 !important;
+  border-color: #111 !important;
+  border-style: solid !important;
   background: #ffffff !important;
   background-image: none !important;
+}
+[data-pdf-host] .rc-bottom,
+[data-pdf-host] .rc-bottom td.rc-b-cell,
+[data-pdf-host] .rc-b-block,
+[data-pdf-host] .rc-b-row-split,
+[data-pdf-host] .rc-b-text,
+[data-pdf-host] .rc-b-text-col,
+[data-pdf-host] .rc-b-label,
+[data-pdf-host] .rc-b-label-col,
+[data-pdf-host] .rc-sig-block,
+[data-pdf-host] .rc-sig-stack,
+[data-pdf-host] .rc-sig-name,
+[data-pdf-host] .rc-sig-position {
+  overflow: visible !important;
+  max-height: none !important;
+}
+[data-pdf-host] .rc-b-block.rc-b-inline {
+  white-space: normal !important;
+  text-overflow: clip !important;
+}
+[data-pdf-host] .rc-b-text,
+[data-pdf-host] .rc-b-text-col {
+  display: block !important;
+  -webkit-line-clamp: unset !important;
+  -webkit-box-orient: unset !important;
+  white-space: normal !important;
 }
 [data-pdf-host] .rc-b-tl,
 [data-pdf-host] .rc-b-bl { border-right: 1px solid #111 !important; }
 [data-pdf-host] .rc-b-tl,
 [data-pdf-host] .rc-b-tr { border-bottom: 1px solid #111 !important; }
-
-/* Swap external SVG for inline SVG so html2canvas can rasterize it */
 [data-pdf-host] .border-svg { display: none !important; }
 [data-pdf-host] .border-svg-inline { display: block !important; z-index: 0 !important; }
 
+/* ---- PDF-only layout polish (does not affect print/preview) ---- */
+
+/* Safe internal padding so nothing sits on top of the border */
+[data-pdf-host] .report-page {
+  padding: 14mm 12mm 12mm !important;
+}
+
+/* Center all text in the student information table */
+[data-pdf-host] .rc-student td {
+  text-align: center !important;
+  white-space: normal !important;
+  overflow: visible !important;
+  vertical-align: middle !important;
+}
+[data-pdf-host] .rc-student .rc-lbl,
+[data-pdf-host] .rc-student .rc-fill {
+  display: inline-block !important;
+  text-align: center !important;
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  vertical-align: middle !important;
+}
+
+/* Phase/EOT tables — grades, totals, aggregates centered and fully visible */
+[data-pdf-host] .rc-phase th,
+[data-pdf-host] .rc-phase td,
+[data-pdf-host] .rc-eot th,
+[data-pdf-host] .rc-eot td,
+[data-pdf-host] table.rc-phase-summary td {
+  text-align: center !important;
+  vertical-align: middle !important;
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  word-break: normal !important;
+  overflow-wrap: normal !important;
+}
+[data-pdf-host] .rc-phase-rowlabel,
+[data-pdf-host] .rc-eot-subject {
+  text-align: left !important;
+}
+[data-pdf-host] .rc-ps-label,
+[data-pdf-host] .rc-ps-val {
+  display: inline-block !important;
+  text-align: center !important;
+  white-space: normal !important;
+  overflow: visible !important;
+}
+
+/* Grading system table — centered, spaced, no clipping */
+[data-pdf-host] .rc-grading-title {
+  text-align: center !important;
+  margin-top: 6px !important;
+  margin-bottom: 3px !important;
+}
+[data-pdf-host] .rc-grading {
+  margin: 0 auto !important;
+  width: 96% !important;
+}
+[data-pdf-host] .rc-grading td {
+  text-align: center !important;
+  vertical-align: middle !important;
+  padding: 3px 4px !important;
+  white-space: normal !important;
+  overflow: visible !important;
+}
+[data-pdf-host] .rc-g-label {
+  text-align: center !important;
+  padding-left: 4px !important;
+}
+
+/* Next term begins / ends — centered, spaced, inside the page margins */
+[data-pdf-host] .rc-term-dates {
+  justify-content: center !important;
+  gap: 14mm !important;
+  padding: 0 8mm !important;
+  margin: 6px 0 4px !important;
+  flex-wrap: wrap !important;
+  text-align: center !important;
+}
+[data-pdf-host] .rc-term-dates .rc-fill {
+  overflow: visible !important;
+  text-overflow: clip !important;
+  white-space: normal !important;
+}
+
+/* Motto — keep centered with breathing room above */
+[data-pdf-host] .rc-motto {
+  margin-top: 6px !important;
+  padding: 0 8mm !important;
+  text-align: center !important;
+}
+
+/* =====================================================================
+   PDF EXPORT — FINAL POLISH (single A4, tighter label/value spacing,
+   inline conduct fields, vertically centered table cells)
+   Overrides earlier PDF host rules where needed. Preview/Print untouched.
+   ===================================================================== */
+
+/* Lock to exactly one A4 page — clip anything past it instead of paginating. */
+[data-pdf-host] .report-page {
+  height: 297mm !important;
+  min-height: 297mm !important;
+  max-height: 297mm !important;
+  overflow: hidden !important;
+  padding: 12mm 11mm 10mm !important;
+}
+
+/* Learner info: labels immediately followed by values — no huge gaps. */
+[data-pdf-host] .rc-student td {
+  text-align: left !important;
+  padding: 5px 10px !important;
+  vertical-align: middle !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+}
+[data-pdf-host] .rc-student .rc-lbl {
+  display: inline !important;
+  text-align: left !important;
+  margin-right: 4px !important;
+}
+[data-pdf-host] .rc-student .rc-fill {
+  display: inline !important;
+  min-width: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  text-align: left !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+/* Vertically center all exam-table + grading-table cells with equal padding. */
+[data-pdf-host] .rc-phase th,
+[data-pdf-host] .rc-phase td,
+[data-pdf-host] .rc-eot th,
+[data-pdf-host] .rc-eot td,
+[data-pdf-host] table.rc-phase-summary td,
+[data-pdf-host] .rc-grading td {
+  vertical-align: middle !important;
+  padding-top: 5px !important;
+  padding-bottom: 5px !important;
+  line-height: 1.15 !important;
+}
+
+/* Conduct & Co-curricular — keep label + value on the SAME line in PDF. */
+[data-pdf-host] .rc-b-block.rc-b-inline {
+  display: block !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  margin-bottom: 4px !important;
+}
+[data-pdf-host] .rc-b-block.rc-b-inline .rc-b-label {
+  display: inline !important;
+  margin-right: 4px !important;
+}
+[data-pdf-host] .rc-b-block.rc-b-inline .rc-b-text {
+  display: inline !important;
+  white-space: nowrap !important;
+  padding-left: 0 !important;
+}
+
+/* =====================================================================
+   PDF EXPORT — CIRCLED-AREA FIXES
+   1) Student details: no bottom clipping of descenders
+   2) Conduct + Co-curricular: label & data fully visible, aligned
+   3) Motto: centered inside border, clear of dashed lines
+   ===================================================================== */
+
+/* Give the whole page a little more bottom breathing room so the motto
+   sits well inside the border without overlapping the dashed lines. */
+[data-pdf-host] .report-page {
+  padding: 12mm 11mm 14mm !important;
+}
+
+/* Student info rows — taller cells, generous bottom padding, no clipping. */
+[data-pdf-host] .rc-student td {
+  padding: 7px 10px 9px !important;
+  line-height: 1.35 !important;
+  height: auto !important;
+  overflow: visible !important;
+  white-space: nowrap !important;
+}
+[data-pdf-host] .rc-student .rc-lbl,
+[data-pdf-host] .rc-student .rc-fill {
+  line-height: 1.35 !important;
+  overflow: visible !important;
+  padding-bottom: 2px !important;
+}
+
+/* Conduct & Co-curricular — align label + value on same baseline,
+   show full text without descender clipping. */
+[data-pdf-host] .rc-b-block.rc-b-inline {
+  display: flex !important;
+  align-items: baseline !important;
+  gap: 6px !important;
+  white-space: nowrap !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  line-height: 1.4 !important;
+  padding: 3px 0 5px !important;
+  margin-bottom: 2px !important;
+}
+[data-pdf-host] .rc-b-block.rc-b-inline .rc-b-label,
+[data-pdf-host] .rc-b-block.rc-b-inline .rc-b-text {
+  display: inline-block !important;
+  overflow: visible !important;
+  line-height: 1.4 !important;
+  padding-bottom: 2px !important;
+  white-space: nowrap !important;
+}
+
+/* =====================================================================
+   PDF EXPORT — BOTTOM SECTION LAYOUT
+   Grading table sits just above the motto; motto is pinned to the very
+   bottom of the A4 page inside the border. No overlap, no overflow.
+   ===================================================================== */
+
+/* Grading title + table — compact, sits directly above the motto. */
+[data-pdf-host] .rc-grading-title {
+  text-align: center !important;
+  margin: 4px 0 2px !important;
+  font-weight: bold !important;
+}
+[data-pdf-host] .rc-grading {
+  margin: 0 auto 10mm !important;   /* reserve room for the pinned motto */
+  width: 96% !important;
+}
+[data-pdf-host] .rc-grading td {
+  padding: 3px 4px !important;
+  line-height: 1.15 !important;
+}
+
+/* Motto — pinned to the bottom of the page, centered inside the border. */
+[data-pdf-host] .rc-motto {
+  position: absolute !important;
+  left: 12mm !important;
+  right: 12mm !important;
+  bottom: 6mm !important;
+  margin: 0 !important;
+  padding: 2px 0 !important;
+  text-align: center !important;
+  line-height: 1.3 !important;
+  background: transparent !important;
+  overflow: visible !important;
+  z-index: 3 !important;
+}
 
 
 
