@@ -181,7 +181,7 @@ export async function renderNurseryReport(d: NurseryData, doc?: PDFDocument): Pr
   const areasTop = y;
   const areasH = keyTop - 2 - areasTop;
   const n = Math.max(d.areas.length, 1);
-  const rowH = Math.max(6, Math.min(16, areasH / n));
+  const rowH = Math.max(6, Math.min(26, areasH / n));
   const imgW = Math.min(18, rowH * 1.3);
   const gradeW = 16;
   const colorMap = new Map<string, string>();
