@@ -280,9 +280,9 @@ export async function embedImage(doc: PDFDocument, url: string | null | undefine
 }
 
 export function bytesToPdfBlob(bytes: Uint8Array): Blob {
-  const copy = new Uint8Array(bytes.length);
-  copy.set(bytes);
-  return new Blob([copy], { type: "application/pdf" });
+  const buffer = new ArrayBuffer(bytes.length);
+  new Uint8Array(buffer).set(bytes);
+  return new Blob([buffer], { type: "application/pdf" });
 }
 
 export function triggerBlobDownload(blob: Blob, filename: string) {
