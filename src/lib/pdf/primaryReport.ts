@@ -12,7 +12,6 @@ import {
 } from "@/lib/grading";
 import {
   A4_H, A4_W, INK, Painter, embedImage, loadFonts, mm, bytesToPdfBlob,
-  DEFAULT_ORDER_FALLBACK,
 } from "./core";
 import { drawBorder } from "./borders";
 
@@ -317,7 +316,7 @@ export async function buildPrimaryReportPdf(learnerId: string, termId: string, d
   const fonts = await loadFonts(pdf);
   const p = new Painter(page, fonts);
   const c = computeAll(d);
-  const s = d.school ?? {};
+  const s: Any = (d.school as Any) ?? {};
 
   const [logo, photo, stamp, watermark, classSig, headSig] = await Promise.all([
     embedImage(pdf, d.assets.logo),
@@ -533,5 +532,3 @@ export async function primaryReportBlob(learnerId: string, termId: string): Prom
   const pdf = await buildPrimaryReportPdf(learnerId, termId);
   return bytesToPdfBlob(await pdf.save());
 }
-
-void DEFAULT_ORDER_FALLBACK;
