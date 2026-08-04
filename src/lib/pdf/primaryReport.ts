@@ -438,7 +438,7 @@ export async function renderPrimaryReport(d: PrimaryData, doc?: PDFDocument): Pr
   const availableForEot = bottomTableBottom - bottomTableH - 1.6 - y;
   const fixedEot = 4.6 + 5 + 5;                       // label + head row + summary row
   const nSub = Math.max(d.subjects.length, 1);
-  const eotRowH = Math.max(4.2, Math.min(6.4, (availableForEot - fixedEot) / nSub));
+  const eotRowH = Math.max(4.2, Math.min(14, (availableForEot - fixedEot) / nSub));
   y += drawEotTable(p, y, d, c, eotRowH) + 1.6;
 
   /* Conduct / comments + signatures ------------------------------------ */
@@ -466,7 +466,7 @@ export async function renderPrimaryReport(d: PrimaryData, doc?: PDFDocument): Pr
   by += 4.6;
   inlineField("Co-curricular Activities:", d.learner.co_curricular ?? "", X0 + 1.6, by, leftW - 3.2);
 
-  const labelColW = 30;
+  const labelColW = 34;
   let cy2 = btTop + rowTopH + 1.6;
   const commentBlock = (label: string, value: string) => {
     p.text(label, { x: X0 + 1.6, y: cy2, size: 6.6, bold: true });
