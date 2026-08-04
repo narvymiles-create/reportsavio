@@ -216,7 +216,9 @@ const imageCache = new Map<string, Promise<Uint8Array | null>>();
 async function rasterize(bytes: Uint8Array, mime: string): Promise<Uint8Array | null> {
   // SVG / WEBP / GIF etc. are not supported natively by pdf-lib — repaint them
   // onto a canvas and re-encode as PNG.
-  const blob = new Blob([bytes], { type: mime || "image/svg+xml" });
+  const buffer = new ArrayBuffer(bytes.length);
+  new Uint8Array(buffer).set(bytes);
+  const blob = new Blob([buffer], { type: mime || "image/svg+xml" });
   const url = URL.createObjectURL(blob);
   try {
     const img = await new Promise<HTMLImageElement | null>((resolve) => {
