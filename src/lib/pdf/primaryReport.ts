@@ -311,6 +311,11 @@ function drawEotTable(p: Painter, y: number, d: PrimaryData, c: ReturnType<typeo
 
 export async function buildPrimaryReportPdf(learnerId: string, termId: string, doc?: PDFDocument): Promise<PDFDocument> {
   const d = await loadPrimaryData(learnerId, termId);
+  return renderPrimaryReport(d, doc);
+}
+
+/** Draws one primary report page onto a (new or existing) document. */
+export async function renderPrimaryReport(d: PrimaryData, doc?: PDFDocument): Promise<PDFDocument> {
   const pdf = doc ?? (await PDFDocument.create());
   const page = pdf.addPage([mm(A4_W), mm(A4_H)]);
   const fonts = await loadFonts(pdf);

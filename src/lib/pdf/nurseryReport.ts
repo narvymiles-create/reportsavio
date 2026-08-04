@@ -89,8 +89,15 @@ export async function loadNurseryData(learnerId: string, termId: string) {
   };
 }
 
+export type NurseryData = Awaited<ReturnType<typeof loadNurseryData>>;
+
 export async function buildNurseryReportPdf(learnerId: string, termId: string, doc?: PDFDocument): Promise<PDFDocument> {
   const d = await loadNurseryData(learnerId, termId);
+  return renderNurseryReport(d, doc);
+}
+
+/** Draws one nursery report page onto a (new or existing) document. */
+export async function renderNurseryReport(d: NurseryData, doc?: PDFDocument): Promise<PDFDocument> {
   const pdf = doc ?? (await PDFDocument.create());
   const page = pdf.addPage([mm(A4_W), mm(A4_H)]);
   const fonts = await loadFonts(pdf);
