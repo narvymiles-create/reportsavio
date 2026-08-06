@@ -127,7 +127,7 @@ function paintText(page: PDFPage, fonts: Fonts, xf: Xf, f: TplField, v: string |
   const cell = tbox(xf, (tv.box ?? f.box) as Box);
   const baseSize = (tv.size ?? f.size) * xf.s;
   const avail = Math.max(8, (tv.width != null ? tv.width * xf.s : 0) ||
-    (tv.box || maxLines > 1 ? cell[2] - cell[0] - 4 : f.maxWidth * xf.s));
+    (tv.box ? cell[2] - cell[0] - 4 : f.maxWidth * xf.s));
 
   if (tv.mask) maskBox(page, cell);
 
