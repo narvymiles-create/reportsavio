@@ -13,7 +13,7 @@ import {
 } from "@/lib/grading";
 import { bytesToPdfBlob } from "./core";
 import {
-  fillTemplate, loadTemplateBytes, type Box, type TplDef, type TplField, type ValueMap,
+  fillTemplate, loadTemplateBytes, type Box, type TextValue, type TplDef, type ValueMap,
 } from "./template/engine";
 import primaryFields from "./template/primary.fields.json";
 import { resolveTemplateUrl } from "./template/registry";
@@ -203,46 +203,48 @@ function computeAll(d: PrimaryData) {
 
 /* ---------------------------------------------------------------- render */
 
-const EOT_ROW_KEYS = ["ENG", "MATH", "SCI", "SST", "ICT"];
-const EOT_ROW_H = 16.1;
-const EOT_BAND_BOTTOM = 324.34;
-const EOT_LAST_ROW_SUFFIX = "ICT";
-const EOT_HEADERS = ["SUBJECTS", "FULL MARKS", "MARKS GOT", "GRADE", "REMARKS", "INITIALS"];
+/**
+ * The uploaded template has a fixed, locked grid: six subject columns in the
+ * BOT/MID blocks and six rows in the EOT table. Nothing is cloned, shifted or
+ * recalculated — values are stamped into the cells the design already defines.
+ */
+const COLS = ["ENG", "MATH", "SCI", "SST", "RE", "ICT"] as const;
+type Col = typeof COLS[number];
 
 const field = (name: string) => DEF.fields.find((f) => f.name === name);
-
-/** Clone the last EOT template row downwards for subject #6, #7, … */
-function extraEotRows(count: number): { fields: TplField[]; keys: string[] } {
-  const fields: TplField[] = [];
-  const keys: string[] = [];
-  for (let i = 0; i < count; i++) {
-    const dy = EOT_ROW_H * (i + 1);
-    const key = `X${i + 6}`;
-    keys.push(key);
-    const clone = (from: string, to: string) => {
-      const src = field(from);
-      if (!src) return;
-      fields.push({
-        ...src,
-        name: to,
-        y: src.y - dy,
-        box: [src.box[0], src.box[1] - dy, src.box[2], src.box[3] - dy],
-      });
-    };
-    clone(`EOT_SUBJ_5`, `EOT_SUBJ_${i + 6}`);
-    ["FULLMARKS", "MARKS", "GRADE", "REMARKS", "INITIALS"].forEach((c) =>
-      clone(`EOT_${EOT_LAST_ROW_SUFFIX}_${c}`, `EOT_${key}_${c}`));
-  }
-  return { fields, keys };
-}
-
-const boxOf = (name: string, fallback: Box): Box => {
+const boxOf = (name: string): Box | undefined => {
   const f = field(name);
-  return f ? (f.box as Box) : fallback;
+  return f ? (f.box as Box) : undefined;
 };
 
-function summaryText(label: string, value: string) {
-  return value ? `${label}: ${value}` : `${label}:`;
+const colKeyFor = (name: string): Col | null => {
+  const n = (name ?? "").toUpperCase();
+  if (n.includes("ENGLISH")) return "ENG";
+  if (n.includes("MATH")) return "MATH";
+  if (n.includes("SCIEN")) return "SCI";
+  if (n.includes("SOCIAL") || n.includes("SST")) return "SST";
+  if (n.includes("RELIG") || n.startsWith("R.E") || n === "RE" || n.includes("C.R.E") || n.includes("I.R.E")) return "RE";
+  if (n.includes("COMPUT") || n.includes("ICT")) return "ICT";
+  return null;
+};
+
+/** Maps the class subjects onto the template's fixed columns. */
+function assignColumns(subjects: Any[]): { col: Col; subject: Any }[] {
+  const taken = new Set<Col>();
+  const out: { col: Col; subject: Any }[] = [];
+  const leftovers: Any[] = [];
+  subjects.forEach((s) => {
+    const c = colKeyFor(s.name);
+    if (c && !taken.has(c)) { taken.add(c); out.push({ col: c, subject: s }); }
+    else leftovers.push(s);
+  });
+  leftovers.forEach((s) => {
+    const free = COLS.find((c) => !taken.has(c));
+    if (!free) return; // layout is locked — extra subjects are not drawn
+    taken.add(free);
+    out.push({ col: free, subject: s });
+  });
+  return out;
 }
 
 export function buildPrimaryValues(d: PrimaryData) {
@@ -250,136 +252,128 @@ export function buildPrimaryValues(d: PrimaryData) {
   const s: Any = (d.school as Any) ?? {};
   const v: ValueMap = {};
 
+  const header = boxOf("SCHOOL_NAME");
+  const headerLine = (name: string, text: string, extra: Partial<TextValue> = {}) => {
+    v[name] = { text, align: "center", box: header, vcenter: false, maxLines: 1, ...extra };
+  };
+
   /* Header */
-  v.SCHOOL_NAME = { text: (s.name ?? "").toUpperCase(), align: "center", width: 232, maxLines: 2 };
-  v.SCHOOL_ADDRESS = { text: s.location ?? "", width: 240 };
-  v.PO_BOX = s.po_box ?? "";
-  v.TELEPHONE = s.tel ?? "";
-  v.EMAIL = { text: s.email ?? "", width: 120 };
-  v.WEBSITE = s.website ?? "";
-  v.SCHOOL_MOTTO = { text: s.motto ?? "", width: 300 };
-  v.TERM = (d.term.name ?? "").replace(/term\s*/i, "").trim() || (d.term.name ?? "");
-  v.YEAR = String(d.term.year ?? "");
+  headerLine("SCHOOL_NAME", (s.name ?? "").toUpperCase(), { bold: true });
+  headerLine("SCHOOL_MOTTO", s.motto ?? "");
+  v.SCHOOL_MOTTO_FOOTER = {
+    text: s.motto ?? "", align: "center", maxLines: 1, vcenter: false, box: boxOf("SCHOOL_MOTTO_FOOTER"),
+  };
+  v.SCHOOL_ADDRESS = { text: s.location ?? "", maxLines: 1 };
+  v.PO_BOX = { text: s.po_box ?? "", maxLines: 1 };
+  v.TELEPHONE = { text: s.tel ?? "", maxLines: 1 };
+  v.EMAIL = { text: s.email ?? "", maxLines: 1 };
+  v.WEBSITE = { text: s.website ?? "", maxLines: 1 };
+  v.TERM = { text: (d.term.name ?? "").replace(/term\s*/i, "").trim() || (d.term.name ?? ""), maxLines: 1 };
+  v.YEAR = { text: String(d.term.year ?? ""), maxLines: 1 };
 
-  const logoAnchor = field("SCHOOL_LOGO");
-  if (logoAnchor) {
-    v.SCHOOL_LOGO = {
-      image: d.assets.logo,
-      box: [logoAnchor.x - 2, logoAnchor.y - 46, logoAnchor.x + 56, logoAnchor.y + 12],
-    };
-  }
-  const photoAnchor = field("STUDENT_PHOTO");
-  if (photoAnchor) {
-    v.STUDENT_PHOTO = {
-      image: d.assets.photo,
-      box: [photoAnchor.x - 4, photoAnchor.y - 56, photoAnchor.x + 62, photoAnchor.y + 12],
-    };
-  }
+  /* Logo + learner photo — the cell is masked first so the static
+     "SCHOOL LOGO" / "LEARNER'S PHOTO" labels disappear. */
+  const logoBox = boxOf("SCHOOL_LOGO");
+  if (logoBox) v.SCHOOL_LOGO = { image: d.assets.logo, box: inset(logoBox), mask: true };
+  const photoBox = boxOf("STUDENT_PHOTO");
+  if (photoBox) v.STUDENT_PHOTO = { image: d.assets.photo, box: inset(photoBox), mask: true };
 
-  /* Learner info */
+  /* Learner info — single line, shrink to fit, never wrap. */
   const regValue = d.learner.active_reg_type === "LIN"
     ? d.learner.lin_no
     : d.learner.active_reg_type === "REG" ? d.learner.reg_no : d.learner.index_no;
-  v.STUDENT_NAME = { text: d.learner.full_name ?? "", width: field("STUDENT_NAME")?.maxWidth };
-  v.CLASS = d.klass?.name ?? "";
-  v.STREAM = d.flags.stream ? (d.stream?.name ?? "") : "";
-  v.SECTION = d.flags.section ? (d.learner.section ?? "") : "";
-  v.HOUSE = d.flags.house ? (d.learner.house ?? "") : "";
-  v.AGE = d.learner.age != null ? String(d.learner.age) : "";
-  v.SEX = d.learner.sex ?? "";
-  v.LIN = d.learner.lin_no ?? "";
-  v.PAY_CODE = d.flags.pay_code ? (d.learner.pay_code ?? "") : "";
-  v.ADM_NO = String(regValue ?? "");
+  const info = (name: string, text: string) => { v[name] = { text, maxLines: 1 }; };
+  info("STUDENT_NAME", d.learner.full_name ?? "");
+  info("CLASS", d.klass?.name ?? "");
+  info("STREAM", d.flags.stream ? (d.stream?.name ?? "") : "");
+  info("SECTION", d.flags.section ? (d.learner.section ?? "") : "");
+  info("HOUSE", d.flags.house ? (d.learner.house ?? "") : "");
+  info("AGE", d.learner.age != null ? String(d.learner.age) : "");
+  info("SEX", d.learner.sex ?? "");
+  info("LIN", d.learner.lin_no ?? "");
+  info("PAY_CODE", d.flags.pay_code ? (d.learner.pay_code ?? "") : "");
+  info("ADM_NO", String(regValue ?? ""));
 
-  /* BOT / MID grids (5 subject columns in the template) */
-  const gridSubjects = d.subjects.slice(0, 5);
-  const COLS = ["ENG", "MATH", "SCI", "SST", "RE"];
+  /* BOT / MID / EOT grids */
+  const assigned = assignColumns(d.subjects);
+
   (["BOT", "MOT"] as const).forEach((prefix) => {
     const phaseKey = prefix === "BOT" ? "bot" : "mid";
-    gridSubjects.forEach((s2, i) => {
-      const col = COLS[i];
-      const m = c.bySubject.get(s2.id);
-      const raw = m?.[phaseKey];
-      const has = raw != null && raw !== "" && !isNaN(Number(raw));
-      v[`${prefix}_SUBJ_${i + 1}`] = { text: codeFor(s2.name), align: "center", bold: true };
-      v[`${prefix}_${col}_MARKS`] = { text: has ? String(raw) : "", align: "center" };
-      v[`${prefix}_${col}_GRADE`] = { text: has ? (gradeFor(Number(raw), d.bands)?.grade ?? "") : "", align: "center" };
+    COLS.forEach((col) => {
+      v[`${prefix}_${col}_MARKS`] = { text: "", align: "center", maxLines: 1 };
+      v[`${prefix}_${col}_GRADE`] = { text: "", align: "center", maxLines: 1 };
     });
-    for (let i = gridSubjects.length; i < 5; i++) {
-      const col = COLS[i];
-      v[`${prefix}_SUBJ_${i + 1}`] = "";
-      v[`${prefix}_${col}_MARKS`] = "";
-      v[`${prefix}_${col}_GRADE`] = "";
-    }
+    assigned.forEach(({ col, subject }) => {
+      const raw = c.bySubject.get(subject.id)?.[phaseKey];
+      const has = raw != null && raw !== "" && !isNaN(Number(raw));
+      v[`${prefix}_${col}_MARKS`] = {
+        text: has ? String(raw) : "", align: "center", maxLines: 1, box: boxOf(`${prefix}_${col}_MARKS`),
+      };
+      v[`${prefix}_${col}_GRADE`] = {
+        text: has ? (gradeFor(Number(raw), d.bands)?.grade ?? "") : "",
+        align: "center", maxLines: 1, box: boxOf(`${prefix}_${col}_GRADE`),
+      };
+    });
     const ph = prefix === "BOT" ? c.bot : c.mid;
-    v[`${prefix}_TOTAL`] = { text: summaryText("TOTAL MARKS", ph.total ? String(ph.total) : ""), align: "center", bold: true };
-    v[`${prefix}_AVERAGE`] = { text: summaryText("AVERAGE", ph.avg ? String(ph.avg) : ""), align: "center", bold: true };
-    v[`${prefix}_AGGREGATES`] = { text: summaryText("AGGREGATES", ph.aggregateText), align: "center", bold: true };
-    v[`${prefix}_DIVISION`] = { text: summaryText("DIVISION", ph.division), align: "center", bold: true };
+    v[`${prefix}_TOTAL`] = { text: ph.total ? String(ph.total) : "", maxLines: 1, bold: true };
+    v[`${prefix}_AVERAGE`] = { text: ph.avg ? String(ph.avg) : "", maxLines: 1, bold: true };
+    v[`${prefix}_AGGREGATES`] = { text: ph.aggregateText, maxLines: 1, bold: true };
+    v[`${prefix}_DIVISION`] = { text: ph.division, maxLines: 1, bold: true };
   });
 
-  /* EOT table */
-  EOT_HEADERS.forEach((h, i) => { v[`EOT_HDR_${i + 1}`] = { text: h, align: "center", bold: true }; });
-
-  const extraCount = Math.max(0, d.subjects.length - 5);
-  const { fields: extraFields, keys: extraKeys } = extraEotRows(extraCount);
-  const rowKeys = [...EOT_ROW_KEYS, ...extraKeys];
-
-  d.subjects.forEach((s2, i) => {
-    const key = rowKeys[i];
-    if (!key) return;
-    const m = c.bySubject.get(s2.id);
+  COLS.forEach((col) => {
+    ["FULLMARKS", "MARKS", "GRADE", "REMARKS", "INITIALS"].forEach((cell) => {
+      v[`EOT_${col}_${cell}`] = { text: "", align: "center", maxLines: 1 };
+    });
+  });
+  assigned.forEach(({ col, subject }) => {
+    const m = c.bySubject.get(subject.id);
     const raw = m?.eot;
     const has = raw != null && raw !== "" && !isNaN(Number(raw));
     const band = has ? gradeFor(Number(raw), d.bands) : null;
-    v[`EOT_SUBJ_${i + 1}`] = { text: (s2.name ?? "").toUpperCase(), align: "center", maxLines: 1 };
-    v[`EOT_${key}_FULLMARKS`] = { text: String(s2.max_marks ?? 100), align: "center" };
-    v[`EOT_${key}_MARKS`] = { text: has ? String(raw) : "", align: "center" };
-    v[`EOT_${key}_GRADE`] = { text: band?.grade ?? "", align: "center" };
-    v[`EOT_${key}_REMARKS`] = { text: band?.remark ?? "", align: "center" };
-    v[`EOT_${key}_INITIALS`] = {
-      text: (s2.subject_teacher_id && d.teachersById[s2.subject_teacher_id]?.initials) || m?.teacher_initials || "",
-      align: "center",
+    const cell = (name: string, text: string) => {
+      v[`EOT_${col}_${name}`] = { text, align: "center", maxLines: 1, box: boxOf(`EOT_${col}_${name}`) };
     };
+    cell("FULLMARKS", String(subject.max_marks ?? 100));
+    cell("MARKS", has ? String(raw) : "");
+    cell("GRADE", band?.grade ?? "");
+    cell("REMARKS", band?.remark ?? "");
+    cell("INITIALS", (subject.subject_teacher_id && d.teachersById[subject.subject_teacher_id]?.initials) || m?.teacher_initials || "");
   });
-  for (let i = d.subjects.length; i < 5; i++) {
-    const key = rowKeys[i];
-    v[`EOT_SUBJ_${i + 1}`] = "";
-    ["FULLMARKS", "MARKS", "GRADE", "REMARKS", "INITIALS"].forEach((c2) => { v[`EOT_${key}_${c2}`] = ""; });
-  }
 
-  v.EOT_TOTAL = { text: summaryText("TOTAL MARKS", c.eot.total ? String(c.eot.total) : ""), align: "center", bold: true };
-  v.EOT_AVERAGE = { text: summaryText("AVERAGE", c.eot.avg ? String(c.eot.avg) : ""), align: "center", bold: true };
+  v.EOT_TOTAL = { text: c.eot.total ? String(c.eot.total) : "", maxLines: 1, bold: true };
+  v.EOT_AVERAGE = { text: c.eot.avg ? String(c.eot.avg) : "", maxLines: 1, bold: true };
   v.EOT_AGGREGATES = {
     text: d.flags.show_position && c.eot.position && c.eot.classSize
-      ? `AGG: ${c.eot.aggregateText}  POS: ${c.eot.position}/${c.eot.classSize}`
-      : summaryText("AGGREGATES", c.eot.aggregateText),
-    align: "center", bold: true,
+      ? `${c.eot.aggregateText}  (POS ${c.eot.position}/${c.eot.classSize})`
+      : c.eot.aggregateText,
+    maxLines: 1, bold: true,
   };
-  v.EOT_DIVISION = { text: summaryText("DIVISION", c.eot.division), align: "center", bold: true };
+  v.EOT_DIVISION = { text: c.eot.division, maxLines: 1, bold: true };
 
   /* Conduct, comments, signatures, dates */
   v.CONDUCT = { text: d.learner.conduct ?? "", maxLines: 1 };
   v.CO_CURRICULAR = { text: d.learner.co_curricular ?? "", maxLines: 1 };
-  v.CLASS_TEACHER_COMMENT = { text: d.report?.class_teacher_comment ?? "", maxLines: 3 };
-  v.HEADTEACHER_COMMENT = { text: d.report?.head_teacher_comment ?? "", maxLines: 3 };
+  const commentBox = (name: string): Box | undefined => {
+    const cf = field(name);
+    return cf ? [cf.x - 1, cf.box[1], cf.box[2] - 2, cf.box[3]] : undefined;
+  };
+  v.CLASS_TEACHER_COMMENT = {
+    text: d.report?.class_teacher_comment ?? "", maxLines: 2, box: commentBox("CLASS_TEACHER_COMMENT"),
+  };
+  v.HEADTEACHER_COMMENT = {
+    text: d.report?.head_teacher_comment ?? "", maxLines: 2, box: commentBox("HEADTEACHER_COMMENT"),
+  };
   v.CLASS_TEACHER_NAME = { text: (d.classTeacher?.full_name ?? "").toUpperCase(), maxLines: 1 };
   v.HEADTEACHER_NAME = { text: (s.head_teacher_name ?? "").toUpperCase(), maxLines: 1 };
 
-  const ctSig = field("CLASS_TEACHER_SIGNATURE");
-  if (ctSig) {
-    v.CLASS_TEACHER_SIGNATURE = {
-      image: d.assets.classSig,
-      box: [ctSig.x, ctSig.y - 2, Math.min(ctSig.x + 120, 566), ctSig.y + 12],
-    };
-  }
-  const htSig = field("HEADTEACHER_SIGNATURE");
-  if (htSig) {
-    v.HEADTEACHER_SIGNATURE = {
-      image: d.assets.headSig,
-      box: [htSig.x, htSig.y - 2, Math.min(htSig.x + 120, 566), htSig.y + 12],
-    };
-  }
+  const sigBox = (name: string): Box | undefined => {
+    const f = field(name);
+    if (!f) return undefined;
+    return [f.x, f.y - 3, Math.min(f.x + 70, f.box[2] - 2), f.y + 13];
+  };
+  v.CLASS_TEACHER_SIGNATURE = { image: d.assets.classSig, box: sigBox("CLASS_TEACHER_SIGNATURE") ?? [0, 0, 0, 0], mask: false };
+  v.HEADTEACHER_SIGNATURE = { image: d.assets.headSig, box: sigBox("HEADTEACHER_SIGNATURE") ?? [0, 0, 0, 0], mask: false };
 
   v.TERM_END_DATE = { text: fmtDate(d.term.ends_on ?? d.term.end_date), maxLines: 1 };
   v.NEXT_TERM_DATE = { text: fmtDate(d.term.next_begins_on), maxLines: 1 };
@@ -388,15 +382,14 @@ export function buildPrimaryValues(d: PrimaryData) {
   const bandFor = (grade: string) => d.bands.find((b) => (b.grade ?? "").toUpperCase() === grade);
   ["D1", "D2", "C3", "C4", "C5", "C6", "P7", "P8", "F9"].forEach((g) => {
     const b = bandFor(g);
-    v[`MARKS_${g}`] = { text: b ? `${b.min_mark}-${b.max_mark}` : "", align: "center" };
+    v[`MARKS_${g}`] = { text: b ? `${b.min_mark}-${b.max_mark}` : "", align: "center", maxLines: 1, box: boxOf(`MARKS_${g}`) };
   });
 
-  const delta = extraCount * EOT_ROW_H;
-  return {
-    values: v,
-    extraFields,
-    shiftBelow: delta ? { cutY: EOT_BAND_BOTTOM, delta } : undefined,
-  };
+  return { values: v };
+}
+
+function inset(box: Box, pad = 3): Box {
+  return [box[0] + pad, box[1] + pad, box[2] - pad, box[3] - pad];
 }
 
 /** Renders the primary report card and returns the finished PDF bytes. */
@@ -408,8 +401,8 @@ export async function primaryReportBytes(learnerId: string, termId: string): Pro
 export async function renderPrimaryBytes(d: PrimaryData): Promise<Uint8Array> {
   const url = resolveTemplateUrl("primary", d.templateSetting);
   const bytes = await loadTemplateBytes(url);
-  const { values, extraFields, shiftBelow } = buildPrimaryValues(d);
-  return fillTemplate(bytes, DEF, values, { extraFields, shiftBelow });
+  const { values } = buildPrimaryValues(d);
+  return fillTemplate(bytes, DEF, values);
 }
 
 export async function primaryReportBlob(learnerId: string, termId: string): Promise<Blob> {

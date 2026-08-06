@@ -6,8 +6,33 @@
  * vector-sharp and identical every time.
  */
 import JSZip from "jszip";
-import { primaryReportBlob } from "@/lib/pdf/primaryReport";
-import { safeFilename, triggerBlobDownload } from "@/lib/pdf/core";
+import { PDFDocument } from "pdf-lib";
+import { primaryReportBlob, appendPrimaryReport } from "@/lib/pdf/primaryReport";
+import { bytesToPdfBlob, safeFilename, triggerBlobDownload } from "@/lib/pdf/core";
+
+/**
+ * Builds one multi-page PDF holding every learner's report card — used by the
+ * bulk print surfaces so printing and downloading share identical output.
+ */
+export async function mergedReportCardsBlob(
+  learners: { id: string; full_name: string }[],
+  termId: string,
+  onProgress?: (done: number, total: number) => void,
+): Promise<Blob> {
+  const doc = await PDFDocument.create();
+  let added = 0;
+  for (let i = 0; i < learners.length; i++) {
+    try {
+      await appendPrimaryReport(doc, learners[i].id, termId);
+      added += 1;
+    } catch (err) {
+      console.error("[bulk print] failed for", learners[i].full_name, err);
+    }
+    onProgress?.(i + 1, learners.length);
+  }
+  if (!added) throw new Error("No report cards could be generated.");
+  return bytesToPdfBlob(await doc.save());
+}
 
 const MIN_VALID_PDF_BYTES = 800;
 
