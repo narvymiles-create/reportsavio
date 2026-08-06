@@ -51,6 +51,8 @@ export type TextValue = {
   width?: number;
   /** Vertically centre the block inside this box instead of using the baseline. */
   box?: Box;
+  /** When a box is given, centre the text vertically inside it (default true). */
+  vcenter?: boolean;
   /** Paint a white rectangle over the cell before drawing (masks static labels). */
   mask?: boolean;
 };
