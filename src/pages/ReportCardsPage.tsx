@@ -15,10 +15,8 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { generateClassReports } from "@/lib/reportCards";
 import { calculateDivision } from "@/lib/grading";
-import { ReportCardSheet } from "@/components/ReportCardSheet";
-import { waitForImagesAndFonts } from "@/lib/reportAssets";
-import { downloadReportCardPDF, downloadReportCardsZip, type BulkProgress } from "@/lib/pdfGenerator";
-import "./PrintReportCard.css";
+import { usePdfDoc } from "@/components/PdfDocView";
+import { downloadReportCardPDF, downloadReportCardsZip, mergedReportCardsBlob, type BulkProgress } from "@/lib/pdfGenerator";
 
 type Term = { id: string; name: string; year: number; is_current: boolean };
 type Cls = { id: string; name: string };
