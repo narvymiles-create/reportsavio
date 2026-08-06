@@ -15,8 +15,10 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { generateClassReports } from "@/lib/reportCards";
 import { calculateDivision } from "@/lib/grading";
-import { usePdfDoc } from "@/components/PdfDocView";
-import { downloadReportCardPDF, downloadReportCardsZip, mergedReportCardsBlob, type BulkProgress } from "@/lib/pdfGenerator";
+import { ReportCardSheet } from "@/components/ReportCardSheet";
+import { waitForImagesAndFonts } from "@/lib/reportAssets";
+import { downloadReportCardPDF, downloadReportCardsZip, type BulkProgress } from "@/lib/pdfGenerator";
+import "./PrintReportCard.css";
 
 type Term = { id: string; name: string; year: number; is_current: boolean };
 type Cls = { id: string; name: string };
@@ -90,68 +92,92 @@ function IconAction({ icon: Icon, label, onClick, asChild, href, target, variant
 }
 
 function ReportJobRunner({ job, termId, onDone }: { job: ReportJob; termId: string; onDone: () => void }) {
-  const [built, setBuilt] = useState(0);
+  const [readyIds, setReadyIds] = useState<Record<string, boolean>>({});
+  const [working, setWorking] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [statusMsg, setStatusMsg] = useState("Preparing report cards...");
+  const [errorMsg, setErrorMsg] = useState("");
+  const sheetsRef = useRef<HTMLDivElement>(null);
   const startedRef = useRef(false);
   const mountedRef = useRef(true);
 
   useEffect(() => {
     mountedRef.current = true;
-    return () => { mountedRef.current = false; };
+    return () => { mountedRef.current = false; document.body.classList.remove("bulk-report-printing"); };
   }, []);
 
-  const doc = usePdfDoc(
-    async () => {
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (working) { e.preventDefault(); e.returnValue = ""; }
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [working]);
+
+  const readyCount = Object.keys(readyIds).length;
+  const allReady = readyCount >= job.learners.length;
+
+  const runJob = async () => {
+    try {
       if (!job.learners.length) throw new Error("No learners available for report generation.");
-      return mergedReportCardsBlob(job.learners, termId, (done) => {
-        if (mountedRef.current) setBuilt(done);
-      });
-    },
-    [job.id],
-  );
+      if (!allReady) throw new Error("Please wait, report still loading");
+      setWorking(true);
+      setErrorMsg("");
+      setProgress(0);
+      setStatusMsg("Opening print options...");
+      await waitForImagesAndFonts(sheetsRef.current);
+      document.body.classList.add("bulk-report-printing");
+      window.print();
+      setTimeout(() => {
+        document.body.classList.remove("bulk-report-printing");
+        if (mountedRef.current) onDone();
+      }, 1000);
+    } catch (error: unknown) {
+      console.error("[ReportCards job] fatal", error);
+      if (mountedRef.current) {
+        const message = errorMessage(error) || "Bulk process failed";
+        setErrorMsg(message);
+        toast({ title: "Report action failed", description: message, variant: "destructive" });
+      }
+    }
+  };
 
   useEffect(() => {
-    if (!doc.url || startedRef.current) return;
+    if (!allReady || startedRef.current) return;
     startedRef.current = true;
-    const t = setTimeout(() => { if (mountedRef.current) doc.print(); }, 700);
+    const t = setTimeout(runJob, 500);
     return () => clearTimeout(t);
-  }, [doc.url, doc]);
-
-  useEffect(() => {
-    if (doc.error) toast({ title: "Report action failed", description: doc.error, variant: "destructive" });
-  }, [doc.error]);
-
-  const pct = job.learners.length ? Math.round((built / job.learners.length) * 100) : 0;
+    // runJob is intentionally captured for this one immutable job id.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allReady, job.id]);
 
   return (
-    <div className="fixed inset-0 z-50 overflow-auto bg-background/95 p-6 backdrop-blur-sm">
-      <Card className="mx-auto max-w-xl">
+    <div className="report-job-overlay fixed inset-0 z-50 bg-background/95 backdrop-blur-sm p-6 overflow-auto">
+      <Card className="no-print max-w-xl mx-auto">
         <CardHeader>
           <CardTitle>{job.label}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <p className="text-sm"><strong>{job.learners.length}</strong> report card(s) — {doc.url ? "ready" : `building ${built}/${job.learners.length}…`}</p>
-          <p className="text-sm text-muted-foreground">{doc.error || (doc.url ? "Opening print options..." : "Preparing report cards...")}</p>
-          <div className="h-2 overflow-hidden rounded bg-muted">
-            <div className="h-full bg-primary transition-all" style={{ width: `${doc.url ? 100 : pct}%` }} />
-          </div>
-          <div className="flex gap-2">
-            {doc.url && <Button onClick={doc.print}><Printer className="mr-1 h-4 w-4" /> Print</Button>}
-            <Button variant="outline" onClick={onDone}>Close</Button>
-          </div>
+          <p className="text-sm"><strong>{job.learners.length}</strong> report card(s) — {allReady ? "ready" : `loading ${readyCount}/${job.learners.length}…`}</p>
+          <p className="text-sm text-muted-foreground">{errorMsg || statusMsg} {working && `${progress}%`}</p>
+          <div className="h-2 rounded bg-muted overflow-hidden"><div className="h-full bg-primary transition-all" style={{ width: `${allReady ? 100 : progress}%` }} /></div>
+          {errorMsg && <Button variant="outline" onClick={onDone}>Close</Button>}
         </CardContent>
       </Card>
-      {doc.url && (
-        <iframe
-          ref={doc.iframeRef}
-          title="Report cards"
-          src={doc.url}
-          className="mx-auto mt-4 h-[70vh] w-full max-w-4xl rounded border"
-        />
-      )}
+      <div ref={sheetsRef} className="report-job-renderer">
+        {job.learners.map((learner, i) => (
+          <ReportCardSheet
+            key={`${job.id}-${learner.id}`}
+            learnerId={learner.id}
+            termId={termId}
+            pageBreak={i < job.learners.length - 1}
+            onReady={() => setReadyIds(prev => prev[learner.id] ? prev : { ...prev, [learner.id]: true })}
+          />
+        ))}
+      </div>
     </div>
   );
 }
-
 
 export default function ReportCardsPage() {
   const [loading, setLoading] = useState(true);
