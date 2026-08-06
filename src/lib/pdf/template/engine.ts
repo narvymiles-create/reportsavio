@@ -152,7 +152,7 @@ function paintText(page: PDFPage, fonts: Fonts, xf: Xf, f: TplField, v: string |
   // Vertically centre inside the cell when the caller passed an explicit box,
   // otherwise keep the template's own baseline.
   let baseTop: number;
-  if (tv.box) {
+  if (tv.box && tv.vcenter !== false) {
     const block = (lines.length - 1) * leading;
     baseTop = (cell[1] + cell[3]) / 2 + block / 2 - size * 0.34;
   } else {
