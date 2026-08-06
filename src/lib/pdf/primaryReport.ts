@@ -354,8 +354,16 @@ export function buildPrimaryValues(d: PrimaryData) {
   /* Conduct, comments, signatures, dates */
   v.CONDUCT = { text: d.learner.conduct ?? "", maxLines: 1 };
   v.CO_CURRICULAR = { text: d.learner.co_curricular ?? "", maxLines: 1 };
-  v.CLASS_TEACHER_COMMENT = { text: d.report?.class_teacher_comment ?? "", maxLines: 2 };
-  v.HEADTEACHER_COMMENT = { text: d.report?.head_teacher_comment ?? "", maxLines: 2 };
+  const commentBox = (name: string): Box | undefined => {
+    const cf = field(name);
+    return cf ? [cf.x - 1, cf.box[1], cf.box[2] - 2, cf.box[3]] : undefined;
+  };
+  v.CLASS_TEACHER_COMMENT = {
+    text: d.report?.class_teacher_comment ?? "", maxLines: 2, box: commentBox("CLASS_TEACHER_COMMENT"),
+  };
+  v.HEADTEACHER_COMMENT = {
+    text: d.report?.head_teacher_comment ?? "", maxLines: 2, box: commentBox("HEADTEACHER_COMMENT"),
+  };
   v.CLASS_TEACHER_NAME = { text: (d.classTeacher?.full_name ?? "").toUpperCase(), maxLines: 1 };
   v.HEADTEACHER_NAME = { text: (s.head_teacher_name ?? "").toUpperCase(), maxLines: 1 };
 
