@@ -221,31 +221,23 @@ export function buildPrimaryValues(d: PrimaryData) {
   const s: Any = (d.school as Any) ?? {};
   const v: ValueMap = {};
 
-  /* Header */
-  v.SCHOOL_NAME = { text: (s.name ?? "").toUpperCase(), align: "center", width: 232, maxLines: 2 };
-  v.SCHOOL_ADDRESS = { text: s.location ?? "", width: 240 };
-  v.PO_BOX = s.po_box ?? "";
-  v.TELEPHONE = s.tel ?? "";
-  v.EMAIL = { text: s.email ?? "", width: 120 };
-  v.WEBSITE = s.website ?? "";
-  v.SCHOOL_MOTTO = { text: s.motto ?? "", width: 300 };
+  /* Header — only fields that exist in the template are ever stamped, each one
+     clipped to its own horizontal slot so they can never collide. */
+  v.SCHOOL_NAME = { text: (s.name ?? "").toUpperCase(), align: "center", maxLines: 1 };
+  v.SCHOOL_ADDRESS = { text: s.location ?? "", maxLines: 1 };
+  v.PO_BOX = { text: s.po_box ?? "", maxLines: 1 };
+  v.TELEPHONE = { text: s.tel ?? "", maxLines: 1 };
+  v.EMAIL = { text: s.email ?? "", maxLines: 1 };
+  v.WEBSITE = { text: s.website ?? "", maxLines: 1 };
+  v.SCHOOL_MOTTO = { text: s.motto ?? "", align: "center", maxLines: 1 };
   v.TERM = (d.term.name ?? "").replace(/term\s*/i, "").trim() || (d.term.name ?? "");
   v.YEAR = String(d.term.year ?? "");
 
-  const logoAnchor = field("SCHOOL_LOGO");
-  if (logoAnchor) {
-    v.SCHOOL_LOGO = {
-      image: d.assets.logo,
-      box: [logoAnchor.x - 2, logoAnchor.y - 46, logoAnchor.x + 56, logoAnchor.y + 12],
-    };
-  }
-  const photoAnchor = field("STUDENT_PHOTO");
-  if (photoAnchor) {
-    v.STUDENT_PHOTO = {
-      image: d.assets.photo,
-      box: [photoAnchor.x - 4, photoAnchor.y - 56, photoAnchor.x + 62, photoAnchor.y + 12],
-    };
-  }
+  /* Image cells: the placeholder area is erased first, then the picture is
+     contained (never stretched) inside the box. */
+  v.SCHOOL_LOGO = { image: d.assets.logo, box: [34, 770, 128, 814] };
+  v.STUDENT_PHOTO = { image: d.assets.photo, box: [34, 722, 128, 768] };
+
 
   /* Learner info */
   const regValue = d.learner.active_reg_type === "LIN"
