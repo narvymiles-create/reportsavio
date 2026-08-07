@@ -263,7 +263,7 @@ export function buildPrimaryValues(d: PrimaryData) {
     ? d.learner.lin_no
     : d.learner.active_reg_type === "REG" ? d.learner.reg_no : d.learner.index_no;
   /* The name borrows the free space up to the next label instead of wrapping. */
-  v.STUDENT_NAME = { text: d.learner.full_name ?? "", maxLines: 1, box: widen("STUDENT_NAME", 244) };
+  v.STUDENT_NAME = { text: d.learner.full_name ?? "", maxLines: 1, box: widen("STUDENT_NAME", 230) };
   v.CLASS = d.klass?.name ?? "";
   v.STREAM = d.flags.stream ? (d.stream?.name ?? "") : "";
   v.SECTION = d.flags.section ? (d.learner.section ?? "") : "";
