@@ -287,10 +287,10 @@ export function buildPrimaryValues(d: PrimaryData) {
       v[`${prefix}_${col}_GRADE`] = "";
     }
     const ph = prefix === "BOT" ? c.bot : c.mid;
-    v[`${prefix}_TOTAL`] = { text: ph.total ? String(ph.total) : "", bold: true };
-    v[`${prefix}_AVERAGE`] = { text: ph.avg ? String(ph.avg) : "", bold: true };
-    v[`${prefix}_AGGREGATES`] = { text: ph.aggregateText, bold: true };
-    v[`${prefix}_DIVISION`] = { text: ph.division, bold: true };
+    v[`${prefix}_TOTAL`] = { text: ph.total ? String(ph.total) : "", bold: true, box: afterLabel(`${prefix}_TOTAL`) };
+    v[`${prefix}_AVERAGE`] = { text: ph.avg ? String(ph.avg) : "", bold: true, box: afterLabel(`${prefix}_AVERAGE`) };
+    v[`${prefix}_AGGREGATES`] = { text: ph.aggregateText, bold: true, box: afterLabel(`${prefix}_AGGREGATES`) };
+    v[`${prefix}_DIVISION`] = { text: ph.division, bold: true, box: afterLabel(`${prefix}_DIVISION`) };
   });
 
 
@@ -321,20 +321,20 @@ export function buildPrimaryValues(d: PrimaryData) {
     EOT_COLS.forEach((c2) => { v[`EOT_${key}_${c2}`] = ""; });
   }
 
-  v.EOT_TOTAL = { text: c.eot.total ? String(c.eot.total) : "", bold: true };
-  v.EOT_AVERAGE = { text: c.eot.avg ? String(c.eot.avg) : "", bold: true };
+  v.EOT_TOTAL = { text: c.eot.total ? String(c.eot.total) : "", bold: true, box: afterLabel("EOT_TOTAL") };
+  v.EOT_AVERAGE = { text: c.eot.avg ? String(c.eot.avg) : "", bold: true, box: afterLabel("EOT_AVERAGE") };
   v.EOT_AGGREGATES = {
     text: d.flags.show_position && c.eot.position && c.eot.classSize
       ? `${c.eot.aggregateText}  (POS ${c.eot.position}/${c.eot.classSize})`
       : c.eot.aggregateText,
-    bold: true,
+    bold: true, box: afterLabel("EOT_AGGREGATES"),
   };
-  v.EOT_DIVISION = { text: c.eot.division, bold: true };
+  v.EOT_DIVISION = { text: c.eot.division, bold: true, box: afterLabel("EOT_DIVISION") };
 
 
   /* Conduct, comments, signatures, dates */
-  v.CONDUCT = { text: d.learner.conduct ?? "", maxLines: 1 };
-  v.CO_CURRICULAR = { text: d.learner.co_curricular ?? "", maxLines: 1 };
+  v.CONDUCT = { text: d.learner.conduct ?? "", maxLines: 1, box: afterLabel("CONDUCT") };
+  v.CO_CURRICULAR = { text: d.learner.co_curricular ?? "", maxLines: 1, box: afterLabel("CO_CURRICULAR") };
   v.CLASS_TEACHER_COMMENT = { text: d.report?.class_teacher_comment ?? "", maxLines: 3 };
   v.HEADTEACHER_COMMENT = { text: d.report?.head_teacher_comment ?? "", maxLines: 3 };
 
@@ -350,8 +350,8 @@ export function buildPrimaryValues(d: PrimaryData) {
   sigSlot("HEADTEACHER_SIGNATURE", "HEADTEACHER_NAME",
     d.assets.headSig, (s.head_teacher_name ?? "").toUpperCase());
 
-  v.TERM_END_DATE = { text: fmtDate(d.term.ends_on ?? d.term.end_date), maxLines: 1 };
-  v.NEXT_TERM_DATE = { text: fmtDate(d.term.next_begins_on), maxLines: 1 };
+  v.TERM_END_DATE = { text: fmtDate(d.term.ends_on ?? d.term.end_date), maxLines: 1, box: afterLabel("TERM_END_DATE") };
+  v.NEXT_TERM_DATE = { text: fmtDate(d.term.next_begins_on), maxLines: 1, box: afterLabel("NEXT_TERM_DATE") };
 
   /* Grading scale row */
   const bandFor = (grade: string) => d.bands.find((b) => (b.grade ?? "").toUpperCase() === grade);
