@@ -131,7 +131,9 @@ function paintText(page: PDFPage, fonts: Fonts, f: TplField, v: string | TextVal
   const color = tv.color ?? (f.color as [number, number, number]) ?? [0, 0, 0];
   const maxLines = Math.max(1, tv.maxLines ?? 1);
   const boxWidth = box ? box[2] - box[0] - 3 : f.maxWidth;
-  const avail = Math.max(6, tv.width ?? Math.min(f.maxWidth || boxWidth, boxWidth));
+  // An explicit box overrides the template slot width (used to borrow free space).
+  const avail = Math.max(6, tv.width ?? (tv.box ? boxWidth : Math.min(f.maxWidth || boxWidth, boxWidth)));
+
   const boxHeight = box ? box[3] - box[1] : Infinity;
 
   const startSize = tv.size ?? f.size;
