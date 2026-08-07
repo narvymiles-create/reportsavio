@@ -1,16 +1,21 @@
 /**
  * Template-driven PDF rendering engine.
  *
- * The uploaded (official) report card designs are stored as A4 PDFs with all
- * placeholder text stripped out. This engine loads such a PDF verbatim and only
- * paints dynamic values on top of it, at coordinates extracted from the very
- * same document — so the layout, borders, tables, fonts, images, watermarks and
- * spacing of the original design are preserved byte for byte.
+ * The official report card design is converted **once** from DOCX to a single
+ * A4 PDF (uniformly scaled, placeholder tokens erased) and shipped as a CDN
+ * asset. That PDF is an immutable background canvas: this engine never redraws
+ * tables, borders, fonts or spacing — it only stamps dynamic values into the
+ * cell boxes recorded in the matching `*.fields.json` map.
  *
- * Coordinates in the field maps are PDF points with a bottom-left origin, and
- * `y` is the text baseline.
+ * Rules enforced here:
+ *  - one global scale (already baked into the field map) — no per-section maths
+ *  - fixed grids: rows never grow, nothing is ever reflowed or shifted
+ *  - single line by default, shrink-to-fit, hard clipped to the cell box
+ *  - all text is stamped horizontally (0° rotation)
+ *  - image cells are erased (background rect) before the image is drawn, and
+ *    the image is contained (never stretched) inside its box
  */
-import { PDFDocument, PDFFont, PDFImage, PDFPage, StandardFonts, rgb } from "pdf-lib";
+import { PDFDocument, PDFFont, PDFImage, PDFPage, StandardFonts, degrees, rgb } from "pdf-lib";
 import { embedImage } from "../core";
 
 export type TplField = {
@@ -39,16 +44,26 @@ export type TextValue = {
   bold?: boolean;
   italic?: boolean;
   color?: [number, number, number];
+  /** Number of lines allowed. Defaults to 1 (nowrap). */
   maxLines?: number;
+  /** Horizontal clip width. Defaults to the field's cell width. */
   width?: number;
-  /** Vertically centre the block inside `box` instead of using the baseline. */
+  /** Override the layout box (clip + centring). */
   box?: Box;
+  /** Paint a background rectangle over the cell before stamping. */
+  erase?: boolean;
+  /** Vertically centre inside the box (default true when a box is known). */
+  middle?: boolean;
 };
 
 export type ImageValue = {
   image: string | null | undefined;
   box: Box;
   opacity?: number;
+  /** Erase the placeholder area (tag + any static label) first. Default true. */
+  erase?: boolean;
+  /** Erase colour, defaults to white. */
+  eraseColor?: [number, number, number];
 };
 
 export type FieldValue = string | number | null | undefined | TextValue | ImageValue;
@@ -65,6 +80,9 @@ type Fonts = { r: PDFFont; b: PDFFont; i: PDFFont; bi: PDFFont };
 const pick = (f: Fonts, bold?: boolean, italic?: boolean) =>
   bold && italic ? f.bi : bold ? f.b : italic ? f.i : f.r;
 
+/** Minimum readable size before we start clipping instead of shrinking. */
+const MIN_SIZE = 4.2;
+
 function wrap(text: string, font: PDFFont, size: number, width: number): string[] {
   const clean = (text ?? "").replace(/\s+/g, " ").trim();
   if (!clean) return [];
@@ -80,51 +98,88 @@ function wrap(text: string, font: PDFFont, size: number, width: number): string[
   return lines;
 }
 
-/** Draw one field's value onto the page. */
+/** Hard truncation for the pathological case (single unbreakable long token). */
+function clipToWidth(text: string, font: PDFFont, size: number, width: number): string {
+  if (font.widthOfTextAtSize(text, size) <= width) return text;
+  let out = text;
+  while (out.length > 1 && font.widthOfTextAtSize(`${out}…`, size) > width) out = out.slice(0, -1);
+  return `${out}…`;
+}
+
+function eraseRect(page: PDFPage, box: Box, color: [number, number, number] = [1, 1, 1]) {
+  const [l, b, r, t] = box;
+  if (r <= l || t <= b) return;
+  page.drawRectangle({
+    x: l, y: b, width: r - l, height: t - b,
+    color: rgb(color[0], color[1], color[2]),
+    borderWidth: 0,
+  });
+}
+
+/** Draw one field's value onto the page. Never grows the row. */
 function paintText(page: PDFPage, fonts: Fonts, f: TplField, v: string | TextValue) {
   const tv: TextValue = typeof v === "string" ? { text: v } : v;
   const raw = (tv.text ?? "").toString();
   if (!raw.trim()) return;
 
+  const box: Box | undefined = (tv.box ?? (f.box as Box)) as Box | undefined;
+  if (tv.erase && box) eraseRect(page, box);
+
   const bold = tv.bold ?? f.bold;
   const italic = tv.italic ?? f.italic;
   const font = pick(fonts, bold, italic);
   const color = tv.color ?? (f.color as [number, number, number]) ?? [0, 0, 0];
-  const maxLines = tv.maxLines ?? 1;
-  const avail = Math.max(8, tv.width ?? (tv.box ? tv.box[2] - tv.box[0] - 4 : f.maxWidth));
+  const maxLines = Math.max(1, tv.maxLines ?? 1);
+  const boxWidth = box ? box[2] - box[0] - 3 : f.maxWidth;
+  const avail = Math.max(6, tv.width ?? Math.min(f.maxWidth || boxWidth, boxWidth));
+  const boxHeight = box ? box[3] - box[1] : Infinity;
 
-  let size = tv.size ?? f.size;
-  let lines = wrap(raw, font, size, avail);
-  // Shrink to fit before we allow overflow.
-  while (lines.length > maxLines && size > (tv.size ?? f.size) * 0.62) {
-    size -= 0.35;
-    lines = wrap(raw, font, size, avail);
+  const startSize = tv.size ?? f.size;
+  let size = startSize;
+  let lines = maxLines === 1 ? [raw.replace(/\s+/g, " ").trim()] : wrap(raw, font, size, avail);
+
+  // Shrink-to-fit: never wrap beyond maxLines, never expand the row.
+  const tooWide = () =>
+    maxLines === 1
+      ? font.widthOfTextAtSize(lines[0], size) > avail
+      : lines.length > maxLines;
+  const tooTall = () => (lines.length - 1) * size * 1.12 + size > boxHeight - 1.5;
+
+  while ((tooWide() || tooTall()) && size > MIN_SIZE) {
+    size = Math.round((size - 0.25) * 100) / 100;
+    if (maxLines > 1) lines = wrap(raw, font, size, avail);
   }
-  if (lines.length > maxLines) lines = lines.slice(0, maxLines);
+  if (maxLines === 1) lines = [clipToWidth(lines[0], font, size, avail)];
+  else if (lines.length > maxLines) {
+    lines = lines.slice(0, maxLines);
+    lines[maxLines - 1] = clipToWidth(lines[maxLines - 1], font, size, avail);
+  }
 
-  const leading = size * 1.15;
+  const leading = size * 1.12;
   const align = tv.align ?? "left";
+  const middle = tv.middle ?? true;
 
   let baseTop: number;
-  if (tv.box) {
-    const [, bot, , top] = tv.box;
+  if (box && middle) {
     const block = (lines.length - 1) * leading;
-    baseTop = (bot + top) / 2 + block / 2 - size * 0.34;
+    baseTop = (box[1] + box[3]) / 2 + block / 2 - size * 0.34;
   } else {
     baseTop = f.y;
   }
 
   lines.forEach((line, idx) => {
     const w = font.widthOfTextAtSize(line, size);
-    let x = tv.box ? tv.box[0] + 2 : f.x;
-    if (align === "center") x = (tv.box ? (tv.box[0] + tv.box[2]) / 2 : f.x + avail / 2) - w / 2;
-    else if (align === "right") x = (tv.box ? tv.box[2] - 2 : f.x + avail) - w;
+    const left = box ? box[0] + 1.5 : f.x;
+    const right = box ? box[2] - 1.5 : f.x + avail;
+    let x = align === "center" ? (left + right) / 2 - w / 2 : align === "right" ? right - w : left;
+    if (x < left) x = left;
     page.drawText(line, {
       x,
       y: baseTop - idx * leading,
       size,
       font,
       color: rgb(color[0], color[1], color[2]),
+      rotate: degrees(0),
     });
   });
 }
@@ -134,29 +189,24 @@ function paintImage(page: PDFPage, img: PDFImage, box: Box, opacity = 1) {
   const bw = r - l;
   const bh = t - b;
   if (bw <= 0 || bh <= 0) return;
+  // object-fit: contain — proportional, centred, never stretched.
   const ratio = img.width / img.height;
   let w = bw;
   let h = bw / ratio;
   if (h > bh) { h = bh; w = bh * ratio; }
-  page.drawImage(img, { x: l + (bw - w) / 2, y: b + (bh - h) / 2, width: w, height: h, opacity });
+  page.drawImage(img, { x: l + (bw - w) / 2, y: b + (bh - h) / 2, width: w, height: h, opacity, rotate: degrees(0) });
 }
 
-export type FillOptions = {
-  /** Extra synthetic fields (e.g. cloned table rows) appended to the map. */
-  extraFields?: TplField[];
-  /** Vertical shift applied to every field whose baseline sits below `cutY`. */
-  shiftBelow?: { cutY: number; delta: number };
-};
+export type FillOptions = Record<string, never>;
 
 /**
- * Loads the template PDF and paints `values` onto it.
- * Returns the finished PDF bytes.
+ * Loads the immutable template PDF and paints `values` onto it.
+ * The grid is locked: no row cloning, no shifting, no page growth.
  */
 export async function fillTemplate(
   templateBytes: ArrayBuffer | Uint8Array,
   def: TplDef,
   values: ValueMap,
-  opts: FillOptions = {},
 ): Promise<Uint8Array> {
   const doc = await PDFDocument.load(templateBytes as ArrayBuffer);
   const page = doc.getPages()[0];
@@ -168,61 +218,24 @@ export async function fillTemplate(
   ]);
   const fonts: Fonts = { r, b, i, bi };
 
-  const fields = [...def.fields, ...(opts.extraFields ?? [])];
-  const shift = (f: TplField): TplField => {
-    const s = opts.shiftBelow;
-    if (!s || f.y >= s.cutY) return f;
-    return { ...f, y: f.y - s.delta, box: [f.box[0], f.box[1] - s.delta, f.box[2], f.box[3] - s.delta] };
-  };
+  // Images first (with placeholder erasure) so text always sits on top.
+  for (const f of def.fields) {
+    const v = values[f.name];
+    if (!isImageValue(v)) continue;
+    if (v.erase !== false) eraseRect(page, v.box, v.eraseColor ?? [1, 1, 1]);
+    if (!v.image) continue;
+    const img = await embedImage(doc, v.image);
+    if (img) paintImage(page, img, v.box, v.opacity);
+  }
 
-  // Images first so text always sits on top.
-  const imageJobs = fields
-    .map(shift)
-    .filter((f) => isImageValue(values[f.name]))
-    .map(async (f) => {
-      const v = values[f.name] as ImageValue;
-      if (!v.image) return;
-      const img = await embedImage(doc, v.image);
-      if (img) paintImage(page, img, v.box, v.opacity);
-    });
-  await Promise.all(imageJobs);
-
-  for (const field of fields) {
+  for (const field of def.fields) {
     const v = values[field.name];
     if (v == null || isImageValue(v)) continue;
-    const f = shift(field);
-    if (isTextValue(v)) paintText(page, fonts, f, v);
-    else paintText(page, fonts, f, String(v));
+    if (isTextValue(v)) paintText(page, fonts, field, v);
+    else paintText(page, fonts, field, String(v));
   }
 
   return doc.save();
-}
-
-/**
- * Clones a band of template fields downwards to create additional table rows.
- *
- * `rows` are the template's existing row indices (0-based, top row first);
- * fields are matched by the `nameFor(rowIndex)` naming convention.
- */
-export function cloneRow(
-  def: TplDef,
-  sourceRowNames: string[],
-  targetSuffix: string,
-  sourceSuffix: string,
-  dy: number,
-): TplField[] {
-  const out: TplField[] = [];
-  for (const base of sourceRowNames) {
-    const src = def.fields.find((f) => f.name === `${base}${sourceSuffix}`);
-    if (!src) continue;
-    out.push({
-      ...src,
-      name: `${base}${targetSuffix}`,
-      y: src.y - dy,
-      box: [src.box[0], src.box[1] - dy, src.box[2], src.box[3] - dy],
-    });
-  }
-  return out;
 }
 
 /** Cached template fetches so bulk generation only downloads once. */
