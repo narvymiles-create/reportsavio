@@ -203,47 +203,18 @@ function computeAll(d: PrimaryData) {
 
 /* ---------------------------------------------------------------- render */
 
-const EOT_ROW_KEYS = ["ENG", "MATH", "SCI", "SST", "ICT"];
-const EOT_ROW_H = 16.1;
-const EOT_BAND_BOTTOM = 324.34;
-const EOT_LAST_ROW_SUFFIX = "ICT";
+/** The template grid is fixed: five subject rows, six EOT columns. */
+const EOT_ROW_KEYS = ["ENG", "MATH", "SCI", "SST", "ICT"] as const;
+const EOT_COLS = ["FULLMARKS", "MARKS", "GRADE", "REMARKS", "INITIALS"] as const;
 const EOT_HEADERS = ["SUBJECTS", "FULL MARKS", "MARKS GOT", "GRADE", "REMARKS", "INITIALS"];
 
 const field = (name: string) => DEF.fields.find((f) => f.name === name);
-
-/** Clone the last EOT template row downwards for subject #6, #7, … */
-function extraEotRows(count: number): { fields: TplField[]; keys: string[] } {
-  const fields: TplField[] = [];
-  const keys: string[] = [];
-  for (let i = 0; i < count; i++) {
-    const dy = EOT_ROW_H * (i + 1);
-    const key = `X${i + 6}`;
-    keys.push(key);
-    const clone = (from: string, to: string) => {
-      const src = field(from);
-      if (!src) return;
-      fields.push({
-        ...src,
-        name: to,
-        y: src.y - dy,
-        box: [src.box[0], src.box[1] - dy, src.box[2], src.box[3] - dy],
-      });
-    };
-    clone(`EOT_SUBJ_5`, `EOT_SUBJ_${i + 6}`);
-    ["FULLMARKS", "MARKS", "GRADE", "REMARKS", "INITIALS"].forEach((c) =>
-      clone(`EOT_${EOT_LAST_ROW_SUFFIX}_${c}`, `EOT_${key}_${c}`));
-  }
-  return { fields, keys };
-}
 
 const boxOf = (name: string, fallback: Box): Box => {
   const f = field(name);
   return f ? (f.box as Box) : fallback;
 };
 
-function summaryText(label: string, value: string) {
-  return value ? `${label}: ${value}` : `${label}:`;
-}
 
 export function buildPrimaryValues(d: PrimaryData) {
   const c = computeAll(d);
