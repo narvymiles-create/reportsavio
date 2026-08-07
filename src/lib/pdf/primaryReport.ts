@@ -325,23 +325,18 @@ export function buildPrimaryValues(d: PrimaryData) {
   v.CO_CURRICULAR = { text: d.learner.co_curricular ?? "", maxLines: 1 };
   v.CLASS_TEACHER_COMMENT = { text: d.report?.class_teacher_comment ?? "", maxLines: 3 };
   v.HEADTEACHER_COMMENT = { text: d.report?.head_teacher_comment ?? "", maxLines: 3 };
-  v.CLASS_TEACHER_NAME = { text: (d.classTeacher?.full_name ?? "").toUpperCase(), maxLines: 1 };
-  v.HEADTEACHER_NAME = { text: (s.head_teacher_name ?? "").toUpperCase(), maxLines: 1 };
 
-  const ctSig = field("CLASS_TEACHER_SIGNATURE");
-  if (ctSig) {
-    v.CLASS_TEACHER_SIGNATURE = {
-      image: d.assets.classSig,
-      box: [ctSig.x, ctSig.y - 2, Math.min(ctSig.x + 120, 566), ctSig.y + 12],
-    };
-  }
-  const htSig = field("HEADTEACHER_SIGNATURE");
-  if (htSig) {
-    v.HEADTEACHER_SIGNATURE = {
-      image: d.assets.headSig,
-      box: [htSig.x, htSig.y - 2, Math.min(htSig.x + 120, 566), htSig.y + 12],
-    };
-  }
+  /* Signature + name share one cell: picture on top, name underneath. */
+  const sigSlot = (sigName: string, nameName: string, image: string | null, text: string) => {
+    const cell = boxOf(sigName, [389, 188, 547, 224]);
+    const split = cell[1] + (cell[3] - cell[1]) * 0.42;
+    v[sigName] = { image, box: [cell[0] + 4, split, cell[2] - 4, cell[3] - 2] };
+    v[nameName] = { text, align: "center", maxLines: 1, box: [cell[0] + 2, cell[1] + 1, cell[2] - 2, split] };
+  };
+  sigSlot("CLASS_TEACHER_SIGNATURE", "CLASS_TEACHER_NAME",
+    d.assets.classSig, (d.classTeacher?.full_name ?? "").toUpperCase());
+  sigSlot("HEADTEACHER_SIGNATURE", "HEADTEACHER_NAME",
+    d.assets.headSig, (s.head_teacher_name ?? "").toUpperCase());
 
   v.TERM_END_DATE = { text: fmtDate(d.term.ends_on ?? d.term.end_date), maxLines: 1 };
   v.NEXT_TERM_DATE = { text: fmtDate(d.term.next_begins_on), maxLines: 1 };
@@ -353,12 +348,7 @@ export function buildPrimaryValues(d: PrimaryData) {
     v[`MARKS_${g}`] = { text: b ? `${b.min_mark}-${b.max_mark}` : "", align: "center" };
   });
 
-  const delta = extraCount * EOT_ROW_H;
-  return {
-    values: v,
-    extraFields,
-    shiftBelow: delta ? { cutY: EOT_BAND_BOTTOM, delta } : undefined,
-  };
+  return { values: v };
 }
 
 /** Renders the primary report card and returns the finished PDF bytes. */
@@ -370,9 +360,10 @@ export async function primaryReportBytes(learnerId: string, termId: string): Pro
 export async function renderPrimaryBytes(d: PrimaryData): Promise<Uint8Array> {
   const url = resolveTemplateUrl("primary", d.templateSetting);
   const bytes = await loadTemplateBytes(url);
-  const { values, extraFields, shiftBelow } = buildPrimaryValues(d);
-  return fillTemplate(bytes, DEF, values, { extraFields, shiftBelow });
+  const { values } = buildPrimaryValues(d);
+  return fillTemplate(bytes, DEF, values);
 }
+
 
 export async function primaryReportBlob(learnerId: string, termId: string): Promise<Blob> {
   return bytesToPdfBlob(await primaryReportBytes(learnerId, termId));
