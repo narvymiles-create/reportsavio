@@ -220,6 +220,13 @@ const boxOf = (name: string, fallback: Box): Box => {
  * Clip the value to the space that starts where the placeholder used to sit so
  * it can never overprint the label.
  */
+/** Extend a value slot rightwards to the given x (free space before the next label). */
+const widen = (name: string, right: number): Box | undefined => {
+  const f = field(name);
+  if (!f) return undefined;
+  return [f.x, f.box[1], Math.max(right, f.x + 10), f.box[3]] as Box;
+};
+
 const afterLabel = (name: string): Box | undefined => {
   const f = field(name);
   if (!f) return undefined;
@@ -239,7 +246,7 @@ export function buildPrimaryValues(d: PrimaryData) {
   v.SCHOOL_ADDRESS = { text: s.location ?? "", maxLines: 1 };
   v.PO_BOX = { text: s.po_box ?? "", maxLines: 1 };
   v.TELEPHONE = { text: s.tel ?? "", maxLines: 1 };
-  v.EMAIL = { text: s.email ?? "", maxLines: 1 };
+  v.EMAIL = { text: s.email ?? "", maxLines: 1, box: widen("EMAIL", 298) };
   v.WEBSITE = { text: s.website ?? "", maxLines: 1 };
   v.SCHOOL_MOTTO = { text: s.motto ?? "", align: "center", maxLines: 1 };
   v.TERM = (d.term.name ?? "").replace(/term\s*/i, "").trim() || (d.term.name ?? "");
@@ -255,14 +262,15 @@ export function buildPrimaryValues(d: PrimaryData) {
   const regValue = d.learner.active_reg_type === "LIN"
     ? d.learner.lin_no
     : d.learner.active_reg_type === "REG" ? d.learner.reg_no : d.learner.index_no;
-  v.STUDENT_NAME = { text: d.learner.full_name ?? "", width: field("STUDENT_NAME")?.maxWidth };
+  /* The name borrows the free space up to the next label instead of wrapping. */
+  v.STUDENT_NAME = { text: d.learner.full_name ?? "", maxLines: 1, box: widen("STUDENT_NAME", 244) };
   v.CLASS = d.klass?.name ?? "";
   v.STREAM = d.flags.stream ? (d.stream?.name ?? "") : "";
   v.SECTION = d.flags.section ? (d.learner.section ?? "") : "";
   v.HOUSE = d.flags.house ? (d.learner.house ?? "") : "";
   v.AGE = d.learner.age != null ? String(d.learner.age) : "";
   v.SEX = d.learner.sex ?? "";
-  v.LIN = d.learner.lin_no ?? "";
+  v.LIN = { text: d.learner.lin_no ?? "", maxLines: 1, box: widen("LIN", 384) };
   v.PAY_CODE = d.flags.pay_code ? (d.learner.pay_code ?? "") : "";
   v.ADM_NO = String(regValue ?? "");
 
@@ -287,10 +295,10 @@ export function buildPrimaryValues(d: PrimaryData) {
       v[`${prefix}_${col}_GRADE`] = "";
     }
     const ph = prefix === "BOT" ? c.bot : c.mid;
-    v[`${prefix}_TOTAL`] = { text: ph.total ? String(ph.total) : "", bold: true, box: afterLabel(`${prefix}_TOTAL`) };
-    v[`${prefix}_AVERAGE`] = { text: ph.avg ? String(ph.avg) : "", bold: true, box: afterLabel(`${prefix}_AVERAGE`) };
-    v[`${prefix}_AGGREGATES`] = { text: ph.aggregateText, bold: true, box: afterLabel(`${prefix}_AGGREGATES`) };
-    v[`${prefix}_DIVISION`] = { text: ph.division, bold: true, box: afterLabel(`${prefix}_DIVISION`) };
+    v[`${prefix}_TOTAL`] = { text: ph.total ? String(ph.total) : "", bold: true, align: "right", box: afterLabel(`${prefix}_TOTAL`) };
+    v[`${prefix}_AVERAGE`] = { text: ph.avg ? String(ph.avg) : "", bold: true, align: "right", box: afterLabel(`${prefix}_AVERAGE`) };
+    v[`${prefix}_AGGREGATES`] = { text: ph.aggregateText, bold: true, align: "right", box: afterLabel(`${prefix}_AGGREGATES`) };
+    v[`${prefix}_DIVISION`] = { text: ph.division, bold: true, align: "right", box: afterLabel(`${prefix}_DIVISION`) };
   });
 
 
@@ -321,15 +329,15 @@ export function buildPrimaryValues(d: PrimaryData) {
     EOT_COLS.forEach((c2) => { v[`EOT_${key}_${c2}`] = ""; });
   }
 
-  v.EOT_TOTAL = { text: c.eot.total ? String(c.eot.total) : "", bold: true, box: afterLabel("EOT_TOTAL") };
-  v.EOT_AVERAGE = { text: c.eot.avg ? String(c.eot.avg) : "", bold: true, box: afterLabel("EOT_AVERAGE") };
+  v.EOT_TOTAL = { text: c.eot.total ? String(c.eot.total) : "", bold: true, align: "right", box: afterLabel("EOT_TOTAL") };
+  v.EOT_AVERAGE = { text: c.eot.avg ? String(c.eot.avg) : "", bold: true, align: "right", box: afterLabel("EOT_AVERAGE") };
   v.EOT_AGGREGATES = {
     text: d.flags.show_position && c.eot.position && c.eot.classSize
       ? `${c.eot.aggregateText}  (POS ${c.eot.position}/${c.eot.classSize})`
       : c.eot.aggregateText,
-    bold: true, box: afterLabel("EOT_AGGREGATES"),
+    bold: true, align: "right", box: afterLabel("EOT_AGGREGATES"),
   };
-  v.EOT_DIVISION = { text: c.eot.division, bold: true, box: afterLabel("EOT_DIVISION") };
+  v.EOT_DIVISION = { text: c.eot.division, bold: true, align: "right", box: afterLabel("EOT_DIVISION") };
 
 
   /* Conduct, comments, signatures, dates */
