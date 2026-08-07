@@ -275,11 +275,12 @@ export function buildPrimaryValues(d: PrimaryData) {
       v[`${prefix}_${col}_GRADE`] = "";
     }
     const ph = prefix === "BOT" ? c.bot : c.mid;
-    v[`${prefix}_TOTAL`] = { text: summaryText("TOTAL MARKS", ph.total ? String(ph.total) : ""), align: "center", bold: true };
-    v[`${prefix}_AVERAGE`] = { text: summaryText("AVERAGE", ph.avg ? String(ph.avg) : ""), align: "center", bold: true };
-    v[`${prefix}_AGGREGATES`] = { text: summaryText("AGGREGATES", ph.aggregateText), align: "center", bold: true };
-    v[`${prefix}_DIVISION`] = { text: summaryText("DIVISION", ph.division), align: "center", bold: true };
+    v[`${prefix}_TOTAL`] = { text: ph.total ? String(ph.total) : "", bold: true };
+    v[`${prefix}_AVERAGE`] = { text: ph.avg ? String(ph.avg) : "", bold: true };
+    v[`${prefix}_AGGREGATES`] = { text: ph.aggregateText, bold: true };
+    v[`${prefix}_DIVISION`] = { text: ph.division, bold: true };
   });
+
 
   /* EOT table */
   EOT_HEADERS.forEach((h, i) => { v[`EOT_HDR_${i + 1}`] = { text: h, align: "center", bold: true }; });
