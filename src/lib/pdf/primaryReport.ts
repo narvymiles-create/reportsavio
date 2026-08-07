@@ -13,7 +13,7 @@ import {
 } from "@/lib/grading";
 import { bytesToPdfBlob } from "./core";
 import {
-  fillTemplate, loadTemplateBytes, type Box, type TplDef, type TplField, type ValueMap,
+  fillTemplate, loadTemplateBytes, type Box, type TplDef, type ValueMap,
 } from "./template/engine";
 import primaryFields from "./template/primary.fields.json";
 import { resolveTemplateUrl } from "./template/registry";
@@ -109,7 +109,7 @@ export async function loadPrimaryData(learnerId: string, termId: string) {
   return {
     learner, term, report, school, klass, stream, classTeacher,
     bands: ((gs ?? []) as GradeBand[]),
-    subjects: subjects.slice(0, 7),
+    subjects: subjects.slice(0, 5),
     marks: marks ?? [],
     classSubjects, classMarks, classSize, teachersById,
     flags, order, borderStyle, templateSetting,
