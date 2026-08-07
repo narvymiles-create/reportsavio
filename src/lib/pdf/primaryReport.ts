@@ -285,13 +285,10 @@ export function buildPrimaryValues(d: PrimaryData) {
   /* EOT table */
   EOT_HEADERS.forEach((h, i) => { v[`EOT_HDR_${i + 1}`] = { text: h, align: "center", bold: true }; });
 
-  const extraCount = Math.max(0, d.subjects.length - 5);
-  const { fields: extraFields, keys: extraKeys } = extraEotRows(extraCount);
-  const rowKeys = [...EOT_ROW_KEYS, ...extraKeys];
+  const rowKeys = EOT_ROW_KEYS;
 
-  d.subjects.forEach((s2, i) => {
+  d.subjects.slice(0, rowKeys.length).forEach((s2, i) => {
     const key = rowKeys[i];
-    if (!key) return;
     const m = c.bySubject.get(s2.id);
     const raw = m?.eot;
     const has = raw != null && raw !== "" && !isNaN(Number(raw));
@@ -306,21 +303,22 @@ export function buildPrimaryValues(d: PrimaryData) {
       align: "center",
     };
   });
-  for (let i = d.subjects.length; i < 5; i++) {
+  for (let i = d.subjects.length; i < rowKeys.length; i++) {
     const key = rowKeys[i];
     v[`EOT_SUBJ_${i + 1}`] = "";
-    ["FULLMARKS", "MARKS", "GRADE", "REMARKS", "INITIALS"].forEach((c2) => { v[`EOT_${key}_${c2}`] = ""; });
+    EOT_COLS.forEach((c2) => { v[`EOT_${key}_${c2}`] = ""; });
   }
 
-  v.EOT_TOTAL = { text: summaryText("TOTAL MARKS", c.eot.total ? String(c.eot.total) : ""), align: "center", bold: true };
-  v.EOT_AVERAGE = { text: summaryText("AVERAGE", c.eot.avg ? String(c.eot.avg) : ""), align: "center", bold: true };
+  v.EOT_TOTAL = { text: c.eot.total ? String(c.eot.total) : "", bold: true };
+  v.EOT_AVERAGE = { text: c.eot.avg ? String(c.eot.avg) : "", bold: true };
   v.EOT_AGGREGATES = {
     text: d.flags.show_position && c.eot.position && c.eot.classSize
-      ? `AGG: ${c.eot.aggregateText}  POS: ${c.eot.position}/${c.eot.classSize}`
-      : summaryText("AGGREGATES", c.eot.aggregateText),
-    align: "center", bold: true,
+      ? `${c.eot.aggregateText}  (POS ${c.eot.position}/${c.eot.classSize})`
+      : c.eot.aggregateText,
+    bold: true,
   };
-  v.EOT_DIVISION = { text: summaryText("DIVISION", c.eot.division), align: "center", bold: true };
+  v.EOT_DIVISION = { text: c.eot.division, bold: true };
+
 
   /* Conduct, comments, signatures, dates */
   v.CONDUCT = { text: d.learner.conduct ?? "", maxLines: 1 };
