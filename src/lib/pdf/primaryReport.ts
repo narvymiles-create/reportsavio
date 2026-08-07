@@ -215,6 +215,18 @@ const boxOf = (name: string, fallback: Box): Box => {
   return f ? (f.box as Box) : fallback;
 };
 
+/**
+ * Some cells carry a printed label ("Total:", "Average:") before the value.
+ * Clip the value to the space that starts where the placeholder used to sit so
+ * it can never overprint the label.
+ */
+const afterLabel = (name: string): Box | undefined => {
+  const f = field(name);
+  if (!f) return undefined;
+  return [Math.max(f.x + 2, f.box[0]), f.box[1], f.box[2], f.box[3]] as Box;
+};
+
+
 
 export function buildPrimaryValues(d: PrimaryData) {
   const c = computeAll(d);
