@@ -22,11 +22,6 @@ const FIELD_ORDER_DEFAULT = [
   "name", "stream", "house", "section", "age", "sex", "reg", "class", "pay_code",
 ] as const;
 
-
-const FIELD_ORDER_DEFAULT = [
-  "name", "stream", "house", "section", "age", "sex", "reg", "class", "pay_code",
-] as const;
-
 const fmtDate = (d?: string | null) =>
   d ? new Date(d).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" }) : "";
 
