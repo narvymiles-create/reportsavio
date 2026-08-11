@@ -105,7 +105,7 @@ export async function loadPrimaryData(learnerId: string, termId: string) {
   return {
     learner, term, report, school, klass, stream, classTeacher,
     bands: ((gs ?? []) as GradeBand[]),
-    subjects: subjects.slice(0, 5),
+    subjects: subjects.slice(0, 7),
     marks: marks ?? [],
     classSubjects, classMarks, classSize, teachersById,
     flags, order, borderStyle, templateSetting,
