@@ -203,172 +203,399 @@ function computeAll(d: PrimaryData) {
 
 /* ---------------------------------------------------------------- render */
 
-/** The template grid is fixed: five subject rows, six EOT columns. */
-const EOT_ROW_KEYS = ["ENG", "MATH", "SCI", "SST", "ICT"] as const;
-const EOT_COLS = ["FULLMARKS", "MARKS", "GRADE", "REMARKS", "INITIALS"] as const;
-const EOT_HEADERS = ["SUBJECTS", "FULL MARKS", "MARKS GOT", "GRADE", "REMARKS", "INITIALS"];
+type Ink = { bold?: boolean; italic?: boolean };
 
-const field = (name: string) => DEF.fields.find((f) => f.name === name);
+const GRID = "#222222";
+const HEAD_FILL = "#f1f3f7";
 
-const boxOf = (name: string, fallback: Box): Box => {
-  const f = field(name);
-  return f ? (f.box as Box) : fallback;
+/** Largest size <= `size` at which `text` fits in `w` mm (never below 4.4pt). */
+function fitSize(p: Painter, text: string, size: number, w: number, o: Ink = {}) {
+  let s = size;
+  while (s > 4.4 && p.widthOf(text, s, o) > w) s -= 0.2;
+  return Math.round(s * 10) / 10;
+}
+
+/** Single-line, shrink-to-fit text centred inside a cell box. */
+function cellText(
+  p: Painter,
+  text: string,
+  box: { x: number; y: number; w: number; h: number },
+  o: Ink & { size?: number; align?: "left" | "center" | "right"; color?: string; pad?: number } = {},
+) {
+  const str = (text ?? "").toString().replace(/\s+/g, " ").trim();
+  if (!str) return;
+  const pad = o.pad ?? 1.2;
+  const w = Math.max(2, box.w - pad * 2);
+  const size = fitSize(p, str, o.size ?? 8, w, o);
+  p.text(str, {
+    x: box.x + pad,
+    y: box.y + (box.h - (size * 1.0) / MM) / 2,
+    width: w,
+    size,
+    align: o.align ?? "center",
+    bold: o.bold,
+    italic: o.italic,
+    color: o.color ?? INK,
+  });
+}
+
+/** Bold label followed by its value, kept together on one line inside a box. */
+function labelValue(
+  p: Painter,
+  label: string,
+  value: string,
+  box: { x: number; y: number; w: number; h: number },
+  size = 8,
+) {
+  const val = (value ?? "").toString().replace(/\s+/g, " ").trim();
+  let s = size;
+  const total = () => p.widthOf(`${label} `, s, { bold: true }) + p.widthOf(val, s);
+  while (s > 4.4 && total() > box.w - 2) s -= 0.2;
+  const lw = p.widthOf(`${label} `, s, { bold: true });
+  const y = box.y + (box.h - (s * 1.0) / MM) / 2;
+  p.text(label, { x: box.x + 1, y, size: s, bold: true });
+  if (val) p.text(val, { x: box.x + 1 + lw, y, size: s });
+}
+
+function cellBox(p: Painter, box: { x: number; y: number; w: number; h: number }, fill?: string) {
+  p.rect({ ...box, border: GRID, lineWidth: 0.22, fill });
+}
+
+/** Splits a width into columns from weights. */
+const cols = (x: number, w: number, weights: number[]) => {
+  const sum = weights.reduce((a, b) => a + b, 0);
+  const out: { x: number; w: number }[] = [];
+  let cx = x;
+  weights.forEach((wt) => {
+    const cw = (w * wt) / sum;
+    out.push({ x: cx, w: cw });
+    cx += cw;
+  });
+  return out;
 };
 
-/**
- * Some cells carry a printed label ("Total:", "Average:") before the value.
- * Clip the value to the space that starts where the placeholder used to sit so
- * it can never overprint the label.
- */
-/** Extend a value slot rightwards to the given x (free space before the next label). */
-const widen = (name: string, right: number): Box | undefined => {
-  const f = field(name);
-  if (!f) return undefined;
-  return [f.x, f.box[1], Math.max(right, f.x + 10), f.box[3]] as Box;
-};
+const LEFT = 12;
+const RIGHT = 198;
+const CONTENT_W = RIGHT - LEFT;
 
-const afterLabel = (name: string): Box | undefined => {
-  const f = field(name);
-  if (!f) return undefined;
-  return [Math.max(f.x + 2, f.box[0]), f.box[1], f.box[2], f.box[3]] as Box;
-};
-
-
-
-export function buildPrimaryValues(d: PrimaryData) {
+export async function renderPrimaryBytes(d: PrimaryData): Promise<Uint8Array> {
   const c = computeAll(d);
   const s: Any = (d.school as Any) ?? {};
-  const v: ValueMap = {};
+  const doc = await PDFDocument.create();
+  const page = doc.addPage([mm(A4_W), mm(A4_H)]);
+  const fonts = await loadFonts(doc);
+  const p = new Painter(page, fonts);
 
-  /* Header — only fields that exist in the template are ever stamped, each one
-     clipped to its own horizontal slot so they can never collide. */
-  v.SCHOOL_NAME = { text: (s.name ?? "").toUpperCase(), align: "center", maxLines: 1 };
-  v.SCHOOL_ADDRESS = { text: s.location ?? "", maxLines: 1 };
-  v.PO_BOX = { text: s.po_box ?? "", maxLines: 1 };
-  v.TELEPHONE = { text: s.tel ?? "", maxLines: 1 };
-  v.EMAIL = { text: s.email ?? "", maxLines: 1, box: widen("EMAIL", 298) };
-  v.WEBSITE = { text: s.website ?? "", maxLines: 1 };
-  v.SCHOOL_MOTTO = { text: s.motto ?? "", align: "center", maxLines: 1 };
-  v.TERM = (d.term.name ?? "").replace(/term\s*/i, "").trim() || (d.term.name ?? "");
-  v.YEAR = String(d.term.year ?? "");
+  const [logo, photo, headSig, classSig, stamp, watermark] = await Promise.all([
+    embedImage(doc, d.assets.logo),
+    embedImage(doc, d.assets.photo),
+    embedImage(doc, d.assets.headSig),
+    embedImage(doc, d.assets.classSig),
+    embedImage(doc, d.assets.stamp),
+    embedImage(doc, d.assets.watermark),
+  ]);
 
-  /* Image cells: the placeholder area is erased first, then the picture is
-     contained (never stretched) inside the box. */
-  v.SCHOOL_LOGO = { image: d.assets.logo, box: [34, 770, 128, 814] };
-  v.STUDENT_PHOTO = { image: d.assets.photo, box: [34, 722, 128, 768] };
-
-
-  /* Learner info */
-  const regValue = d.learner.active_reg_type === "LIN"
-    ? d.learner.lin_no
-    : d.learner.active_reg_type === "REG" ? d.learner.reg_no : d.learner.index_no;
-  /* The name borrows the free space up to the next label instead of wrapping. */
-  v.STUDENT_NAME = { text: d.learner.full_name ?? "", maxLines: 1, box: widen("STUDENT_NAME", 230) };
-  v.CLASS = d.klass?.name ?? "";
-  v.STREAM = d.flags.stream ? (d.stream?.name ?? "") : "";
-  v.SECTION = d.flags.section ? (d.learner.section ?? "") : "";
-  v.HOUSE = d.flags.house ? (d.learner.house ?? "") : "";
-  v.AGE = d.learner.age != null ? String(d.learner.age) : "";
-  v.SEX = d.learner.sex ?? "";
-  v.LIN = { text: d.learner.lin_no ?? "", maxLines: 1, box: widen("LIN", 384) };
-  v.PAY_CODE = d.flags.pay_code ? (d.learner.pay_code ?? "") : "";
-  v.ADM_NO = String(regValue ?? "");
-
-  /* BOT / MID grids (5 subject columns in the template) */
-  const gridSubjects = d.subjects.slice(0, 5);
-  const COLS = ["ENG", "MATH", "SCI", "SST", "RE"];
-  (["BOT", "MOT"] as const).forEach((prefix) => {
-    const phaseKey = prefix === "BOT" ? "bot" : "mid";
-    gridSubjects.forEach((s2, i) => {
-      const col = COLS[i];
-      const m = c.bySubject.get(s2.id);
-      const raw = m?.[phaseKey];
-      const has = raw != null && raw !== "" && !isNaN(Number(raw));
-      v[`${prefix}_SUBJ_${i + 1}`] = { text: codeFor(s2.name), align: "center", bold: true };
-      v[`${prefix}_${col}_MARKS`] = { text: has ? String(raw) : "", align: "center" };
-      v[`${prefix}_${col}_GRADE`] = { text: has ? (gradeFor(Number(raw), d.bands)?.grade ?? "") : "", align: "center" };
-    });
-    for (let i = gridSubjects.length; i < 5; i++) {
-      const col = COLS[i];
-      v[`${prefix}_SUBJ_${i + 1}`] = "";
-      v[`${prefix}_${col}_MARKS`] = "";
-      v[`${prefix}_${col}_GRADE`] = "";
+  /* Watermark sits underneath everything. */
+  if (s.watermark_enabled && watermark) {
+    const opacity = s.watermark_opacity ?? 0.3;
+    const mode = (s.watermark_mode as string) || "custom";
+    if (mode === "fit" || mode === "fill") {
+      p.image(watermark, { x: 10, y: 10, w: A4_W - 20, h: A4_H - 20 }, { opacity, cover: mode === "fill" });
+    } else {
+      const scale = s.watermark_scale ?? 1;
+      const w = A4_W * 0.4 * scale;
+      const h = w;
+      p.image(watermark, {
+        x: (A4_W * (s.watermark_x ?? 50)) / 100 - w / 2,
+        y: (A4_H * (s.watermark_y ?? 50)) / 100 - h / 2,
+        w, h,
+      }, { opacity });
     }
-    const ph = prefix === "BOT" ? c.bot : c.mid;
-    v[`${prefix}_TOTAL`] = { text: ph.total ? String(ph.total) : "", bold: true, align: "right", box: afterLabel(`${prefix}_TOTAL`) };
-    v[`${prefix}_AVERAGE`] = { text: ph.avg ? String(ph.avg) : "", bold: true, align: "right", box: afterLabel(`${prefix}_AVERAGE`) };
-    v[`${prefix}_AGGREGATES`] = { text: ph.aggregateText, bold: true, align: "right", box: afterLabel(`${prefix}_AGGREGATES`) };
-    v[`${prefix}_DIVISION`] = { text: ph.division, bold: true, align: "right", box: afterLabel(`${prefix}_DIVISION`) };
+  }
+
+  /* Outer frame comes only from Settings → Report Card Border Style. */
+  drawBorder(p, d.borderStyle);
+
+  const subjects = d.subjects;
+  const n = Math.max(subjects.length, 1);
+
+  /* ---------------------------------------------------------- header (3 cols) */
+  let y = 13;
+  const HEAD_H = 30;
+  const logoBox = { x: LEFT + 1, y, w: 27, h: HEAD_H };
+  const photoBox = { x: RIGHT - 26, y, w: 25, h: HEAD_H };
+  if (logo) p.image(logo, logoBox);
+  if (photo) p.image(photo, photoBox);
+
+  const midX = logoBox.x + logoBox.w + 3;
+  const midW = photoBox.x - 3 - midX;
+  const lines: string[] = [];
+  if (s.location) lines.push(String(s.location));
+  if (s.po_box) lines.push(`P.O. Box ${s.po_box}`);
+  if (s.tel) lines.push(`Tel: ${s.tel}`);
+  const contact = [s.email ? `Email: ${s.email}` : "", s.website ? `Web: ${s.website}` : ""].filter(Boolean).join("   ");
+  if (contact) lines.push(contact);
+
+  const nameSize = fitSize(p, (s.name ?? "SCHOOL NAME").toUpperCase(), 17, midW, { bold: true });
+  p.text((s.name ?? "SCHOOL NAME").toUpperCase(), {
+    x: midX, y: y + 1, width: midW, size: nameSize, bold: true, align: "center",
+  });
+  let ly = y + 1 + (nameSize * 1.35) / MM;
+  const lineSize = Math.min(8.5, Math.max(6, (HEAD_H - (ly - y) - 1) / Math.max(lines.length, 1) * MM / 1.35));
+  lines.forEach((l) => {
+    const sz = fitSize(p, l, lineSize, midW);
+    p.text(l, { x: midX, y: ly, width: midW, size: sz, align: "center" });
+    ly += (lineSize * 1.35) / MM;
   });
 
+  y += HEAD_H + 1;
+  p.line(LEFT, y, RIGHT, y, { color: GRID, width: 0.5 });
+  y += 1.5;
 
-  /* EOT table */
-  EOT_HEADERS.forEach((h, i) => { v[`EOT_HDR_${i + 1}`] = { text: h, align: "center", bold: true }; });
+  /* ------------------------------------------------------------------ title */
+  const title = `LEARNER'S ASSESSMENT REPORT CARD    TERM: ${d.term.name ?? ""}    YEAR: ${d.term.year ?? ""}`;
+  const tSize = fitSize(p, title, 11.5, CONTENT_W, { bold: true });
+  p.text(title, { x: LEFT, y, width: CONTENT_W, size: tSize, bold: true, align: "center" });
+  y += 6.5;
 
-  const rowKeys = EOT_ROW_KEYS;
+  /* ------------------------------------------- learner info — exactly 2 rows */
+  const regLabel = d.learner.active_reg_type === "REG" ? "REG NO.:"
+    : d.learner.active_reg_type === "INDEX" ? "INDEX NO.:" : "LIN NO.:";
+  const regValue = d.learner.active_reg_type === "REG" ? d.learner.reg_no
+    : d.learner.active_reg_type === "INDEX" ? d.learner.index_no : d.learner.lin_no;
 
-  d.subjects.slice(0, rowKeys.length).forEach((s2, i) => {
-    const key = rowKeys[i];
-    const m = c.bySubject.get(s2.id);
+  const row1 = [
+    { label: "NAME:", value: d.learner.full_name ?? "", weight: 2.4, on: true },
+    { label: "CLASS:", value: d.klass?.name ?? "", weight: 1.4, on: true },
+    { label: "STREAM:", value: d.stream?.name ?? "", weight: 1.2, on: !!d.flags.stream },
+    { label: "SECTION:", value: d.learner.section ?? "", weight: 1.2, on: !!d.flags.section },
+    { label: "HOUSE:", value: d.learner.house ?? "", weight: 1.1, on: !!d.flags.house },
+  ].filter((f) => f.on);
+  const row2 = [
+    { label: "AGE:", value: d.learner.age != null ? String(d.learner.age) : "", weight: 0.9, on: true },
+    { label: "SEX:", value: d.learner.sex ?? "", weight: 0.9, on: true },
+    { label: regLabel, value: String(regValue ?? ""), weight: 1.6, on: true },
+    { label: "PAY CODE:", value: d.learner.pay_code ?? "", weight: 1.6, on: !!d.flags.pay_code },
+    { label: "ADMISSION NO.:", value: String(d.learner.adm_no ?? d.learner.reg_no ?? regValue ?? ""), weight: 1.8, on: true },
+  ].filter((f) => f.on);
+
+  const INFO_ROW_H = 8.5;
+  p.rect({ x: LEFT, y, w: CONTENT_W, h: INFO_ROW_H * 2, border: GRID, lineWidth: 0.4 });
+  p.line(LEFT, y + INFO_ROW_H, RIGHT, y + INFO_ROW_H, { color: GRID, width: 0.22 });
+  [row1, row2].forEach((row, ri) => {
+    /* Weight each field by the space its label + value actually needs so long
+       values shrink neighbours instead of falling to a third row. */
+    const need = row.map((f) => Math.max(f.weight, p.widthOf(`${f.label} ${f.value}`, 8, {}) / 22));
+    const boxes = cols(LEFT, CONTENT_W, need);
+    row.forEach((f, i) => {
+      labelValue(p, f.label, f.value, { x: boxes[i].x + 1, y: y + ri * INFO_ROW_H, w: boxes[i].w - 1, h: INFO_ROW_H }, 8);
+    });
+  });
+  y += INFO_ROW_H * 2 + 2.5;
+
+  /* ------------------------------------------------------- vertical budget */
+  const BOTTOM_H = 34;      // conduct + comments + signatures
+  const DATES_H = 8;
+  const GRADE_BLOCK_H = 5.5 + 13;
+  const MOTTO_H = 7;
+  const PAGE_BOTTOM = 283;
+  const tailH = BOTTOM_H + DATES_H + GRADE_BLOCK_H + MOTTO_H + 6;
+
+  const phaseFixed = 5 + 3 * 6.2 + 6.5 + 2.5;   // label + 3 rows + summary + gap
+  const eotFixed = 5 + 6.5 + 6.5 + 2.5;         // label + header + summary + gap
+  const avail = PAGE_BOTTOM - tailH - y;
+  const eotRowH = Math.min(9.5, Math.max(6, (avail - phaseFixed * 2 - eotFixed) / n));
+
+  /* ------------------------------------------------------------ BOT / MID */
+  const drawPhase = (
+    label: string,
+    phaseKey: "bot" | "mid",
+    info: { total: number; avg: number; division: string; aggregateText: string; position: number | null; classSize: number },
+  ) => {
+    p.text(label, { x: LEFT, y, width: CONTENT_W, size: 9, bold: true, align: "center" });
+    y += 5;
+    const rowH = 6.2;
+    const w = cols(LEFT, CONTENT_W, [1.5, ...subjects.map(() => 1)]);
+    const rows: { text: (i: number) => string; bold?: boolean; fill?: string; label: string }[] = [
+      { label: "SUBJECTS", bold: true, fill: HEAD_FILL, text: (i) => codeFor(subjects[i].name) },
+      { label: "MARKS", text: (i) => {
+        const raw = c.bySubject.get(subjects[i].id)?.[phaseKey];
+        return raw != null && raw !== "" ? String(raw) : "";
+      } },
+      { label: "GRADE", text: (i) => {
+        const raw = c.bySubject.get(subjects[i].id)?.[phaseKey];
+        return raw != null && raw !== "" && !isNaN(Number(raw)) ? (gradeFor(Number(raw), d.bands)?.grade ?? "") : "";
+      } },
+    ];
+    rows.forEach((r, ri) => {
+      const ry = y + ri * rowH;
+      cellBox(p, { x: w[0].x, y: ry, w: w[0].w, h: rowH }, HEAD_FILL);
+      cellText(p, r.label, { x: w[0].x, y: ry, w: w[0].w, h: rowH }, { bold: true, size: 7.5 });
+      subjects.forEach((_, i) => {
+        const b = { x: w[i + 1].x, y: ry, w: w[i + 1].w, h: rowH };
+        cellBox(p, b, r.fill);
+        cellText(p, r.text(i), b, { bold: !!r.bold, size: 8 });
+      });
+    });
+    y += rowH * rows.length;
+    drawSummary(info);
+    y += 2.5;
+  };
+
+  const drawSummary = (info: { total: number; avg: number; division: string; aggregateText: string; position: number | null; classSize: number }) => {
+    const items = [
+      { l: "TOTAL:", v: info.total ? String(info.total) : "" },
+      { l: "AVERAGE:", v: info.avg ? String(info.avg) : "" },
+      ...(d.flags.show_position
+        ? [{ l: "POSITION:", v: info.position && info.classSize ? `${info.position}/${info.classSize}` : "" }]
+        : []),
+      { l: "AGGREGATES:", v: info.aggregateText },
+      { l: "DIVISION:", v: info.division },
+    ];
+    const h = 6.5;
+    const boxes = cols(LEFT, CONTENT_W, items.map(() => 1));
+    items.forEach((it, i) => {
+      const b = { x: boxes[i].x, y, w: boxes[i].w, h };
+      cellBox(p, b);
+      let size = 8;
+      while (size > 4.6 && p.widthOf(`${it.l} ${it.v}`, size, { bold: true }) > b.w - 3) size -= 0.2;
+      const lw = p.widthOf(`${it.l} `, size, { bold: true });
+      const ty = b.y + (b.h - (size * 1.0) / MM) / 2;
+      p.text(it.l, { x: b.x + 1.5, y: ty, size, bold: true });
+      if (it.v) p.text(it.v, { x: b.x + 1.5 + lw, y: ty, size, bold: true });
+    });
+    y += h;
+  };
+
+  drawPhase("BEGINNING OF TERM EXAMINATION RESULTS", "bot", c.bot);
+  drawPhase("MID TERM EXAMINATION RESULTS", "mid", c.mid);
+
+  /* ----------------------------------------------------------------- EOT */
+  p.text("END OF TERM EXAMINATION RESULTS", { x: LEFT, y, width: CONTENT_W, size: 9, bold: true, align: "center" });
+  y += 5;
+  const eotCols = cols(LEFT, CONTENT_W, [2.6, 1.3, 1.3, 1.1, 1.7, 1.1]);
+  const eotHead = ["SUBJECTS", "FULL MARKS", "MARKS GOT", "GRADE", "REMARKS", "INITIALS"];
+  eotHead.forEach((h, i) => {
+    const b = { x: eotCols[i].x, y, w: eotCols[i].w, h: 6.5 };
+    cellBox(p, b, HEAD_FILL);
+    cellText(p, h, b, { bold: true, size: 7.8 });
+  });
+  y += 6.5;
+  subjects.forEach((sub, ri) => {
+    const m = c.bySubject.get(sub.id);
     const raw = m?.eot;
     const has = raw != null && raw !== "" && !isNaN(Number(raw));
     const band = has ? gradeFor(Number(raw), d.bands) : null;
-    v[`EOT_SUBJ_${i + 1}`] = { text: (s2.name ?? "").toUpperCase(), align: "center", maxLines: 1 };
-    v[`EOT_${key}_FULLMARKS`] = { text: String(s2.max_marks ?? 100), align: "center" };
-    v[`EOT_${key}_MARKS`] = { text: has ? String(raw) : "", align: "center" };
-    v[`EOT_${key}_GRADE`] = { text: band?.grade ?? "", align: "center" };
-    v[`EOT_${key}_REMARKS`] = { text: band?.remark ?? "", align: "center" };
-    v[`EOT_${key}_INITIALS`] = {
-      text: (s2.subject_teacher_id && d.teachersById[s2.subject_teacher_id]?.initials) || m?.teacher_initials || "",
-      align: "center",
-    };
+    const vals = [
+      (sub.name ?? "").toUpperCase(),
+      String(sub.max_marks ?? 100),
+      has ? String(raw) : "",
+      band?.grade ?? "",
+      band?.remark ?? "",
+      (sub.subject_teacher_id && d.teachersById[sub.subject_teacher_id]?.initials) || m?.teacher_initials || "",
+    ];
+    vals.forEach((v, ci) => {
+      const b = { x: eotCols[ci].x, y: y + ri * eotRowH, w: eotCols[ci].w, h: eotRowH };
+      cellBox(p, b);
+      cellText(p, v, b, { size: 8 });
+    });
   });
-  for (let i = d.subjects.length; i < rowKeys.length; i++) {
-    const key = rowKeys[i];
-    v[`EOT_SUBJ_${i + 1}`] = "";
-    EOT_COLS.forEach((c2) => { v[`EOT_${key}_${c2}`] = ""; });
+  y += eotRowH * subjects.length;
+  drawSummary(c.eot);
+  y += 2.5;
+
+  /* -------------------------------------- conduct, comments and signatures */
+  const bottomTop = y;
+  const leftW = CONTENT_W * 0.63;
+  const rightW = CONTENT_W - leftW;
+  const conductH = 7.5;
+  const commentH = (BOTTOM_H - conductH) / 2;
+
+  const conductCols = cols(LEFT, CONTENT_W, [1, 1]);
+  [
+    { l: "Learner's Conduct & Behavior:", v: d.learner.conduct ?? "" },
+    { l: "Co-curricular Activities:", v: d.learner.co_curricular ?? "" },
+  ].forEach((it, i) => {
+    const b = { x: conductCols[i].x, y: bottomTop, w: conductCols[i].w, h: conductH };
+    cellBox(p, b);
+    labelValue(p, it.l, it.v, b, 8);
+  });
+
+  const comments = [
+    { l: "Class Teacher's Comment:", v: d.report?.class_teacher_comment ?? "", sig: classSig, name: (d.classTeacher?.full_name ?? "").toUpperCase() },
+    { l: "Head Teacher's Comment:", v: d.report?.head_teacher_comment ?? "", sig: headSig, name: (s.head_teacher_name ?? "").toUpperCase() },
+  ];
+  comments.forEach((cm, i) => {
+    const cy = bottomTop + conductH + i * commentH;
+    const lb = { x: LEFT, y: cy, w: leftW, h: commentH };
+    cellBox(p, lb);
+    const labelW = Math.min(34, leftW * 0.4);
+    p.paragraph(cm.l, { x: lb.x + 1.2, y: cy + 1.4, width: labelW, size: 7.6, bold: true, maxLines: 2, lineHeight: 1.15 });
+    const textW = leftW - labelW - 3;
+    let cs = 8;
+    while (cs > 5.5 && p.wrap(cm.v, cs, textW).length > 3) cs -= 0.2;
+    const cl = p.wrap(cm.v, cs, textW).slice(0, 3);
+    let ty = cy + (commentH - cl.length * (cs * 1.2) / MM) / 2;
+    cl.forEach((line) => { ty += p.text(line, { x: lb.x + labelW + 2, y: ty, size: cs, lineHeight: 1.2 }); });
+
+    const rb = { x: LEFT + leftW, y: cy, w: rightW, h: commentH };
+    cellBox(p, rb);
+    if (cm.sig) p.image(cm.sig, { x: rb.x + 6, y: rb.y + 1, w: rb.w - 12, h: commentH * 0.5 });
+    cellText(p, cm.name, { x: rb.x, y: rb.y + commentH * 0.55, w: rb.w, h: commentH * 0.45 }, { size: 8 });
+  });
+  y = bottomTop + BOTTOM_H;
+
+  /* ----------------------------------------------------------- term dates */
+  const dateCols = cols(LEFT, CONTENT_W, [1, 1]);
+  [
+    { l: "Term Ends On:", v: fmtDate(d.term.ends_on ?? d.term.end_date) },
+    { l: "Next Term Begins On:", v: fmtDate(d.term.next_begins_on) },
+  ].forEach((it, i) => {
+    const b = { x: dateCols[i].x, y, w: dateCols[i].w, h: DATES_H };
+    cellBox(p, b);
+    labelValue(p, it.l, it.v, b, 8);
+  });
+  y += DATES_H;
+
+  /* ---------------------------------- grading system + motto, pinned bottom */
+  const mottoY = PAGE_BOTTOM - MOTTO_H + 1;
+  const gradeTableH = 12;
+  const gradeTitleY = mottoY - gradeTableH - 6.5;
+  p.text("SCHOOL GRADING SYSTEM", { x: LEFT, y: Math.max(y + 2, gradeTitleY), width: CONTENT_W, size: 9, bold: true, align: "center" });
+
+  const bandsList = d.bands.filter((b) => b.grade);
+  const gTop = Math.max(y + 2, gradeTitleY) + 5.5;
+  const gRowH = gradeTableH / 2;
+  const gCols = cols(LEFT, CONTENT_W, [1.3, ...bandsList.map(() => 1)]);
+  ["GRADE", "MARKS"].forEach((rowLabel, ri) => {
+    const ry = gTop + ri * gRowH;
+    const lb = { x: gCols[0].x, y: ry, w: gCols[0].w, h: gRowH };
+    cellBox(p, lb, HEAD_FILL);
+    cellText(p, rowLabel, lb, { bold: true, size: 7.8 });
+    bandsList.forEach((b, i) => {
+      const cb = { x: gCols[i + 1].x, y: ry, w: gCols[i + 1].w, h: gRowH };
+      cellBox(p, cb, ri === 0 ? HEAD_FILL : undefined);
+      cellText(p, ri === 0 ? String(b.grade) : `${b.min_mark}-${b.max_mark}`, cb, { bold: ri === 0, size: 7.6 });
+    });
+  });
+
+  if (s.motto) {
+    const motto = `"${String(s.motto).replace(/^"|"$/g, "")}"`;
+    const size = fitSize(p, motto, 9, CONTENT_W, { bold: true, italic: true });
+    p.text(motto, { x: LEFT, y: mottoY, width: CONTENT_W, size, bold: true, italic: true, align: "center" });
   }
 
-  v.EOT_TOTAL = { text: c.eot.total ? String(c.eot.total) : "", bold: true, align: "right", box: afterLabel("EOT_TOTAL") };
-  v.EOT_AVERAGE = { text: c.eot.avg ? String(c.eot.avg) : "", bold: true, align: "right", box: afterLabel("EOT_AVERAGE") };
-  v.EOT_AGGREGATES = {
-    text: d.flags.show_position && c.eot.position && c.eot.classSize
-      ? `${c.eot.aggregateText}  (POS ${c.eot.position}/${c.eot.classSize})`
-      : c.eot.aggregateText,
-    bold: true, align: "right", box: afterLabel("EOT_AGGREGATES"),
-  };
-  v.EOT_DIVISION = { text: c.eot.division, bold: true, align: "right", box: afterLabel("EOT_DIVISION") };
+  /* Stamp last so it overlays the finished card. */
+  if (stamp) {
+    const size = 28 * (s.stamp_size ?? 1);
+    p.image(stamp, {
+      x: (A4_W * (s.stamp_x ?? 75)) / 100 - size / 2,
+      y: (A4_H * (s.stamp_y ?? 78)) / 100 - size / 2,
+      w: size, h: size,
+    }, { opacity: s.stamp_opacity ?? 0.6 });
+  }
 
-
-  /* Conduct, comments, signatures, dates */
-  v.CONDUCT = { text: d.learner.conduct ?? "", maxLines: 1, box: afterLabel("CONDUCT") };
-  v.CO_CURRICULAR = { text: d.learner.co_curricular ?? "", maxLines: 1, box: afterLabel("CO_CURRICULAR") };
-  v.CLASS_TEACHER_COMMENT = { text: d.report?.class_teacher_comment ?? "", maxLines: 3 };
-  v.HEADTEACHER_COMMENT = { text: d.report?.head_teacher_comment ?? "", maxLines: 3 };
-
-  /* Signature + name share one cell: picture on top, name underneath. */
-  const sigSlot = (sigName: string, nameName: string, image: string | null, text: string) => {
-    const cell = boxOf(sigName, [389, 188, 547, 224]);
-    const split = cell[1] + (cell[3] - cell[1]) * 0.42;
-    v[sigName] = { image, box: [cell[0] + 4, split, cell[2] - 4, cell[3] - 2] };
-    v[nameName] = { text, align: "center", maxLines: 1, box: [cell[0] + 2, cell[1] + 1, cell[2] - 2, split] };
-  };
-  sigSlot("CLASS_TEACHER_SIGNATURE", "CLASS_TEACHER_NAME",
-    d.assets.classSig, (d.classTeacher?.full_name ?? "").toUpperCase());
-  sigSlot("HEADTEACHER_SIGNATURE", "HEADTEACHER_NAME",
-    d.assets.headSig, (s.head_teacher_name ?? "").toUpperCase());
-
-  v.TERM_END_DATE = { text: fmtDate(d.term.ends_on ?? d.term.end_date), maxLines: 1, box: afterLabel("TERM_END_DATE") };
-  v.NEXT_TERM_DATE = { text: fmtDate(d.term.next_begins_on), maxLines: 1, box: afterLabel("NEXT_TERM_DATE") };
-
-  /* Grading scale row */
-  const bandFor = (grade: string) => d.bands.find((b) => (b.grade ?? "").toUpperCase() === grade);
-  ["D1", "D2", "C3", "C4", "C5", "C6", "P7", "P8", "F9"].forEach((g) => {
-    const b = bandFor(g);
-    v[`MARKS_${g}`] = { text: b ? `${b.min_mark}-${b.max_mark}` : "", align: "center" };
-  });
-
-  return { values: v };
+  return doc.save();
 }
 
 /** Renders the primary report card and returns the finished PDF bytes. */
@@ -376,14 +603,6 @@ export async function primaryReportBytes(learnerId: string, termId: string): Pro
   const d = await loadPrimaryData(learnerId, termId);
   return renderPrimaryBytes(d);
 }
-
-export async function renderPrimaryBytes(d: PrimaryData): Promise<Uint8Array> {
-  const url = resolveTemplateUrl("primary", d.templateSetting);
-  const bytes = await loadTemplateBytes(url);
-  const { values } = buildPrimaryValues(d);
-  return fillTemplate(bytes, DEF, values);
-}
-
 
 export async function primaryReportBlob(learnerId: string, termId: string): Promise<Blob> {
   return bytesToPdfBlob(await primaryReportBytes(learnerId, termId));
@@ -396,3 +615,4 @@ export async function appendPrimaryReport(target: PDFDocument, learnerId: string
   const [page] = await target.copyPages(src, [0]);
   target.addPage(page);
 }
+
