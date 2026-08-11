@@ -372,7 +372,7 @@ export async function renderPrimaryBytes(d: PrimaryData): Promise<Uint8Array> {
     { label: "SEX:", value: d.learner.sex ?? "", weight: 0.9, on: true },
     { label: regLabel, value: String(regValue ?? ""), weight: 1.6, on: true },
     { label: "PAY CODE:", value: d.learner.pay_code ?? "", weight: 1.6, on: !!d.flags.pay_code },
-    { label: "ADMISSION NO.:", value: String(d.learner.adm_no ?? d.learner.reg_no ?? regValue ?? ""), weight: 1.8, on: true },
+    { label: "ADMISSION NO.:", value: String(d.learner.reg_no ?? regValue ?? ""), weight: 1.8, on: true },
   ].filter((f) => f.on);
 
   const INFO_ROW_H = 8.5;
