@@ -1,26 +1,27 @@
 /**
- * Primary report card — rendered by stamping dynamic data onto the school's
- * official uploaded A4 template (see src/lib/pdf/template/engine.ts).
+ * Primary report card — drawn natively with pdf-lib so the PDF is a pixel
+ * faithful copy of the on-screen preview / print sheet.
  *
- * The template PDF itself is never redrawn: tables, borders, fonts, images,
- * spacing and colours all come from the uploaded design. Only placeholder
- * values are painted on top, at coordinates extracted from that same file.
+ * Layout rules: one fixed A4 canvas, fixed section proportions, single-line
+ * shrink-to-fit values, and the outer frame taken solely from
+ * Settings → Report Card Border Style.
  */
 import { PDFDocument } from "pdf-lib";
 import { supabase } from "@/integrations/supabase/client";
 import {
   calculateDivision, gradeFor, applyF9Override, isCriticalCoreSubject, type GradeBand,
 } from "@/lib/grading";
-import { bytesToPdfBlob } from "./core";
 import {
-  fillTemplate, loadTemplateBytes, type Box, type TplDef, type ValueMap,
-} from "./template/engine";
-import primaryFields from "./template/primary.fields.json";
-import { resolveTemplateUrl } from "./template/registry";
+  A4_H, A4_W, INK, MM, Painter, bytesToPdfBlob, embedImage, loadFonts, mm,
+} from "./core";
+import { drawBorder } from "./borders";
 
 type Any = Record<string, any>;
 
-const DEF = primaryFields as TplDef;
+const FIELD_ORDER_DEFAULT = [
+  "name", "stream", "house", "section", "age", "sex", "reg", "class", "pay_code",
+] as const;
+
 
 const FIELD_ORDER_DEFAULT = [
   "name", "stream", "house", "section", "age", "sex", "reg", "class", "pay_code",
