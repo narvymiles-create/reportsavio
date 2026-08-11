@@ -247,7 +247,7 @@ function labelValue(
   let s = size;
   const total = () => p.widthOf(`${label} `, s, { bold: true }) + p.widthOf(val, s);
   while (s > 4.4 && total() > box.w - 2) s -= 0.2;
-  const lw = p.widthOf(`${label} `, s, { bold: true });
+  const lw = p.widthOf(`${label} `, s, { bold: true }) + 0.6;
   const y = box.y + (box.h - (s * 1.0) / MM) / 2;
   p.text(label, { x: box.x + 1, y, size: s, bold: true });
   if (val) p.text(val, { x: box.x + 1 + lw, y, size: s });
@@ -390,7 +390,7 @@ export async function renderPrimaryBytes(d: PrimaryData): Promise<Uint8Array> {
   y += INFO_ROW_H * 2 + 2.5;
 
   /* ------------------------------------------------------- vertical budget */
-  const BOTTOM_H = 34;      // conduct + comments + signatures
+  let BOTTOM_H = 34;        // conduct + comments + signatures (grows with slack)
   const DATES_H = 8;
   const GRADE_BLOCK_H = 5.5 + 13;
   const MOTTO_H = 7;
@@ -400,7 +400,11 @@ export async function renderPrimaryBytes(d: PrimaryData): Promise<Uint8Array> {
   const phaseFixed = 5 + 3 * 6.2 + 6.5 + 2.5;   // label + 3 rows + summary + gap
   const eotFixed = 5 + 6.5 + 6.5 + 2.5;         // label + header + summary + gap
   const avail = PAGE_BOTTOM - tailH - y;
-  const eotRowH = Math.min(9.5, Math.max(6, (avail - phaseFixed * 2 - eotFixed) / n));
+  const eotRowH = Math.min(11, Math.max(6, (avail - phaseFixed * 2 - eotFixed) / n));
+  /* Any leftover height is absorbed by the comments block so the card never
+     leaves a large blank gap above the grading table. */
+  const slack = avail - phaseFixed * 2 - eotFixed - eotRowH * n;
+  BOTTOM_H += Math.max(0, Math.min(14, slack));
 
   /* ------------------------------------------------------------ BOT / MID */
   const drawPhase = (
@@ -455,7 +459,7 @@ export async function renderPrimaryBytes(d: PrimaryData): Promise<Uint8Array> {
       cellBox(p, b);
       let size = 8;
       while (size > 4.6 && p.widthOf(`${it.l} ${it.v}`, size, { bold: true }) > b.w - 3) size -= 0.2;
-      const lw = p.widthOf(`${it.l} `, size, { bold: true });
+      const lw = p.widthOf(`${it.l} `, size, { bold: true }) + 0.6;
       const ty = b.y + (b.h - (size * 1.0) / MM) / 2;
       p.text(it.l, { x: b.x + 1.5, y: ty, size, bold: true });
       if (it.v) p.text(it.v, { x: b.x + 1.5 + lw, y: ty, size, bold: true });
@@ -525,14 +529,14 @@ export async function renderPrimaryBytes(d: PrimaryData): Promise<Uint8Array> {
     const cy = bottomTop + conductH + i * commentH;
     const lb = { x: LEFT, y: cy, w: leftW, h: commentH };
     cellBox(p, lb);
-    const labelW = Math.min(34, leftW * 0.4);
+    const labelW = Math.min(36, leftW * 0.4);
     p.paragraph(cm.l, { x: lb.x + 1.2, y: cy + 1.4, width: labelW, size: 7.6, bold: true, maxLines: 2, lineHeight: 1.15 });
-    const textW = leftW - labelW - 3;
+    const textW = leftW - labelW - 4;
     let cs = 8;
     while (cs > 5.5 && p.wrap(cm.v, cs, textW).length > 3) cs -= 0.2;
     const cl = p.wrap(cm.v, cs, textW).slice(0, 3);
     let ty = cy + (commentH - cl.length * (cs * 1.2) / MM) / 2;
-    cl.forEach((line) => { ty += p.text(line, { x: lb.x + labelW + 2, y: ty, size: cs, lineHeight: 1.2 }); });
+    cl.forEach((line) => { ty += p.text(line, { x: lb.x + labelW + 3, y: ty, size: cs, lineHeight: 1.2 }); });
 
     const rb = { x: LEFT + leftW, y: cy, w: rightW, h: commentH };
     cellBox(p, rb);
