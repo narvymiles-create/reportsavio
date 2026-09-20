@@ -200,6 +200,32 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
     return map;
   }, [filteredLearners, rowCalcs]);
 
+  /** Rows as displayed: alphabetical, or by position (best first) then alphabetical. */
+  const displayLearners = useMemo(() => {
+    const byName = [...filteredLearners].sort((a, b) => a.full_name.localeCompare(b.full_name));
+    if (sortBy === "name") return byName;
+    return byName.sort((a, b) => {
+      const pa = positions.get(a.id) ?? 0;
+      const pb = positions.get(b.id) ?? 0;
+      const ra = pa > 0 ? pa : Number.MAX_SAFE_INTEGER;
+      const rb = pb > 0 ? pb : Number.MAX_SAFE_INTEGER;
+      if (ra !== rb) return ra - rb;
+      return a.full_name.localeCompare(b.full_name);
+    });
+  }, [filteredLearners, positions, sortBy]);
+
+  /** Optional (non-grading) subjects with no marks entered can be dropped from the sheet. */
+  const visibleSubjects = useMemo(() => {
+    if (!hideEmptyOptional) return subjects;
+    return subjects.filter(s => {
+      if (s.is_core) return true;
+      return filteredLearners.some(l => {
+        const v = marks[`${l.id}|${s.id}`]?.[exam];
+        return v != null && !isNaN(v as number);
+      });
+    });
+  }, [subjects, filteredLearners, marks, exam, hideEmptyOptional]);
+
   // Division summary counts
   const divSummary = useMemo(() => {
     const counts: Record<"1" | "2" | "3" | "4" | "X" | "U", number> = { "1": 0, "2": 0, "3": 0, "4": 0, X: 0, U: 0 };
