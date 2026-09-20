@@ -242,7 +242,7 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
   // Subject performance summary: per-subject grade distribution + first-grade contribution
   const GRADE_COLS = ["D1", "D2", "C3", "C4", "C5", "C6", "P7", "P8"] as const;
   const subjectPerformance = useMemo(() => {
-    const rows = subjects.map(s => {
+    const rows = visibleSubjects.map(s => {
       const counts: Record<string, number> = { D1: 0, D2: 0, C3: 0, C4: 0, C5: 0, C6: 0, P7: 0, P8: 0 };
       for (const l of filteredLearners) {
         const v = marks[`${l.id}|${s.id}`]?.[exam] ?? null;
@@ -251,27 +251,32 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
         const g = band?.grade?.toUpperCase();
         if (g && counts[g] != null) counts[g] += 1;
       }
-      const firstGrade = counts.D1 + counts.D2 + counts.C3;
+      // Only grading (core) subjects contribute to the aggregate, so only they
+      // carry a first-grade contribution figure.
+      const firstGrade = s.is_core ? counts.D1 + counts.D2 + counts.C3 : null;
       return {
         subjectId: s.id,
         label: (s.code === "OTHER" && s.code_label) ? s.code_label : s.code,
+        isCore: s.is_core,
         counts,
         firstGrade,
       };
     });
-    // Rank by firstGrade desc, tie-break on D1 desc, then D2 desc
-    const sorted = [...rows].sort((a, b) => {
-      if (b.firstGrade !== a.firstGrade) return b.firstGrade - a.firstGrade;
+    // Ranked list = grading subjects only; optional subjects listed after, unranked.
+    const core = rows.filter(r => r.isCore).sort((a, b) => {
+      if (b.firstGrade! !== a.firstGrade!) return b.firstGrade! - a.firstGrade!;
       if (b.counts.D1 !== a.counts.D1) return b.counts.D1 - a.counts.D1;
       return b.counts.D2 - a.counts.D2;
     });
     let lastKey = ""; let lastRank = 0;
-    return sorted.map((r, i) => {
+    const ranked = core.map((r, i) => {
       const key = `${r.firstGrade}|${r.counts.D1}|${r.counts.D2}`;
       if (key !== lastKey) { lastRank = i + 1; lastKey = key; }
-      return { ...r, rank: lastRank };
+      return { ...r, rank: lastRank as number | null };
     });
-  }, [subjects, filteredLearners, marks, bands, exam]);
+    const optional = rows.filter(r => !r.isCore).map(r => ({ ...r, rank: null as number | null }));
+    return [...ranked, ...optional];
+  }, [visibleSubjects, filteredLearners, marks, bands, exam]);
 
   // Dirty detection: compare current marks vs baseline for the active exam column only
   const isDirty = useMemo(() => {
