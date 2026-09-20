@@ -235,10 +235,22 @@ export default function ReportCardsPage() {
   useEffect(() => { loadReports(); }, [loadReports]);
 
   const filtered = useMemo(() => {
-    if (streamId === "all") return learners;
-    if (streamId === "none") return learners.filter(l => !l.stream_id);
-    return learners.filter(l => l.stream_id === streamId);
-  }, [learners, streamId]);
+    const base = streamId === "all"
+      ? learners
+      : streamId === "none"
+        ? learners.filter(l => !l.stream_id)
+        : learners.filter(l => l.stream_id === streamId);
+    const byName = [...base].sort((a, b) => a.full_name.localeCompare(b.full_name));
+    if (sortBy === "name") return byName;
+    return byName.sort((a, b) => {
+      const pa = reports[a.id]?.position ?? 0;
+      const pb = reports[b.id]?.position ?? 0;
+      const ra = pa > 0 ? pa : Number.MAX_SAFE_INTEGER;
+      const rb = pb > 0 ? pb : Number.MAX_SAFE_INTEGER;
+      if (ra !== rb) return ra - rb;
+      return a.full_name.localeCompare(b.full_name);
+    });
+  }, [learners, streamId, sortBy, reports]);
 
   const generate = async () => {
     if (!termId || !classId) return toast({ title: "Pick a term and class", variant: "destructive" });
