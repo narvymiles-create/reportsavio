@@ -420,6 +420,16 @@ export default function ReportCardsPage() {
                 </SelectContent>
               </Select>
             </div>
+            <div>
+              <Label>Sort learners</Label>
+              <Select value={sortBy} onValueChange={(v) => setSortBy(v as "name" | "position")}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="name">Alphabetical (A–Z)</SelectItem>
+                  <SelectItem value="position">Position, then alphabetical</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </CardContent>
       </Card>
