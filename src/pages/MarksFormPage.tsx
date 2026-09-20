@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, Save, Printer, Upload } from "lucide-react";
 import { calculateDivision, computeTotal, gradeFor, applyF9Override, isCriticalCoreSubject, type GradeBand } from "@/lib/grading";
 import Papa from "papaparse";
@@ -46,6 +47,9 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
   const [termId, setTermId] = useState("");
   const [classId, setClassId] = useState("");
   const [streamId, setStreamId] = useState<string>("all");
+  const [sortBy, setSortBy] = useState<"name" | "position">("name");
+  const [hidePosition, setHidePosition] = useState(false);
+  const [hideEmptyOptional, setHideEmptyOptional] = useState(false);
 
   // marks keyed by learner|subject
   const [marks, setMarks] = useState<Record<string, MarkRow>>({});
@@ -196,6 +200,32 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
     return map;
   }, [filteredLearners, rowCalcs]);
 
+  /** Rows as displayed: alphabetical, or by position (best first) then alphabetical. */
+  const displayLearners = useMemo(() => {
+    const byName = [...filteredLearners].sort((a, b) => a.full_name.localeCompare(b.full_name));
+    if (sortBy === "name") return byName;
+    return byName.sort((a, b) => {
+      const pa = positions.get(a.id) ?? 0;
+      const pb = positions.get(b.id) ?? 0;
+      const ra = pa > 0 ? pa : Number.MAX_SAFE_INTEGER;
+      const rb = pb > 0 ? pb : Number.MAX_SAFE_INTEGER;
+      if (ra !== rb) return ra - rb;
+      return a.full_name.localeCompare(b.full_name);
+    });
+  }, [filteredLearners, positions, sortBy]);
+
+  /** Optional (non-grading) subjects with no marks entered can be dropped from the sheet. */
+  const visibleSubjects = useMemo(() => {
+    if (!hideEmptyOptional) return subjects;
+    return subjects.filter(s => {
+      if (s.is_core) return true;
+      return filteredLearners.some(l => {
+        const v = marks[`${l.id}|${s.id}`]?.[exam];
+        return v != null && !isNaN(v as number);
+      });
+    });
+  }, [subjects, filteredLearners, marks, exam, hideEmptyOptional]);
+
   // Division summary counts
   const divSummary = useMemo(() => {
     const counts: Record<"1" | "2" | "3" | "4" | "X" | "U", number> = { "1": 0, "2": 0, "3": 0, "4": 0, X: 0, U: 0 };
@@ -212,7 +242,7 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
   // Subject performance summary: per-subject grade distribution + first-grade contribution
   const GRADE_COLS = ["D1", "D2", "C3", "C4", "C5", "C6", "P7", "P8"] as const;
   const subjectPerformance = useMemo(() => {
-    const rows = subjects.map(s => {
+    const rows = visibleSubjects.map(s => {
       const counts: Record<string, number> = { D1: 0, D2: 0, C3: 0, C4: 0, C5: 0, C6: 0, P7: 0, P8: 0 };
       for (const l of filteredLearners) {
         const v = marks[`${l.id}|${s.id}`]?.[exam] ?? null;
@@ -221,27 +251,32 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
         const g = band?.grade?.toUpperCase();
         if (g && counts[g] != null) counts[g] += 1;
       }
-      const firstGrade = counts.D1 + counts.D2 + counts.C3;
+      // Only grading (core) subjects contribute to the aggregate, so only they
+      // carry a first-grade contribution figure.
+      const firstGrade = s.is_core ? counts.D1 + counts.D2 + counts.C3 : null;
       return {
         subjectId: s.id,
         label: (s.code === "OTHER" && s.code_label) ? s.code_label : s.code,
+        isCore: s.is_core,
         counts,
         firstGrade,
       };
     });
-    // Rank by firstGrade desc, tie-break on D1 desc, then D2 desc
-    const sorted = [...rows].sort((a, b) => {
-      if (b.firstGrade !== a.firstGrade) return b.firstGrade - a.firstGrade;
+    // Ranked list = grading subjects only; optional subjects listed after, unranked.
+    const core = rows.filter(r => r.isCore).sort((a, b) => {
+      if (b.firstGrade! !== a.firstGrade!) return b.firstGrade! - a.firstGrade!;
       if (b.counts.D1 !== a.counts.D1) return b.counts.D1 - a.counts.D1;
       return b.counts.D2 - a.counts.D2;
     });
     let lastKey = ""; let lastRank = 0;
-    return sorted.map((r, i) => {
+    const ranked = core.map((r, i) => {
       const key = `${r.firstGrade}|${r.counts.D1}|${r.counts.D2}`;
       if (key !== lastKey) { lastRank = i + 1; lastKey = key; }
-      return { ...r, rank: lastRank };
+      return { ...r, rank: lastRank as number | null };
     });
-  }, [subjects, filteredLearners, marks, bands, exam]);
+    const optional = rows.filter(r => !r.isCore).map(r => ({ ...r, rank: null as number | null }));
+    return [...ranked, ...optional];
+  }, [visibleSubjects, filteredLearners, marks, bands, exam]);
 
   // Dirty detection: compare current marks vs baseline for the active exam column only
   const isDirty = useMemo(() => {
@@ -360,7 +395,7 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
           <h1 className="text-3xl font-bold">{TITLES[exam]}</h1>
           <p className="text-muted-foreground">Enter marks; grade, totals, position and division compute live.</p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 p-4 border rounded-md bg-card">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-3 p-4 border rounded-md bg-card">
           <div>
             <Label>Term</Label>
             <Select value={termId} onValueChange={setTermId}>
@@ -392,6 +427,16 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
               </SelectContent>
             </Select>
           </div>
+          <div>
+            <Label>Sort learners</Label>
+            <Select value={sortBy} onValueChange={(v) => setSortBy(v as "name" | "position")}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="name">Alphabetical (A–Z)</SelectItem>
+                <SelectItem value="position">Position, then alphabetical</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           <div className="flex items-end">
             <Button
               onClick={saveAll}
@@ -413,6 +458,19 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
           <Button variant="outline" onClick={() => setImportOpen(true)} disabled={!classId || subjects.length === 0}>
             <Upload className="mr-2 h-4 w-4" /> Import Marks (CSV)
           </Button>
+        </div>
+
+        {/* Print / download options */}
+        <div className="flex flex-wrap items-center gap-6 rounded-md border bg-card p-3 text-sm">
+          <span className="font-medium">Print / download options:</span>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <Checkbox checked={hidePosition} onCheckedChange={(v) => setHidePosition(v === true)} />
+            Hide position column
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <Checkbox checked={hideEmptyOptional} onCheckedChange={(v) => setHideEmptyOptional(v === true)} />
+            Hide optional subjects with no marks
+          </label>
         </div>
 
         {classId && !coreCountValid && (
@@ -486,24 +544,24 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
                       <span className="diag-name">NAMES</span>
                     </div>
                   </th>
-                  {subjects.map(s => (
+                  {visibleSubjects.map(s => (
                     <th key={s.id} className="col-sub">{s.code === "OTHER" && s.code_label ? s.code_label : s.code}</th>
                   ))}
                   <th>TOTAL</th>
                   <th>AVE</th>
-                  <th>POSITION</th>
+                  {!hidePosition && <th>POSITION</th>}
                   <th>AGG</th>
                   <th>DIV</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredLearners.map((l) => {
+                {displayLearners.map((l) => {
                   const calc = rowCalcs.get(l.id);
                   const pos = positions.get(l.id) ?? 0;
                   return (
                     <tr key={l.id}>
                       <td className="col-name">{l.full_name}</td>
-                      {subjects.map(s => {
+                      {visibleSubjects.map(s => {
                         const v = marks[`${l.id}|${s.id}`]?.[exam];
                         const grade = calc?.subjectGrades[s.id];
                         return (
@@ -524,18 +582,18 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
                       })}
                       <td>{calc && calc.total > 0 ? calc.total : ""}</td>
                       <td>{calc && calc.total > 0 ? calc.ave : ""}</td>
-                      <td>{pos > 0 ? pos : ""}</td>
+                      {!hidePosition && <td>{pos > 0 ? pos : ""}</td>}
                       <td>{calc && calc.agg > 0 ? calc.agg : ""}</td>
                       <td>{calc?.div || ""}</td>
                     </tr>
                   );
                 })}
                 {/* pad with empty rows so the table feels register-like */}
-                {Array.from({ length: Math.max(0, 5 - filteredLearners.length) }).map((_, i) => (
+                {Array.from({ length: Math.max(0, 5 - displayLearners.length) }).map((_, i) => (
                   <tr key={`pad-${i}`} className="pad-row">
                     <td className="col-name">&nbsp;</td>
-                    {subjects.map(s => <td key={s.id} className="col-sub">&nbsp;</td>)}
-                    <td></td><td></td><td></td><td></td><td></td>
+                    {visibleSubjects.map(s => <td key={s.id} className="col-sub">&nbsp;</td>)}
+                    <td></td><td></td>{!hidePosition && <td></td>}<td></td><td></td>
                   </tr>
                 ))}
               </tbody>
@@ -586,10 +644,10 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
                     <tr><td colSpan={11} style={{ textAlign: "center" }}>No subjects.</td></tr>
                   ) : subjectPerformance.map(r => (
                     <tr key={r.subjectId}>
-                      <td>{r.rank}</td>
-                      <td style={{ textAlign: "left" }}>{r.label}</td>
+                      <td>{r.rank ?? "—"}</td>
+                      <td style={{ textAlign: "left" }}>{r.label}{r.isCore ? "" : " *"}</td>
                       {GRADE_COLS.map(g => <td key={g}>{r.counts[g] || 0}</td>)}
-                      <td><strong>{r.firstGrade}</strong></td>
+                      <td><strong>{r.firstGrade ?? "—"}</strong></td>
                     </tr>
                   ))}
                 </tbody>
@@ -597,6 +655,9 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
                   <tr>
                     <td colSpan={11} style={{ textAlign: "center", fontWeight: 600 }}>
                       TOTAL NUMBER OF LEARNERS = {filteredLearners.length}
+                      {subjectPerformance.some(r => !r.isCore) && (
+                        <span style={{ fontWeight: 400 }}> &nbsp;| * optional subject — not used for grading</span>
+                      )}
                     </td>
                   </tr>
                 </tfoot>

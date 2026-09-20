@@ -194,6 +194,7 @@ export default function ReportCardsPage() {
   const [termId, setTermId] = useState("");
   const [classId, setClassId] = useState("");
   const [streamId, setStreamId] = useState("all");
+  const [sortBy, setSortBy] = useState<"name" | "position">("name");
   const [singleLearnerId, setSingleLearnerId] = useState("");
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [bulkDownload, setBulkDownload] = useState<BulkProgress | null>(null);
@@ -235,10 +236,22 @@ export default function ReportCardsPage() {
   useEffect(() => { loadReports(); }, [loadReports]);
 
   const filtered = useMemo(() => {
-    if (streamId === "all") return learners;
-    if (streamId === "none") return learners.filter(l => !l.stream_id);
-    return learners.filter(l => l.stream_id === streamId);
-  }, [learners, streamId]);
+    const base = streamId === "all"
+      ? learners
+      : streamId === "none"
+        ? learners.filter(l => !l.stream_id)
+        : learners.filter(l => l.stream_id === streamId);
+    const byName = [...base].sort((a, b) => a.full_name.localeCompare(b.full_name));
+    if (sortBy === "name") return byName;
+    return byName.sort((a, b) => {
+      const pa = reports[a.id]?.position ?? 0;
+      const pb = reports[b.id]?.position ?? 0;
+      const ra = pa > 0 ? pa : Number.MAX_SAFE_INTEGER;
+      const rb = pb > 0 ? pb : Number.MAX_SAFE_INTEGER;
+      if (ra !== rb) return ra - rb;
+      return a.full_name.localeCompare(b.full_name);
+    });
+  }, [learners, streamId, sortBy, reports]);
 
   const generate = async () => {
     if (!termId || !classId) return toast({ title: "Pick a term and class", variant: "destructive" });
@@ -404,6 +417,16 @@ export default function ReportCardsPage() {
                   <SelectItem value="all">All streams</SelectItem>
                   <SelectItem value="none">No stream</SelectItem>
                   {streams.filter(s => s.class_id === classId).map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Sort learners</Label>
+              <Select value={sortBy} onValueChange={(v) => setSortBy(v as "name" | "position")}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="name">Alphabetical (A–Z)</SelectItem>
+                  <SelectItem value="position">Position, then alphabetical</SelectItem>
                 </SelectContent>
               </Select>
             </div>
