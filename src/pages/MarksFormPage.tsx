@@ -644,10 +644,10 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
                     <tr><td colSpan={11} style={{ textAlign: "center" }}>No subjects.</td></tr>
                   ) : subjectPerformance.map(r => (
                     <tr key={r.subjectId}>
-                      <td>{r.rank}</td>
-                      <td style={{ textAlign: "left" }}>{r.label}</td>
+                      <td>{r.rank ?? "—"}</td>
+                      <td style={{ textAlign: "left" }}>{r.label}{r.isCore ? "" : " *"}</td>
                       {GRADE_COLS.map(g => <td key={g}>{r.counts[g] || 0}</td>)}
-                      <td><strong>{r.firstGrade}</strong></td>
+                      <td><strong>{r.firstGrade ?? "—"}</strong></td>
                     </tr>
                   ))}
                 </tbody>
