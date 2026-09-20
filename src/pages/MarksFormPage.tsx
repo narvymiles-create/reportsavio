@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, Save, Printer, Upload } from "lucide-react";
 import { calculateDivision, computeTotal, gradeFor, applyF9Override, isCriticalCoreSubject, type GradeBand } from "@/lib/grading";
 import Papa from "papaparse";
@@ -46,6 +47,9 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
   const [termId, setTermId] = useState("");
   const [classId, setClassId] = useState("");
   const [streamId, setStreamId] = useState<string>("all");
+  const [sortBy, setSortBy] = useState<"name" | "position">("name");
+  const [hidePosition, setHidePosition] = useState(false);
+  const [hideEmptyOptional, setHideEmptyOptional] = useState(false);
 
   // marks keyed by learner|subject
   const [marks, setMarks] = useState<Record<string, MarkRow>>({});
