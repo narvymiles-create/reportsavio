@@ -655,6 +655,9 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
                   <tr>
                     <td colSpan={11} style={{ textAlign: "center", fontWeight: 600 }}>
                       TOTAL NUMBER OF LEARNERS = {filteredLearners.length}
+                      {subjectPerformance.some(r => !r.isCore) && (
+                        <span style={{ fontWeight: 400 }}> &nbsp;| * optional subject — not used for grading</span>
+                      )}
                     </td>
                   </tr>
                 </tfoot>
