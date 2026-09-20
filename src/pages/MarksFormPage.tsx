@@ -544,24 +544,24 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
                       <span className="diag-name">NAMES</span>
                     </div>
                   </th>
-                  {subjects.map(s => (
+                  {visibleSubjects.map(s => (
                     <th key={s.id} className="col-sub">{s.code === "OTHER" && s.code_label ? s.code_label : s.code}</th>
                   ))}
                   <th>TOTAL</th>
                   <th>AVE</th>
-                  <th>POSITION</th>
+                  {!hidePosition && <th>POSITION</th>}
                   <th>AGG</th>
                   <th>DIV</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredLearners.map((l) => {
+                {displayLearners.map((l) => {
                   const calc = rowCalcs.get(l.id);
                   const pos = positions.get(l.id) ?? 0;
                   return (
                     <tr key={l.id}>
                       <td className="col-name">{l.full_name}</td>
-                      {subjects.map(s => {
+                      {visibleSubjects.map(s => {
                         const v = marks[`${l.id}|${s.id}`]?.[exam];
                         const grade = calc?.subjectGrades[s.id];
                         return (
@@ -582,18 +582,18 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
                       })}
                       <td>{calc && calc.total > 0 ? calc.total : ""}</td>
                       <td>{calc && calc.total > 0 ? calc.ave : ""}</td>
-                      <td>{pos > 0 ? pos : ""}</td>
+                      {!hidePosition && <td>{pos > 0 ? pos : ""}</td>}
                       <td>{calc && calc.agg > 0 ? calc.agg : ""}</td>
                       <td>{calc?.div || ""}</td>
                     </tr>
                   );
                 })}
                 {/* pad with empty rows so the table feels register-like */}
-                {Array.from({ length: Math.max(0, 5 - filteredLearners.length) }).map((_, i) => (
+                {Array.from({ length: Math.max(0, 5 - displayLearners.length) }).map((_, i) => (
                   <tr key={`pad-${i}`} className="pad-row">
                     <td className="col-name">&nbsp;</td>
-                    {subjects.map(s => <td key={s.id} className="col-sub">&nbsp;</td>)}
-                    <td></td><td></td><td></td><td></td><td></td>
+                    {visibleSubjects.map(s => <td key={s.id} className="col-sub">&nbsp;</td>)}
+                    <td></td><td></td>{!hidePosition && <td></td>}<td></td><td></td>
                   </tr>
                 ))}
               </tbody>
