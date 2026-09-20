@@ -460,6 +460,19 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
           </Button>
         </div>
 
+        {/* Print / download options */}
+        <div className="flex flex-wrap items-center gap-6 rounded-md border bg-card p-3 text-sm">
+          <span className="font-medium">Print / download options:</span>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <Checkbox checked={hidePosition} onCheckedChange={(v) => setHidePosition(v === true)} />
+            Hide position column
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <Checkbox checked={hideEmptyOptional} onCheckedChange={(v) => setHideEmptyOptional(v === true)} />
+            Hide optional subjects with no marks
+          </label>
+        </div>
+
         {classId && !coreCountValid && (
           <div className="rounded-md border border-destructive bg-destructive/10 text-destructive text-sm p-3">
             Exactly 4 core subjects are required to calculate aggregates. This class currently has {coreSubjects.length}. Mark exactly 4 subjects as <strong>Core</strong> in the Subjects page — AGG and DIV are disabled until then.
