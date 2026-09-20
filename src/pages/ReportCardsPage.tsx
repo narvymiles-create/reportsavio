@@ -194,6 +194,7 @@ export default function ReportCardsPage() {
   const [termId, setTermId] = useState("");
   const [classId, setClassId] = useState("");
   const [streamId, setStreamId] = useState("all");
+  const [sortBy, setSortBy] = useState<"name" | "position">("name");
   const [singleLearnerId, setSingleLearnerId] = useState("");
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [bulkDownload, setBulkDownload] = useState<BulkProgress | null>(null);
