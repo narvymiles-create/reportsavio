@@ -395,7 +395,7 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
           <h1 className="text-3xl font-bold">{TITLES[exam]}</h1>
           <p className="text-muted-foreground">Enter marks; grade, totals, position and division compute live.</p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 p-4 border rounded-md bg-card">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-3 p-4 border rounded-md bg-card">
           <div>
             <Label>Term</Label>
             <Select value={termId} onValueChange={setTermId}>
@@ -424,6 +424,16 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
                 {streams.filter(s => s.class_id === classId).map(s => (
                   <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                 ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Sort learners</Label>
+            <Select value={sortBy} onValueChange={(v) => setSortBy(v as "name" | "position")}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="name">Alphabetical (A–Z)</SelectItem>
+                <SelectItem value="position">Position, then alphabetical</SelectItem>
               </SelectContent>
             </Select>
           </div>
