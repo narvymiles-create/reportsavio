@@ -420,16 +420,6 @@ export default function ReportCardsPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <Label>Sort learners</Label>
-              <Select value={sortBy} onValueChange={(v) => setSortBy(v as "name" | "position")}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="name">Alphabetical (A–Z)</SelectItem>
-                  <SelectItem value="position">Position, then alphabetical</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
           </div>
         </CardContent>
       </Card>
@@ -464,6 +454,15 @@ export default function ReportCardsPage() {
               {generating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
               Generate / Refresh All
             </Button>
+            <Select value={sortBy} onValueChange={(v) => setSortBy(v as "name" | "position")}>
+              <SelectTrigger className="w-[230px]" aria-label="Sort learners">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="name">Alphabetical (A–Z)</SelectItem>
+                <SelectItem value="position">Position, then alphabetical</SelectItem>
+              </SelectContent>
+            </Select>
             <Button variant="outline" onClick={() => startReportJob()} disabled={!termId || !classId || generatedCount === 0 || !!reportJob}>
               <Package className="mr-2 h-4 w-4" /> Bulk Print
             </Button>
