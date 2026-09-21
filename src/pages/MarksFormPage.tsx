@@ -4,11 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { toast } from "@/hooks/use-toast";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, Save, Printer, Upload } from "lucide-react";
+import { Download, FileSpreadsheet, FileText, Loader2, Save, Printer, Upload } from "lucide-react";
 import { calculateDivision, computeTotal, gradeFor, applyF9Override, isCriticalCoreSubject, type GradeBand } from "@/lib/grading";
+import { safeFilename, triggerBlobDownload } from "@/lib/pdf/core";
 import Papa from "papaparse";
+import html2pdf from "html2pdf.js";
 import skavioLogoUrl from "@/assets/skavio-logo-transparent.png";
 import "./MarksFormPage.css";
 
@@ -58,6 +61,7 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
   // CSV import dialog
   const [importOpen, setImportOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const marksheetRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -330,6 +334,60 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
 
   const handlePrint = () => window.print();
 
+  const exportFilename = () => {
+    const examName = exam.toUpperCase();
+    const className = cls?.name ?? "class";
+    const streamName = streamId === "all" ? "all-streams" : streamId === "none" ? "no-stream" : (stream?.name ?? "stream");
+    const termName = term ? `${term.name}-${term.year}` : "term";
+    return safeFilename(`${examName}-marksheet_${className}_${streamName}_${termName}`);
+  };
+
+  const downloadCsv = () => {
+    if (!classId || displayLearners.length === 0) return;
+    try {
+      const rows = displayLearners.map((learner) => {
+        const calc = rowCalcs.get(learner.id);
+        const row: Record<string, string | number> = { NAMES: learner.full_name };
+        for (const subject of visibleSubjects) {
+          const label = subject.code === "OTHER" && subject.code_label ? subject.code_label : subject.code;
+          row[label] = marks[`${learner.id}|${subject.id}`]?.[exam] ?? "";
+        }
+        row.TOTAL = calc && calc.total > 0 ? calc.total : "";
+        row.AVERAGE = calc && calc.total > 0 ? calc.ave : "";
+        if (!hidePosition) row.POSITION = positions.get(learner.id) || "";
+        row.AGGREGATE = calc && calc.agg > 0 ? calc.agg : "";
+        row.DIVISION = calc?.div ?? "";
+        return row;
+      });
+      const csv = `\uFEFF${Papa.unparse(rows)}`;
+      triggerBlobDownload(new Blob([csv], { type: "text/csv;charset=utf-8" }), `${exportFilename()}.csv`);
+      toast({ title: "Excel CSV downloaded" });
+    } catch (error: unknown) {
+      toast({ title: "CSV download failed", description: error instanceof Error ? error.message : String(error), variant: "destructive" });
+    }
+  };
+
+  const downloadPdf = async () => {
+    if (!classId || displayLearners.length === 0 || !marksheetRef.current) return;
+    const element = marksheetRef.current;
+    element.classList.add("marks-form--pdf-export");
+    try {
+      await html2pdf().set({
+        margin: [8, 8, 8, 8],
+        filename: `${exportFilename()}.pdf`,
+        image: { type: "jpeg", quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, backgroundColor: "#ffffff" },
+        jsPDF: { unit: "mm", format: "a4", orientation: "landscape" },
+        pagebreak: { mode: ["css", "legacy"] },
+      }).from(element).save();
+      toast({ title: "PDF downloaded" });
+    } catch (error: unknown) {
+      toast({ title: "PDF download failed", description: error instanceof Error ? error.message : String(error), variant: "destructive" });
+    } finally {
+      element.classList.remove("marks-form--pdf-export");
+    }
+  };
+
   const handleImportFile = (file: File) => {
     Papa.parse<Record<string, string>>(file, {
       header: true, skipEmptyLines: true,
@@ -395,7 +453,7 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
           <h1 className="text-3xl font-bold">{TITLES[exam]}</h1>
           <p className="text-muted-foreground">Enter marks; grade, totals, position and division compute live.</p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-3 p-4 border rounded-md bg-card">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 p-4 border rounded-md bg-card">
           <div>
             <Label>Term</Label>
             <Select value={termId} onValueChange={setTermId}>
@@ -427,16 +485,6 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
               </SelectContent>
             </Select>
           </div>
-          <div>
-            <Label>Sort learners</Label>
-            <Select value={sortBy} onValueChange={(v) => setSortBy(v as "name" | "position")}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="name">Alphabetical (A–Z)</SelectItem>
-                <SelectItem value="position">Position, then alphabetical</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
           <div className="flex items-end">
             <Button
               onClick={saveAll}
@@ -458,6 +506,21 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
           <Button variant="outline" onClick={() => setImportOpen(true)} disabled={!classId || subjects.length === 0}>
             <Upload className="mr-2 h-4 w-4" /> Import Marks (CSV)
           </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" disabled={!classId || displayLearners.length === 0}>
+                <Download className="mr-2 h-4 w-4" /> Download
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              <DropdownMenuItem onSelect={() => void downloadPdf()}>
+                <FileText className="mr-2 h-4 w-4" /> PDF
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={downloadCsv}>
+                <FileSpreadsheet className="mr-2 h-4 w-4" /> Excel CSV
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         {/* Print / download options */}
@@ -471,6 +534,16 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
             <Checkbox checked={hideEmptyOptional} onCheckedChange={(v) => setHideEmptyOptional(v === true)} />
             Hide optional subjects with no marks
           </label>
+          <div className="flex items-center gap-2">
+            <Label className="whitespace-nowrap">Sort learners</Label>
+            <Select value={sortBy} onValueChange={(v) => setSortBy(v as "name" | "position")}>
+              <SelectTrigger className="w-[230px]" aria-label="Sort learners"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="name">Alphabetical (A–Z)</SelectItem>
+                <SelectItem value="position">Position, then alphabetical</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         {classId && !coreCountValid && (
@@ -520,7 +593,7 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
       </Dialog>
 
       {/* Printable area */}
-      <div className="marks-form">
+      <div ref={marksheetRef} className="marks-form">
         <div className="marks-form__header">
           <div className="marks-form__school">{school?.name ?? ""}</div>
           <h2 className="marks-form__title">{TITLES[exam]}</h2>

@@ -183,6 +183,48 @@
   letter-spacing: 0.3px;
 }
 
+/* Applied only while creating the downloadable A4 landscape PDF. */
+.marks-form--pdf-export {
+  width: 281mm !important;
+  max-width: 281mm !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  box-sizing: border-box;
+  font-size: 11px;
+}
+.marks-form--pdf-export .marks-form__header { margin-bottom: 6px; }
+.marks-form--pdf-export .marks-form__school { font-size: 14px; }
+.marks-form--pdf-export .marks-form__title { font-size: 18px; margin: 4px 0; }
+.marks-form--pdf-export .marks-form__meta { font-size: 11px; }
+.marks-form--pdf-export .marks-form__table {
+  width: 100% !important;
+  max-width: 100% !important;
+  table-layout: fixed;
+  font-size: 10.5px;
+  border: 1.5px solid #0a2472;
+  box-sizing: border-box;
+}
+.marks-form--pdf-export .marks-form__table th,
+.marks-form--pdf-export .marks-form__table td {
+  padding: 2px 3px;
+  height: 22px;
+  word-break: break-word;
+  overflow: hidden;
+}
+.marks-form--pdf-export .marks-form__table .col-name { width: 15%; padding-left: 4px; font-size: 10px; }
+.marks-form--pdf-export .marks-form__table input {
+  color: #0a2472;
+  width: 100% !important;
+  max-width: 32px;
+  padding: 0;
+  font-size: 10.5px;
+}
+.marks-form--pdf-export .mark-cell { gap: 2px; }
+.marks-form--pdf-export .mark-grade { font-size: 9px; min-width: 16px; }
+.marks-form--pdf-export .marks-form__summary { font-size: 11px; }
+.marks-form--pdf-export .marks-form__summary th,
+.marks-form--pdf-export .marks-form__summary td { padding: 3px 8px; }
+
 /* Print */
 @media print {
   @page { size: A4 landscape; margin: 8mm; }
