@@ -1,4 +1,4 @@
-// @vitest-environment node
+import { Blob as NodeBlob } from "node:buffer";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { PDFDocument } from "pdf-lib";
 import { generatePrimaryOutput, validatePrimaryPdf } from "@/lib/pdf/primaryOutput";
@@ -21,7 +21,7 @@ const fixture: PrimaryData = {
   flags: { stream: true, house: true, section: true, pay_code: true, show_position: true },
   order: [], borderStyle: "double", templateSetting: null,
   assets: { logo: null, headSig: null, classSig: null, photo: null, stamp: null, watermark: null },
-} as PrimaryData;
+} as unknown as PrimaryData;
 
 async function sample(pages = 1, width = 210 * 72 / 25.4) {
   const pdf = await PDFDocument.create();
@@ -29,7 +29,10 @@ async function sample(pages = 1, width = 210 * 72 / 25.4) {
   return new Blob([new Uint8Array(await pdf.save()).buffer], { type: "application/pdf" });
 }
 
-beforeEach(() => generator.mockReset());
+beforeEach(() => {
+  generator.mockReset();
+  vi.stubGlobal("Blob", NodeBlob);
+});
 
 describe("Primary output page contract", () => {
   it("renders the existing Primary engine as exactly one 210 x 297 mm page", async () => {
