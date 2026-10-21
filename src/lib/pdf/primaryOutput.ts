@@ -6,7 +6,7 @@ const A4_HEIGHT_PT = 297 * 72 / 25.4;
 
 /** Reject extra pages or altered page sizes rather than silently dropping content. */
 export async function validatePrimaryPdf(blob: Blob, expectedPages: number): Promise<PDFDocument> {
-  const document = await PDFDocument.load(await blob.arrayBuffer());
+  const document = await PDFDocument.load(new Uint8Array(await blob.arrayBuffer()));
   if (expectedPages < 1 || document.getPageCount() !== expectedPages) {
     throw new Error(`Expected ${expectedPages} report page(s), received ${document.getPageCount()}`);
   }
