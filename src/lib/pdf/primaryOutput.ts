@@ -1,4 +1,4 @@
-import { PDFDocument, PDFName } from "pdf-lib";
+import { PDFDocument, PrintScaling } from "pdf-lib";
 import { generateReportCardBlob } from "@/lib/pdfGenerator";
 
 const A4_WIDTH_PT = 210 * 72 / 25.4;
@@ -43,7 +43,7 @@ export async function generatePrimaryOutput(
   // Ask PDF viewers not to stretch the A4 artwork. These are viewer preferences,
   // not a reconstruction or a transformation of the report's content.
   const preferences = merged.catalog.getOrCreateViewerPreferences();
-  preferences.setPrintScaling(PDFName.of("None"));
+  preferences.setPrintScaling(PrintScaling.None);
   preferences.setPickTrayByPDFSize(true);
   const bytes = await merged.save();
   const blob = new Blob([new Uint8Array(bytes).buffer], { type: "application/pdf" });
