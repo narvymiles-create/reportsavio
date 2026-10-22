@@ -1,8 +1,11 @@
-import { useEffect, useRef, useState } from "react";
-import { Download, ExternalLink, Loader2, Printer } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Download, ExternalLink, Loader2, Printer, RefreshCw } from "lucide-react";
+import type { PDFDocumentProxy } from "pdfjs-dist";
 import { Button } from "@/components/ui/button";
 import { generatePrimaryOutput } from "@/lib/pdf/primaryOutput";
 import { safeFilename, triggerBlobDownload } from "@/lib/pdf/core";
+import { createPrimaryPdfSession } from "@/lib/pdf/primaryPdfSession";
+import { PrimaryPdfPages } from "@/components/PrimaryPdfPages";
 import { toast } from "@/hooks/use-toast";
 
 type Props = {
@@ -12,57 +15,81 @@ type Props = {
   filename?: string;
 };
 
-/** The native PDF viewer displays and prints the exact download bytes. No HTML sheet. */
+/** PDF.js reads the download bytes for preview; Chrome prints those bytes directly. */
 export function PrimaryPdfViewer({ learnerIds, termId, autoPrint = false, filename = "report-card" }: Props) {
-  const frameRef = useRef<HTMLIFrameElement>(null);
-  const [output, setOutput] = useState<{ blob: Blob; url: string } | null>(null);
+  const printRef = useRef<HTMLButtonElement>(null);
+  const [output, setOutput] = useState<{ key: string; blob: Blob; document: PDFDocumentProxy; session: ReturnType<typeof createPrimaryPdfSession> } | null>(null);
+  const rendered = useRef(new Set<number>());
   const [ready, setReady] = useState(false);
   const [error, setError] = useState("");
   const [done, setDone] = useState(0);
-  const key = JSON.stringify(learnerIds);
+  const [retry, setRetry] = useState(0);
+  const key = JSON.stringify([learnerIds, termId, retry]);
+  const currentKey = useRef(key);
+  currentKey.current = key;
 
   useEffect(() => {
     let cancelled = false;
-    let url: string | undefined;
+    let session: ReturnType<typeof createPrimaryPdfSession> | undefined;
+    let task: ReturnType<typeof import("pdfjs-dist")["getDocument"]> | undefined;
     setOutput(null);
     setReady(false);
+    rendered.current.clear();
     setError("");
     setDone(0);
-    generatePrimaryOutput(JSON.parse(key) as string[], termId, (count) => {
+    const [ids, selectedTerm] = JSON.parse(key) as [string[], string, number];
+    generatePrimaryOutput(ids, selectedTerm, (count) => {
       if (!cancelled) setDone(count);
-    }).then((blob) => {
+    }).then(async (generated) => {
       if (cancelled) return;
-      url = URL.createObjectURL(blob);
-      setOutput({ blob, url });
+      // Normalize the transport MIME only; preserve every generated PDF byte.
+      const blob = generated.type === "application/pdf" ? generated : new Blob([generated], { type: "application/pdf" });
+      const [pdfjs, worker] = await Promise.all([import("pdfjs-dist"), import("pdfjs-dist/build/pdf.worker.min.mjs?url")]);
+      if (cancelled) return;
+      pdfjs.GlobalWorkerOptions.workerSrc = worker.default;
+      const data = new Uint8Array(await blob.arrayBuffer());
+      if (cancelled) return;
+      task = pdfjs.getDocument({ data, isEvalSupported: false });
+      const document = await task.promise;
+      if (cancelled) return;
+      if (document.numPages !== ids.length) throw new Error(`PDF preview expected ${ids.length} pages, received ${document.numPages}.`);
+      session = createPrimaryPdfSession(blob);
+      setOutput({ key, blob, document, session });
     }).catch((reason: unknown) => {
       if (!cancelled) setError(reason instanceof Error ? reason.message : "Failed to prepare report PDF");
     });
     return () => {
       cancelled = true;
-      if (url) URL.revokeObjectURL(url);
+      session?.dispose();
+      void task?.destroy();
     };
-  }, [key, termId]);
+  }, [key]);
 
-  const print = () => {
-    const viewer = frameRef.current?.contentWindow;
-    if (!viewer || !ready) return;
+  const open = (printing: boolean) => {
+    if (!output || output.key !== key || !ready) return;
     try {
-      viewer.focus();
-      viewer.print();
-    } catch {
-      toast({ title: "Open the PDF to print", description: "Your browser requires printing from the PDF tab.", variant: "destructive" });
+      output.session.open();
+      if (printing) toast({ title: "PDF opened for printing", description: "Use Chrome’s PDF Print button or Ctrl+P in the new tab." });
+    } catch (reason: unknown) {
+      toast({ title: "Could not open PDF", description: reason instanceof Error ? reason.message : "Please try again.", variant: "destructive" });
     }
   };
-
+  const pageReady = useCallback((number: number) => {
+    if (!output || output.key !== currentKey.current) return;
+    rendered.current.add(number);
+    if (rendered.current.size === output.document.numPages) setReady(true);
+  }, [output]);
+  const pageError = useCallback((message: string) => {
+    if (output?.key === currentKey.current) { setReady(false); setError(`PDF preview failed: ${message}`); }
+  }, [output]);
   useEffect(() => {
-    if (!autoPrint || !ready || !output) return;
-    // The frame load precedes the native viewer's toolbar initialization.
-    const timer = window.setTimeout(print, 600);
-    return () => window.clearTimeout(timer);
-  }, [autoPrint, ready, output]);
+    // A native PDF plugin has no supported readiness/afterprint handshake.
+    // Never auto-print an iframe or guess readiness with a timer.
+    if (autoPrint && ready) printRef.current?.focus();
+  }, [autoPrint, ready]);
 
-  if (error) return <div role="alert" className="p-8 text-center text-destructive">{error}</div>;
-  if (!output) return (
+  if (error) return <div className="space-y-4 p-8 text-center"><p role="alert" className="text-destructive">{error}</p><Button variant="outline" onClick={() => setRetry(value => value + 1)}><RefreshCw className="mr-2 h-4 w-4" /> Retry PDF</Button></div>;
+  if (!output || output.key !== key) return (
     <div role="status" className="flex items-center justify-center gap-3 p-12">
       <Loader2 className="h-6 w-6 animate-spin" /> Preparing report cards {done}/{learnerIds.length}…
     </div>
@@ -71,24 +98,18 @@ export function PrimaryPdfViewer({ learnerIds, termId, autoPrint = false, filena
   return (
     <section className="flex min-h-screen flex-col bg-muted" aria-label="Primary report PDF">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b bg-background p-3">
-        <span className="text-sm">{learnerIds.length} report card(s) · A4 portrait</span>
+        <span role="status" className="text-sm">{learnerIds.length} report card(s) · A4 portrait · {ready ? "Ready" : "Loading PDF pages…"}</span>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" asChild>
-            <a href={output.url} target="_blank" rel="noopener noreferrer"><ExternalLink className="mr-2 h-4 w-4" /> Open PDF</a>
+          <Button variant="outline" onClick={() => open(false)} disabled={!ready}>
+            <ExternalLink className="mr-2 h-4 w-4" /> Open PDF
           </Button>
           <Button variant="outline" onClick={() => triggerBlobDownload(output.blob, `${safeFilename(filename)}.pdf`)}>
             <Download className="mr-2 h-4 w-4" /> Download PDF
           </Button>
-          <Button onClick={print} disabled={!ready}><Printer className="mr-2 h-4 w-4" /> Print / Save as PDF</Button>
+          <Button ref={printRef} onClick={() => open(true)} disabled={!ready}><Printer className="mr-2 h-4 w-4" /> Print / Save as PDF <ExternalLink className="ml-2 h-3 w-3" /></Button>
         </div>
       </div>
-      <iframe
-        ref={frameRef}
-        title="Primary report card PDF"
-        src={`${output.url}#view=Fit&toolbar=1`}
-        className="min-h-[75vh] w-full flex-1 border-0"
-        onLoad={() => setReady(true)}
-      />
+      <PrimaryPdfPages key={key} document={output.document} onReady={pageReady} onError={pageError} />
     </section>
   );
 }
