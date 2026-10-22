@@ -1,5 +1,8 @@
 # Roadmap
 
+- [ ] Diagnose and fix Primary PDF loading, readiness and print URL lifetime without changing the download engine.
+- [ ] Verify Primary loading failures and print lifecycle with regression tests and Chrome checks.
+
 - [x] Move report sorting beside Generate / Refresh All.
 - [x] Move marks-entry sorting after the optional-subject filter.
 - [x] Add marksheet PDF and Excel CSV downloads.

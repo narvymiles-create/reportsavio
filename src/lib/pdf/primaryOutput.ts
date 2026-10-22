@@ -6,7 +6,14 @@ const A4_HEIGHT_PT = 297 * 72 / 25.4;
 
 /** Reject extra pages or altered page sizes rather than silently dropping content. */
 export async function validatePrimaryPdf(blob: Blob, expectedPages: number): Promise<PDFDocument> {
-  const document = await PDFDocument.load(new Uint8Array(await blob.arrayBuffer()));
+  if (!blob.size) throw new Error("The report PDF is empty. Retry preparing the report.");
+  const bytes = new Uint8Array(await blob.arrayBuffer());
+  if (String.fromCharCode(...bytes.slice(0, 5)) !== "%PDF-") {
+    throw new Error("The report response is not a PDF document. Retry preparing the report.");
+  }
+  let document: PDFDocument;
+  try { document = await PDFDocument.load(bytes); }
+  catch { throw new Error("The report PDF could not be read. Retry preparing the report."); }
   if (expectedPages < 1 || document.getPageCount() !== expectedPages) {
     throw new Error(`Expected ${expectedPages} report page(s), received ${document.getPageCount()}`);
   }
