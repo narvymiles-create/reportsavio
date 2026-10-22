@@ -35,6 +35,17 @@ beforeEach(() => {
 });
 
 describe("Primary output page contract", () => {
+  it("rejects an empty PDF with an actionable diagnostic", async () => {
+    await expect(validatePrimaryPdf(new Blob([]), 1)).rejects.toThrow("PDF is empty");
+  });
+
+  it("rejects a non-PDF response instead of displaying a blank preview", async () => {
+    await expect(validatePrimaryPdf(new Blob(["<html>Error</html>"]), 1)).rejects.toThrow("not a PDF document");
+  });
+
+  it("rejects corrupted PDF bytes with a useful diagnostic", async () => {
+    await expect(validatePrimaryPdf(new Blob(["%PDF-invalid"]), 1)).rejects.toThrow("could not be read");
+  });
   it("renders the existing Primary engine as exactly one 210 x 297 mm page", async () => {
     const bytes = await renderPrimaryBytes(fixture);
     const pdf = await validatePrimaryPdf(new Blob([new Uint8Array(bytes).buffer]), 1);
