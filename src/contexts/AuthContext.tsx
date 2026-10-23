@@ -51,6 +51,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await refreshFor(user?.id);
   }, [refreshFor, user?.id]);
 
+  const lastUserIdRef = useRef<string | null>(null);
+
   useEffect(() => {
     let initialised = false;
 
