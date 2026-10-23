@@ -162,7 +162,9 @@ export default function ReportCardsPage() {
       setClasses((c.data ?? []) as Cls[]);
       setStreams((s.data ?? []) as Stream[]);
       const cur = termsData.find((x) => x.is_current);
-      if (cur) setTermId(cur.id);
+      // Only default to the current term when nothing is selected yet, so a
+      // restored (persisted) term selection is never overwritten on remount.
+      if (cur) setTermId((prev) => prev || cur.id);
       setLoading(false);
     })();
   }, []);
