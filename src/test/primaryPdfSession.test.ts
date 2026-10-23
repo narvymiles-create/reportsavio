@@ -25,8 +25,8 @@ describe("Primary PDF lifetime", () => {
   });
 
   it("waits until every bulk PDF tab closes before releasing its URL", () => {
-    const first = { closed: false, location: { replace: vi.fn() } };
-    const second = { closed: false, location: { replace: vi.fn() } };
+    const first = { closed: false };
+    const second = { closed: false };
     vi.spyOn(window, "open").mockReturnValueOnce(first as unknown as Window).mockReturnValueOnce(second as unknown as Window);
     const session = createPrimaryPdfSession(new Blob(["%PDF-test"]));
     session.open(); session.open(); session.dispose();
