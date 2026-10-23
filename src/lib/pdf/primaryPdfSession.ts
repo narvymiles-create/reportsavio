@@ -18,14 +18,13 @@ export function createPrimaryPdfSession(blob: Blob) {
     open() {
       if (disposed) throw new Error("This PDF preview has closed. Reopen the report to print it.");
       // Called synchronously by a click, never after generation or a timeout.
-      const tab = window.open("", "_blank");
+      // Open the blob URL directly: an about:blank tab whose opener was cleared
+      // loses this origin and Chrome refuses to navigate it to the blob URL,
+      // leaving a permanent about:blank. "_blank" already implies noopener.
+      const tab = window.open(url, "_blank", "noopener");
       if (!tab) throw new Error("The PDF tab could not open. Allow this site's new tabs, then try again.");
-      try {
-        tab.opener = null;
-        tab.location.replace(url);
-        tabs.add(tab);
-        if (poll === undefined) poll = setInterval(collect, 1000);
-      } catch (error) { tab.close(); throw error; }
+      tabs.add(tab);
+      if (poll === undefined) poll = setInterval(collect, 1000);
     },
     dispose() { disposed = true; collect(); },
   };
