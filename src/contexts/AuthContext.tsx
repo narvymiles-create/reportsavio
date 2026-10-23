@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from "react";
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback, useRef } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -51,22 +51,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await refreshFor(user?.id);
   }, [refreshFor, user?.id]);
 
+  const lastUserIdRef = useRef<string | null>(null);
+
   useEffect(() => {
     let initialised = false;
 
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, newSession) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event, newSession) => {
       setSession(newSession);
       setUser(newSession?.user ?? null);
-      if (initialised) {
-        // After initial load, show loading while we refresh roles/school
-        setLoading(true);
-        refreshFor(newSession?.user?.id).finally(() => setLoading(false));
-      }
+      if (!initialised) return;
+      // Token refreshes (fired when the tab regains focus) must not flip the
+      // app back into a loading state — that would remount every page and
+      // wipe in-memory UI state like selected filters.
+      if (event === "TOKEN_REFRESHED") return;
+      const uid = newSession?.user?.id;
+      if (event === "SIGNED_IN" && uid === lastUserIdRef.current) return;
+      lastUserIdRef.current = uid ?? null;
+      // After initial load, show loading while we refresh roles/school
+      setLoading(true);
+      refreshFor(uid).finally(() => setLoading(false));
     });
 
     supabase.auth.getSession().then(({ data: { session: existing } }) => {
       setSession(existing);
       setUser(existing?.user ?? null);
+      lastUserIdRef.current = existing?.user?.id ?? null;
       refreshFor(existing?.user?.id).finally(() => {
         initialised = true;
         setLoading(false);

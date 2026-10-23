@@ -31,6 +31,29 @@ type ReportJob = { id: number; learners: Learner[]; label: string };
 
 const errorMessage = (error: unknown) => error instanceof Error ? error.message : String(error || "Unknown error");
 
+// Persist Report Cards filter selections across accidental remounts (e.g. an
+// auth token refresh when the browser tab regains focus). sessionStorage is
+// per-tab and clears when the tab closes.
+const FILTERS_KEY = "reportCards.filters.v1";
+type SavedFilters = { termId: string; classId: string; streamId: string; sortBy: "name" | "position"; singleLearnerId: string };
+
+function loadSavedFilters(): Partial<SavedFilters> {
+  try {
+    const raw = sessionStorage.getItem(FILTERS_KEY);
+    return raw ? (JSON.parse(raw) as Partial<SavedFilters>) : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveFilters(f: SavedFilters) {
+  try {
+    sessionStorage.setItem(FILTERS_KEY, JSON.stringify(f));
+  } catch {
+    // storage unavailable (private mode quota) — persistence is best-effort
+  }
+}
+
 function IconAction({ icon: Icon, label, onClick, asChild, href, target, variant = "ghost", danger }: {
   icon: LucideIcon; label: string; onClick?: () => void; asChild?: boolean; href?: string; target?: string;
   variant?: "ghost" | "outline"; danger?: boolean;
@@ -113,11 +136,16 @@ export default function ReportCardsPage() {
   const [learners, setLearners] = useState<Learner[]>([]);
   const [reports, setReports] = useState<Record<string, Report>>({});
 
-  const [termId, setTermId] = useState("");
-  const [classId, setClassId] = useState("");
-  const [streamId, setStreamId] = useState("all");
-  const [sortBy, setSortBy] = useState<"name" | "position">("name");
-  const [singleLearnerId, setSingleLearnerId] = useState("");
+  const [termId, setTermId] = useState(() => loadSavedFilters().termId ?? "");
+  const [classId, setClassId] = useState(() => loadSavedFilters().classId ?? "");
+  const [streamId, setStreamId] = useState(() => loadSavedFilters().streamId ?? "all");
+  const [sortBy, setSortBy] = useState<"name" | "position">(() => loadSavedFilters().sortBy ?? "name");
+  const [singleLearnerId, setSingleLearnerId] = useState(() => loadSavedFilters().singleLearnerId ?? "");
+
+  // Keep the saved filters in sync so a remount restores the exact selection.
+  useEffect(() => {
+    saveFilters({ termId, classId, streamId, sortBy, singleLearnerId });
+  }, [termId, classId, streamId, sortBy, singleLearnerId]);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [bulkDownload, setBulkDownload] = useState<BulkProgress | null>(null);
   const jobCounterRef = useRef(0);
@@ -134,7 +162,9 @@ export default function ReportCardsPage() {
       setClasses((c.data ?? []) as Cls[]);
       setStreams((s.data ?? []) as Stream[]);
       const cur = termsData.find((x) => x.is_current);
-      if (cur) setTermId(cur.id);
+      // Only default to the current term when nothing is selected yet, so a
+      // restored (persisted) term selection is never overwritten on remount.
+      if (cur) setTermId((prev) => prev || cur.id);
       setLoading(false);
     })();
   }, []);
