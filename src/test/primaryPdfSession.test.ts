@@ -11,12 +11,11 @@ afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(
 
 describe("Primary PDF lifetime", () => {
   it("keeps the unchanged PDF URL alive while a native print tab is open after the preview closes", () => {
-    const tab = { closed: false, opener: {}, location: { replace: vi.fn() }, close: vi.fn() };
-    vi.spyOn(window, "open").mockReturnValue(tab as unknown as Window);
+    const tab = { closed: false, close: vi.fn() };
+    const openSpy = vi.spyOn(window, "open").mockReturnValue(tab as unknown as Window);
     const session = createPrimaryPdfSession(new Blob(["%PDF-test"], { type: "application/pdf" }));
     session.open();
-    expect(tab.location.replace).toHaveBeenCalledWith("blob:primary");
-    expect(tab.opener).toBeNull();
+    expect(openSpy).toHaveBeenCalledExactlyOnceWith("blob:primary", "_blank", "noopener");
     session.dispose();
     vi.advanceTimersByTime(10000);
     expect(revoke).not.toHaveBeenCalled();
@@ -26,8 +25,8 @@ describe("Primary PDF lifetime", () => {
   });
 
   it("waits until every bulk PDF tab closes before releasing its URL", () => {
-    const first = { closed: false, location: { replace: vi.fn() } };
-    const second = { closed: false, location: { replace: vi.fn() } };
+    const first = { closed: false };
+    const second = { closed: false };
     vi.spyOn(window, "open").mockReturnValueOnce(first as unknown as Window).mockReturnValueOnce(second as unknown as Window);
     const session = createPrimaryPdfSession(new Blob(["%PDF-test"]));
     session.open(); session.open(); session.dispose();
