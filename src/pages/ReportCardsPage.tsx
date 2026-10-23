@@ -136,11 +136,16 @@ export default function ReportCardsPage() {
   const [learners, setLearners] = useState<Learner[]>([]);
   const [reports, setReports] = useState<Record<string, Report>>({});
 
-  const [termId, setTermId] = useState("");
-  const [classId, setClassId] = useState("");
-  const [streamId, setStreamId] = useState("all");
-  const [sortBy, setSortBy] = useState<"name" | "position">("name");
-  const [singleLearnerId, setSingleLearnerId] = useState("");
+  const [termId, setTermId] = useState(() => loadSavedFilters().termId ?? "");
+  const [classId, setClassId] = useState(() => loadSavedFilters().classId ?? "");
+  const [streamId, setStreamId] = useState(() => loadSavedFilters().streamId ?? "all");
+  const [sortBy, setSortBy] = useState<"name" | "position">(() => loadSavedFilters().sortBy ?? "name");
+  const [singleLearnerId, setSingleLearnerId] = useState(() => loadSavedFilters().singleLearnerId ?? "");
+
+  // Keep the saved filters in sync so a remount restores the exact selection.
+  useEffect(() => {
+    saveFilters({ termId, classId, streamId, sortBy, singleLearnerId });
+  }, [termId, classId, streamId, sortBy, singleLearnerId]);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [bulkDownload, setBulkDownload] = useState<BulkProgress | null>(null);
   const jobCounterRef = useRef(0);
