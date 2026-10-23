@@ -31,6 +31,29 @@ type ReportJob = { id: number; learners: Learner[]; label: string };
 
 const errorMessage = (error: unknown) => error instanceof Error ? error.message : String(error || "Unknown error");
 
+// Persist Report Cards filter selections across accidental remounts (e.g. an
+// auth token refresh when the browser tab regains focus). sessionStorage is
+// per-tab and clears when the tab closes.
+const FILTERS_KEY = "reportCards.filters.v1";
+type SavedFilters = { termId: string; classId: string; streamId: string; sortBy: "name" | "position"; singleLearnerId: string };
+
+function loadSavedFilters(): Partial<SavedFilters> {
+  try {
+    const raw = sessionStorage.getItem(FILTERS_KEY);
+    return raw ? (JSON.parse(raw) as Partial<SavedFilters>) : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveFilters(f: SavedFilters) {
+  try {
+    sessionStorage.setItem(FILTERS_KEY, JSON.stringify(f));
+  } catch {
+    // storage unavailable (private mode quota) — persistence is best-effort
+  }
+}
+
 function IconAction({ icon: Icon, label, onClick, asChild, href, target, variant = "ghost", danger }: {
   icon: LucideIcon; label: string; onClick?: () => void; asChild?: boolean; href?: string; target?: string;
   variant?: "ghost" | "outline"; danger?: boolean;
