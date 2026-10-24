@@ -130,34 +130,52 @@
   text-align: left;
 }
 
-/* Summary */
-.marks-form__summary-wrap {
-  margin-top: 18px;
-  text-align: center;
+/* Primary marksheet analysis: configured scale above 80/20 summaries. */
+.marks-form__analysis {
+  margin-top: 8px;
+  display: grid;
+  gap: 8px;
+  break-inside: avoid;
 }
-.marks-form__summary-title {
-  display: inline-block;
+.marks-form__summary-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 4fr) minmax(0, 1fr);
+  align-items: start;
+  gap: 8px;
+}
+.marks-form__analysis-table {
+  width: 100%;
+  min-width: 0;
+  table-layout: fixed;
+  border-collapse: collapse;
+  border: 1.5px solid currentColor;
+  box-sizing: border-box;
+  font-size: 11px;
+  line-height: 1.2;
+}
+.marks-form__analysis-table th,
+.marks-form__analysis-table td {
+  border: 1.5px solid currentColor;
+  padding: 3px 4px;
+  height: 23px;
+  text-align: center;
+  vertical-align: middle;
+  overflow-wrap: anywhere;
+}
+.marks-form__analysis-table .marks-form__analysis-title {
+  font-size: 13px;
   font-weight: 700;
   text-decoration: underline;
-  text-underline-offset: 3px;
-  margin-bottom: 6px;
-  letter-spacing: 1px;
+  text-underline-offset: 2px;
 }
-.marks-form__summary {
-  margin: 0 auto;
-  border-collapse: collapse;
-  font-size: 13px;
-  min-width: 60%;
-}
-.marks-form__summary th,
-.marks-form__summary td {
-  border: 1.5px solid #0a2472;
-  padding: 6px 14px;
-  text-align: center;
-  font-weight: 700;
-}
-.marks-form__summary tbody td:first-child {
-  font-weight: 700;
+.marks-form__rank-col { width: 7%; }
+.marks-form__subject-col { width: 14%; }
+.marks-form__contribution-col { width: 22%; }
+.marks-form__learner-total { font-weight: 600; }
+.marks-form__optional-note { font-weight: 400; }
+
+@media screen and (max-width: 640px) {
+  .marks-form__summary-grid { grid-template-columns: minmax(0, 1fr); }
 }
 
 /* Skavio footer (screen + print) */
@@ -235,9 +253,11 @@
 }
 .marks-form--pdf-export .mark-cell { gap: 2px; }
 .marks-form--pdf-export .mark-grade { font-size: 9px; min-width: 16px; }
-.marks-form--pdf-export .marks-form__summary { font-size: 11px; }
-.marks-form--pdf-export .marks-form__summary th,
-.marks-form--pdf-export .marks-form__summary td { padding: 3px 8px; }
+.marks-form--pdf-export .marks-form__summary-grid { grid-template-columns: minmax(0, 4fr) minmax(0, 1fr); }
+.marks-form--pdf-export .marks-form__analysis-table { font-size: 9px; }
+.marks-form--pdf-export .marks-form__analysis-table th,
+.marks-form--pdf-export .marks-form__analysis-table td { height: 18px; padding: 2px 3px; }
+.marks-form--pdf-export .marks-form__analysis-table .marks-form__analysis-title { font-size: 11px; }
 
 /* Print */
 @media print {
@@ -278,10 +298,6 @@
     border: 1.5px solid #0a2472 !important;
     box-sizing: border-box;
   }
-  .marks-form__summary {
-    border: 1.5px solid #0a2472;
-    box-sizing: border-box;
-  }
   .marks-form__table th,
   .marks-form__table td {
     padding: 2px 3px;
@@ -300,9 +316,11 @@
   .mark-cell { gap: 2px; }
   .mark-grade { font-size: 9px; min-width: 16px; }
 
-  .marks-form__summary { font-size: 11px; }
-  .marks-form__summary th,
-  .marks-form__summary td { padding: 3px 8px; }
+  .marks-form__summary-grid { grid-template-columns: minmax(0, 4fr) minmax(0, 1fr); }
+  .marks-form__analysis-table { font-size: 9px; }
+  .marks-form__analysis-table th,
+  .marks-form__analysis-table td { height: 18px; padding: 2px 3px; }
+  .marks-form__analysis-table .marks-form__analysis-title { font-size: 11px; }
 
   .marks-form__footer { display: flex !important; }
   [data-skavio-footer="true"] { display: none !important; }
