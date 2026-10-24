@@ -1,8 +1,5 @@
 # Roadmap
 
-- [x] Apply exact Primary filing margins (18 mm left / 12 mm right) with user-approved uniform artwork scaling and unchanged A4 page count.
-- [x] Verify all six border geometries, 23 output/lifecycle tests, real-learner preview/download and native PDF-tab opening; downloaded margins measured at 18/12 mm and bulk retains one A4 page per learner.
-
 - [x] Diagnose and fix Primary PDF loading, readiness and print URL lifetime without changing the download engine.
 - [x] Verify Primary loading failures and print lifecycle with 16 regression tests and Chrome checks.
 

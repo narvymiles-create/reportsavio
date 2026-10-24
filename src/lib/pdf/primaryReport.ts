@@ -15,7 +15,6 @@ import {
   A4_H, A4_W, INK, MM, Painter, bytesToPdfBlob, embedImage, loadFonts, mm,
 } from "./core";
 import { drawBorder } from "./borders";
-import { applyPrimaryFilingMargins } from "./primaryFilingMargins";
 
 type Any = Record<string, any>;
 
@@ -596,7 +595,6 @@ export async function renderPrimaryBytes(d: PrimaryData): Promise<Uint8Array> {
     }, { opacity: s.stamp_opacity ?? 0.6 });
   }
 
-  applyPrimaryFilingMargins(page, d.borderStyle);
   return doc.save();
 }
 

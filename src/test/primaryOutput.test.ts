@@ -1,6 +1,6 @@
 import { Blob as NodeBlob } from "node:buffer";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { PDFDocument, PDFPage } from "pdf-lib";
+import { PDFDocument } from "pdf-lib";
 import { generatePrimaryOutput, validatePrimaryPdf } from "@/lib/pdf/primaryOutput";
 import { renderPrimaryBytes, type PrimaryData } from "@/lib/pdf/primaryReport";
 
@@ -47,10 +47,7 @@ describe("Primary output page contract", () => {
     await expect(validatePrimaryPdf(new Blob(["%PDF-invalid"]), 1)).rejects.toThrow("could not be read");
   });
   it("renders the existing Primary engine as exactly one 210 x 297 mm page", async () => {
-    const scale = vi.spyOn(PDFPage.prototype, "scaleContent");
     const bytes = await renderPrimaryBytes(fixture);
-    expect(scale).toHaveBeenCalledWith(180 / 203.2, 180 / 203.2);
-    scale.mockRestore();
     const pdf = await validatePrimaryPdf(new Blob([new Uint8Array(bytes).buffer]), 1);
     expect(pdf.getPageCount()).toBe(1);
     expect(pdf.getPage(0).getWidth() * 25.4 / 72).toBeCloseTo(210, 6);
