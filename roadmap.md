@@ -1,5 +1,8 @@
 # Roadmap
 
+- [ ] Apply exact Primary filing margins (18 mm left / 12 mm right) with uniform artwork scaling and unchanged A4 page count.
+- [ ] Verify margin geometry, existing output tests and real-learner preview/download.
+
 - [x] Diagnose and fix Primary PDF loading, readiness and print URL lifetime without changing the download engine.
 - [x] Verify Primary loading failures and print lifecycle with 16 regression tests and Chrome checks.
 
