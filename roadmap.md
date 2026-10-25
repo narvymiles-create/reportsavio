@@ -1,7 +1,7 @@
 # Roadmap
 
-- [ ] Match Primary marksheet summaries to the reference using the configured grading scale; preserve calculations and other outputs.
-- [ ] Verify the updated summaries with real marksheet data on screen and in print layout.
+- [x] Match Primary marksheet summaries to the reference using the configured grading scale; preserve calculations and other outputs.
+- [x] Verify the updated summaries with 13 real learners on screen, print and download; both output files fit one A4 landscape page and 16 report regression tests pass.
 
 - [x] Diagnose and fix Primary PDF loading, readiness and print URL lifetime without changing the download engine.
 - [x] Verify Primary loading failures and print lifecycle with 16 regression tests and Chrome checks.

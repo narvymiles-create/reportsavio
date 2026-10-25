@@ -254,13 +254,24 @@
 .marks-form--pdf-export .mark-cell { gap: 2px; }
 .marks-form--pdf-export .mark-grade { font-size: 9px; min-width: 16px; }
 .marks-form--pdf-export .marks-form__summary-grid { grid-template-columns: minmax(0, 4fr) minmax(0, 1fr); }
-.marks-form--pdf-export .marks-form__analysis-table { font-size: 9px; }
+.marks-form--pdf-export .marks-form__analysis-table { font-size: 9px; line-height: 1.6; }
 .marks-form--pdf-export .marks-form__analysis-table th,
-.marks-form--pdf-export .marks-form__analysis-table td { height: 18px; padding: 2px 3px; }
+.marks-form--pdf-export .marks-form__analysis-table td { height: 20px; padding: 0 3px 3px; }
 .marks-form--pdf-export .marks-form__analysis-table .marks-form__analysis-title { font-size: 11px; }
+.marks-form--pdf-export .marks-form__footer { margin-top: 6px; padding-top: 4px; font-size: 9px; line-height: 1.6; }
 
 /* Print */
 @media print {
+  html:has(.marks-form), body:has(.marks-form) { width: auto !important; min-height: 0 !important; }
+  body:has(.marks-form) .group\/sidebar-wrapper,
+  body:has(.marks-form) .group\/sidebar-wrapper > div,
+  body:has(.marks-form) .group\/sidebar-wrapper > div > .flex-1 {
+    display: block !important;
+    min-height: 0 !important;
+    width: 100% !important;
+    background: none !important;
+  }
+  body:has(.marks-form) .group\/sidebar-wrapper .peer { display: none !important; }
   @page { size: A4 landscape; margin: 8mm; }
   html, body { background: #fff !important; margin: 0 !important; padding: 0 !important; width: 100% !important; }
   * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
