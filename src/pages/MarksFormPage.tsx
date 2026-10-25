@@ -594,6 +594,7 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
 
       {/* Printable area */}
       <div ref={marksheetRef} className="marks-form">
+        <style media="print">{"@page { size: A4 landscape; margin: 8mm; }"}</style>
         <div className="marks-form__header">
           <div className="marks-form__school">{school?.name ?? ""}</div>
           <h2 className="marks-form__title">{TITLES[exam]}</h2>
@@ -672,53 +673,52 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
               </tbody>
             </table>
 
-            <div className="marks-form__summary-wrap">
-              <div className="marks-form__summary-title">SUMMARY</div>
-              <table className="marks-form__summary">
+            <div className="marks-form__analysis">
+              <table className="marks-form__analysis-table marks-form__grading-scale" aria-label="Grading Scale">
                 <thead>
+                  <tr><th colSpan={bands.length + 1} className="marks-form__analysis-title">GRADING SCALE</th></tr>
                   <tr>
-                    <th>DN</th>
-                    <th>DIV1</th>
-                    <th>DIV2</th>
-                    <th>DIV3</th>
-                    <th>DIV4</th>
-                    <th>DIV X</th>
-                    <th>U</th>
+                    <th scope="row">GRADE</th>
+                    {bands.map(band => <th scope="col" key={band.grade}>{band.grade}</th>)}
                   </tr>
                 </thead>
                 <tbody>
                   <tr>
-                    <td>No.</td>
-                    <td>{divSummary["1"] || ""}</td>
-                    <td>{divSummary["2"] || ""}</td>
-                    <td>{divSummary["3"] || ""}</td>
-                    <td>{divSummary["4"] || ""}</td>
-                    <td>{divSummary.X || ""}</td>
-                    <td>{divSummary.U || ""}</td>
+                    <th scope="row">MARKS</th>
+                    {bands.map(band => <td key={band.grade}>{band.min_mark}–{band.max_mark}</td>)}
+                  </tr>
+                  <tr>
+                    <th scope="row">REMARKS</th>
+                    {bands.map(band => <td key={band.grade}>{band.remark ?? "—"}</td>)}
                   </tr>
                 </tbody>
               </table>
-            </div>
 
-            {/* Subject Performance Summary (auto-generated, real-time) */}
-            <div className="marks-form__summary-wrap">
-              <div className="marks-form__summary-title">SUBJECT PERFORMANCE SUMMARY (AUTO GENERATED){cls?.name ? ` — ${cls.name}` : ""}</div>
-              <table className="marks-form__summary">
+              <div className="marks-form__summary-grid">
+              {/* Subject Performance Summary (auto-generated, real-time) */}
+              <table className="marks-form__analysis-table marks-form__performance" aria-label="Subject Performance Summary">
+                <colgroup>
+                  <col className="marks-form__rank-col" />
+                  <col className="marks-form__subject-col" />
+                  {GRADE_COLS.map(g => <col key={g} />)}
+                  <col className="marks-form__contribution-col" />
+                </colgroup>
                 <thead>
+                  <tr><th colSpan={11} className="marks-form__analysis-title">SUBJECT PERFORMANCE SUMMARY (AUTO GENERATED){cls?.name ? ` — ${cls.name}` : ""}</th></tr>
                   <tr>
                     <th>RANK</th>
-                    <th style={{ textAlign: "left" }}>GRADE SUBJECT</th>
+                    <th>GRADE SUBJECT</th>
                     {GRADE_COLS.map(g => <th key={g}>{g}</th>)}
                     <th>FIRST GRADE CONTRIBUTION</th>
                   </tr>
                 </thead>
                 <tbody>
                   {subjectPerformance.length === 0 ? (
-                    <tr><td colSpan={11} style={{ textAlign: "center" }}>No subjects.</td></tr>
+                    <tr><td colSpan={11}>No subjects.</td></tr>
                   ) : subjectPerformance.map(r => (
                     <tr key={r.subjectId}>
                       <td>{r.rank ?? "—"}</td>
-                      <td style={{ textAlign: "left" }}>{r.label}{r.isCore ? "" : " *"}</td>
+                      <td>{r.label}{r.isCore ? "" : " *"}</td>
                       {GRADE_COLS.map(g => <td key={g}>{r.counts[g] || 0}</td>)}
                       <td><strong>{r.firstGrade ?? "—"}</strong></td>
                     </tr>
@@ -726,15 +726,30 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
                 </tbody>
                 <tfoot>
                   <tr>
-                    <td colSpan={11} style={{ textAlign: "center", fontWeight: 600 }}>
+                    <td colSpan={11} className="marks-form__learner-total">
                       TOTAL NUMBER OF LEARNERS = {filteredLearners.length}
                       {subjectPerformance.some(r => !r.isCore) && (
-                        <span style={{ fontWeight: 400 }}> &nbsp;| * optional subject — not used for grading</span>
+                        <span className="marks-form__optional-note"> &nbsp;| * optional subject — not used for grading</span>
                       )}
                     </td>
                   </tr>
                 </tfoot>
               </table>
+              <table className="marks-form__analysis-table marks-form__division" aria-label="Division Summary">
+                <thead>
+                  <tr><th colSpan={2} className="marks-form__analysis-title">SUMMARY</th></tr>
+                  <tr><th scope="col">DN</th><th scope="col">No.</th></tr>
+                </thead>
+                <tbody>
+                  {(["1", "2", "3", "4", "X", "U"] as const).map(division => (
+                    <tr key={division}>
+                      <th scope="row">{division === "U" ? "U" : division === "X" ? "DIV X" : `DIV${division}`}</th>
+                      <td>{divSummary[division]}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              </div>
             </div>
 
             {/* Skavio footer — visible on screen, print and save-as-PDF */}
