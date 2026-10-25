@@ -594,6 +594,7 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
 
       {/* Printable area */}
       <div ref={marksheetRef} className="marks-form">
+        <style media="print">{"@page { size: A4 landscape; margin: 8mm; }"}</style>
         <div className="marks-form__header">
           <div className="marks-form__school">{school?.name ?? ""}</div>
           <h2 className="marks-form__title">{TITLES[exam]}</h2>
