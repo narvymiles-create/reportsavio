@@ -258,11 +258,16 @@
 .marks-form--pdf-export .marks-form__analysis-table th,
 .marks-form--pdf-export .marks-form__analysis-table td { height: 20px; padding: 0 3px 3px; }
 .marks-form--pdf-export .marks-form__analysis-table .marks-form__analysis-title { font-size: 11px; }
+.marks-form--pdf-export .marks-form__footer { margin-top: 6px; padding-top: 4px; font-size: 9px; line-height: 1.6; }
 
 /* Print */
 @media print {
   @page primary-marksheet { size: A4 landscape; margin: 8mm; }
+  @page primary-marksheet:first { size: A4 landscape; margin: 8mm; }
+  @page primary-marksheet:left { size: A4 landscape; margin: 8mm; }
+  @page primary-marksheet:right { size: A4 landscape; margin: 8mm; }
   html:has(.marks-form), body:has(.marks-form) { page: primary-marksheet; }
+  html:has(.marks-form), body:has(.marks-form) { width: auto !important; min-height: 0 !important; }
   body:has(.marks-form) .group\/sidebar-wrapper,
   body:has(.marks-form) .group\/sidebar-wrapper > div,
   body:has(.marks-form) .group\/sidebar-wrapper > div > .flex-1 {
