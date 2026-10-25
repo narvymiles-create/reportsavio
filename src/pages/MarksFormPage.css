@@ -256,13 +256,13 @@
 .marks-form--pdf-export .marks-form__summary-grid { grid-template-columns: minmax(0, 4fr) minmax(0, 1fr); }
 .marks-form--pdf-export .marks-form__analysis-table { font-size: 9px; line-height: 1.6; }
 .marks-form--pdf-export .marks-form__analysis-table th,
-.marks-form--pdf-export .marks-form__analysis-table td { height: 23px; padding: 2px 3px 5px; }
+.marks-form--pdf-export .marks-form__analysis-table td { height: 20px; padding: 0 3px 3px; }
 .marks-form--pdf-export .marks-form__analysis-table .marks-form__analysis-title { font-size: 11px; }
 
 /* Print */
 @media print {
   @page primary-marksheet { size: A4 landscape; margin: 8mm; }
-  body:has(.marks-form) { page: primary-marksheet; }
+  html:has(.marks-form), body:has(.marks-form) { page: primary-marksheet; }
   body:has(.marks-form) .group\/sidebar-wrapper,
   body:has(.marks-form) .group\/sidebar-wrapper > div,
   body:has(.marks-form) .group\/sidebar-wrapper > div > .flex-1 {
