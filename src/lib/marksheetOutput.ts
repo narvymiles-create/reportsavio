@@ -5,6 +5,16 @@ export function createMarksheetOutput(source: HTMLElement): HTMLDivElement {
   const output = document.createElement("div");
   output.className = "marksheet-output";
   document.body.append(output);
+  // Mounted last: globally imported Nursery/report rules must not hide this body child.
+  const printStyle = document.createElement("style");
+  printStyle.media = "print";
+  printStyle.textContent = `
+    @page { size: A4 landscape; margin: 8mm; }
+    body:has(> .marksheet-output) > #root { display: none !important; }
+    body > div.marksheet-output { display: block !important; position: static !important; }
+    body > div.marksheet-output .marksheet-measure { display: block !important; }
+  `;
+  output.append(printStyle);
   try {
     const measured = source.cloneNode(true) as HTMLElement;
     measured.classList.add("marks-form--pdf-export", "marksheet-page", "marksheet-measure");
