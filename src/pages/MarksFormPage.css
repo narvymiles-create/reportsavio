@@ -365,7 +365,7 @@
   /* The output is a direct body child, so hidden app ancestors cannot create blank pages. */
   body:has(> .marksheet-output) > :not(.marksheet-output) { display: none !important; }
   body:has(> .marksheet-output) { margin: 0 !important; padding: 0 !important; }
-  .marksheet-output { position: static; width: 281mm; }
+  body > .marksheet-output { display: block !important; position: static; width: 281mm; }
   .marksheet-page {
     display: flex !important;
     width: 281mm !important;
