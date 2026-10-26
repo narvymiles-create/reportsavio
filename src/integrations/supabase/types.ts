@@ -14,6 +14,38 @@ export type Database = {
   }
   public: {
     Tables: {
+      academic_years: {
+        Row: {
+          created_at: string
+          id: string
+          is_current: boolean
+          school_id: string
+          year: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_current?: boolean
+          school_id: string
+          year: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_current?: boolean
+          school_id?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "academic_years_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       classes: {
         Row: {
           class_signature_path: string | null
@@ -1289,6 +1321,7 @@ export type Database = {
         Returns: boolean
       }
       is_super_admin: { Args: never; Returns: boolean }
+      set_current_academic_year: { Args: { _id: string }; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "teacher" | "super_admin"
