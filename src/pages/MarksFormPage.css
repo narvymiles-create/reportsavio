@@ -260,6 +260,33 @@
 .marks-form--pdf-export .marks-form__analysis-table .marks-form__analysis-title { font-size: 11px; }
 .marks-form--pdf-export .marks-form__footer { margin-top: 6px; padding-top: 4px; font-size: 9px; line-height: 1.6; }
 
+/* Shared measured pages for native printing and page-by-page PDF capture. */
+.marksheet-output {
+  position: absolute;
+  left: -20000px;
+  top: 0;
+  width: 281mm;
+}
+.marksheet-page {
+  height: 193mm;
+  min-height: 193mm;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  overflow: visible;
+}
+.marksheet-page > .marks-form__table { flex: 0 0 auto; }
+.marksheet-page__bottom {
+  margin-top: auto;
+  padding-top: 8px;
+  display: grid;
+  gap: 8px;
+}
+.marksheet-page .marks-form__footer { margin-top: 0; }
+.marksheet-mark { display: inline-block; width: 32px; text-align: center; }
+.marksheet-page tr { break-inside: avoid; }
+.marksheet-measure { display: block; }
+
 /* Print */
 @media print {
   html:has(.marks-form), body:has(.marks-form) { width: auto !important; min-height: 0 !important; }
@@ -335,4 +362,20 @@
 
   .marks-form__footer { display: flex !important; }
   [data-skavio-footer="true"] { display: none !important; }
+  /* The output is a direct body child, so hidden app ancestors cannot create blank pages. */
+  body:has(> .marksheet-output) > :not(.marksheet-output) { display: none !important; }
+  body:has(> .marksheet-output) { margin: 0 !important; padding: 0 !important; }
+  .marksheet-output { position: static; width: 281mm; }
+  .marksheet-page {
+    display: flex !important;
+    width: 281mm !important;
+    height: 193mm !important;
+    min-height: 193mm !important;
+    break-inside: avoid;
+    break-after: page;
+  }
+  .marksheet-page:last-child { break-after: auto; }
+  .marksheet-page .marks-form__analysis-table { font-size: 9px; line-height: 1.6; }
+  .marksheet-page .marks-form__analysis-table th,
+  .marksheet-page .marks-form__analysis-table td { height: 20px; padding: 0 3px 3px; }
 }

@@ -11,7 +11,9 @@ import { Download, FileSpreadsheet, FileText, Loader2, Save, Printer, Upload } f
 import { calculateDivision, computeTotal, gradeFor, applyF9Override, isCriticalCoreSubject, type GradeBand } from "@/lib/grading";
 import { safeFilename, triggerBlobDownload } from "@/lib/pdf/core";
 import Papa from "papaparse";
-import html2pdf from "html2pdf.js";
+import html2canvas from "html2canvas";
+import { jsPDF } from "jspdf";
+import { createMarksheetOutput } from "@/lib/marksheetOutput";
 import skavioLogoUrl from "@/assets/skavio-logo-transparent.png";
 import "./MarksFormPage.css";
 
@@ -53,6 +55,8 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
   const [sortBy, setSortBy] = useState<"name" | "position">("name");
   const [hidePosition, setHidePosition] = useState(false);
   const [hideEmptyOptional, setHideEmptyOptional] = useState(false);
+  const [hideRemarks, setHideRemarks] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   // marks keyed by learner|subject
   const [marks, setMarks] = useState<Record<string, MarkRow>>({});
@@ -62,6 +66,26 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
   const [importOpen, setImportOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const marksheetRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    let output: HTMLDivElement | undefined;
+    const clean = () => { output?.remove(); output = undefined; };
+    const prepare = () => {
+      clean();
+      if (!marksheetRef.current?.querySelector(".marks-form__table")) return;
+      try { output = createMarksheetOutput(marksheetRef.current); }
+      catch (error) {
+        toast({ title: "Print could not be prepared", description: error instanceof Error ? error.message : String(error), variant: "destructive" });
+      }
+    };
+    window.addEventListener("beforeprint", prepare);
+    window.addEventListener("afterprint", clean);
+    return () => {
+      window.removeEventListener("beforeprint", prepare);
+      window.removeEventListener("afterprint", clean);
+      clean();
+    };
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -368,23 +392,27 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
   };
 
   const downloadPdf = async () => {
-    if (!classId || displayLearners.length === 0 || !marksheetRef.current) return;
-    const element = marksheetRef.current;
-    element.classList.add("marks-form--pdf-export");
+    if (!classId || displayLearners.length === 0 || !marksheetRef.current || exporting) return;
+    setExporting(true);
+    let output: HTMLDivElement | undefined;
     try {
-      await html2pdf().set({
-        margin: [8, 8, 8, 8],
-        filename: `${exportFilename()}.pdf`,
-        image: { type: "jpeg", quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, backgroundColor: "#ffffff" },
-        jsPDF: { unit: "mm", format: "a4", orientation: "landscape" },
-        pagebreak: { mode: ["css", "legacy"] },
-      }).from(element).save();
+      await document.fonts.ready;
+      output = createMarksheetOutput(marksheetRef.current);
+      const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "landscape" });
+      const pages = output.querySelectorAll<HTMLElement>(".marksheet-page");
+      for (const [index, page] of Array.from(pages).entries()) {
+        await Promise.all(Array.from(page.querySelectorAll("img")).map(image => image.decode().catch(() => undefined)));
+        const canvas = await html2canvas(page, { scale: 2, useCORS: true });
+        if (index > 0) pdf.addPage();
+        pdf.addImage(canvas.toDataURL("image/png"), "PNG", 8, 8, 281, 193);
+      }
+      pdf.save(`${exportFilename()}.pdf`);
       toast({ title: "PDF downloaded" });
     } catch (error: unknown) {
       toast({ title: "PDF download failed", description: error instanceof Error ? error.message : String(error), variant: "destructive" });
     } finally {
-      element.classList.remove("marks-form--pdf-export");
+      output?.remove();
+      setExporting(false);
     }
   };
 
@@ -508,8 +536,8 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" disabled={!classId || displayLearners.length === 0}>
-                <Download className="mr-2 h-4 w-4" /> Download
+              <Button variant="outline" disabled={!classId || displayLearners.length === 0 || exporting}>
+                {exporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />} Download
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start">
@@ -533,6 +561,10 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
           <label className="flex items-center gap-2 cursor-pointer">
             <Checkbox checked={hideEmptyOptional} onCheckedChange={(v) => setHideEmptyOptional(v === true)} />
             Hide optional subjects with no marks
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <Checkbox checked={hideRemarks} onCheckedChange={(v) => setHideRemarks(v === true)} />
+            Hide remarks
           </label>
           <div className="flex items-center gap-2">
             <Label className="whitespace-nowrap">Sort learners</Label>
@@ -687,10 +719,10 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
                     <th scope="row">MARKS</th>
                     {bands.map(band => <td key={band.grade}>{band.min_mark}–{band.max_mark}</td>)}
                   </tr>
-                  <tr>
+                  {!hideRemarks && <tr>
                     <th scope="row">REMARKS</th>
                     {bands.map(band => <td key={band.grade}>{band.remark ?? "—"}</td>)}
-                  </tr>
+                  </tr>}
                 </tbody>
               </table>
 
