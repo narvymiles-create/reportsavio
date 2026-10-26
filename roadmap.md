@@ -1,5 +1,8 @@
 # Roadmap
 
+- [ ] Separate Terms and Years settings and use the school's current year across system/report outputs.
+- [ ] Verify independent current term/year selection and report year propagation.
+
 - [x] Add Hide remarks to Primary marksheet print/download options (existing Grading Scale remarks).
 - [x] Share row-safe pagination between Primary marksheet print and PDF, repeating the grading scale and placing summaries only on the final page.
 - [x] Test pagination rules: 20 tests pass; visually checked print and downloaded pages with 13/67 sample learners and the 63-row extra-summary-page case; corrected global print visibility conflicts.
