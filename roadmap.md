@@ -1,8 +1,9 @@
 # Roadmap
 
-- [ ] Add Hide remarks to Primary marksheet print/download options.
-- [ ] Share row-safe pagination between Primary marksheet print and PDF, repeating the grading scale and placing summaries only on the final page.
-- [ ] Test pagination rules and verify real-learner print/PDF output.
+- [x] Add Hide remarks to Primary marksheet print/download options (existing Grading Scale remarks).
+- [x] Share row-safe pagination between Primary marksheet print and PDF, repeating the grading scale and placing summaries only on the final page.
+- [x] Test pagination rules: 20 tests pass; visually checked print and downloaded pages with 13/67 sample learners and the 63-row extra-summary-page case; corrected global print visibility conflicts.
+- [ ] Verify Primary marksheet with existing learner records — blocked: the requesting account's available class has no learners; sample output verified without storing sample data.
 
 - [x] Match Primary marksheet summaries to the reference using the configured grading scale; preserve calculations and other outputs.
 - [x] Verify the updated summaries with 13 real learners on screen, print and download; both output files fit one A4 landscape page and 16 report regression tests pass.
