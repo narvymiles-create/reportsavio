@@ -4,6 +4,7 @@ import { paginateMarksheet } from "./marksheetPagination";
 export function createMarksheetOutput(source: HTMLElement): HTMLDivElement {
   const output = document.createElement("div");
   output.className = "marksheet-output";
+  output.id = "primary-marksheet-output";
   document.body.append(output);
   // Mounted last: globally imported Nursery/report rules must not hide this body child.
   const printStyle = document.createElement("style");
@@ -11,8 +12,9 @@ export function createMarksheetOutput(source: HTMLElement): HTMLDivElement {
   printStyle.textContent = `
     @page { size: A4 landscape; margin: 8mm; }
     body:has(> .marksheet-output) > #root { display: none !important; }
-    body > div.marksheet-output { display: block !important; position: static !important; }
-    body > div.marksheet-output .marksheet-measure { display: block !important; }
+    html:has(#primary-marksheet-output), body:has(#primary-marksheet-output) { width: 281mm !important; }
+    body > #primary-marksheet-output { display: block !important; position: static !important; }
+    body > #primary-marksheet-output .marksheet-measure { display: block !important; }
   `;
   output.append(printStyle);
   try {
