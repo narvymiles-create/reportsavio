@@ -11,7 +11,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
-import { Loader2, Plus, Pencil, Trash2 } from "lucide-react";
+import { Loader2, Plus, Pencil, Trash2, ChevronDown } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { planSubjectBatch } from "@/lib/subjectBatch";
 
 type SubjectCode = "ENG" | "MTC" | "SCI" | "SST" | "RE" | "ICT" | "OTHER";
 const CODES: { code: SubjectCode; name: string }[] = [
@@ -60,6 +62,7 @@ export default function SubjectsPage() {
   const [submitting, setSubmitting] = useState(false);
   // Form-controlled state
   const [formClassId, setFormClassId] = useState<string>("");
+  const [formClassIds, setFormClassIds] = useState<string[]>([]);
   const [formCode, setFormCode] = useState<SubjectCode>("ENG");
   const [formIsCore, setFormIsCore] = useState(false);
 
@@ -90,6 +93,7 @@ export default function SubjectsPage() {
   const openDialog = (subject: Subject | null) => {
     setEditing(subject);
     setFormClassId(subject?.class_id ?? (classFilter !== "all" ? classFilter : classes[0]?.id ?? ""));
+    setFormClassIds(classFilter !== "all" ? [classFilter] : []);
     setFormCode(subject?.code ?? "ENG");
     setFormIsCore(subject?.is_core ?? false);
     setOpen(true);
@@ -105,8 +109,12 @@ export default function SubjectsPage() {
     const fd = new FormData(e.currentTarget);
     const teacherId = String(fd.get("subject_teacher_id") ?? "");
     const codeLabelRaw = String(fd.get("code_label") ?? "").trim().toUpperCase();
+    if (!editing && formClassIds.length === 0) {
+      toast({ title: "Select at least one class", variant: "destructive" });
+      return;
+    }
     const parsed = schema.safeParse({
-      class_id: formClassId,
+      class_id: editing ? formClassId : formClassIds[0],
       code: formCode,
       code_label: codeLabelRaw,
       name: fd.get("name"),
@@ -128,15 +136,6 @@ export default function SubjectsPage() {
       return;
     }
 
-    // Client-side core limit check (per class)
-    if (parsed.data.is_core) {
-      const count = coreCountForClass(parsed.data.class_id, editing?.id);
-      if (count >= 4) {
-        toast({ title: "Limit reached", description: "Only 4 core subjects allowed for this class", variant: "destructive" });
-        return;
-      }
-    }
-
     const payload = {
       class_id: parsed.data.class_id,
       code: parsed.data.code,
@@ -147,13 +146,44 @@ export default function SubjectsPage() {
       is_core: !!parsed.data.is_core,
       subject_teacher_id: parsed.data.subject_teacher_id ?? null,
     };
-    setSubmitting(true);
-    let error;
-    if (editing) {
-      ({ error } = await supabase.from("subjects").update(payload).eq("id", editing.id));
-    } else {
-      ({ error } = await supabase.from("subjects").insert([payload as any]));
+
+    if (!editing) {
+      const plan = planSubjectBatch(formClassIds, payload, subjects);
+      const names = (ids: string[]) => ids.map(className).join(", ");
+      if (plan.create.length === 0) {
+        toast({ title: "Nothing added", description: `Already exists in: ${names(plan.skipped)}`, variant: "destructive" });
+        return;
+      }
+      const multi = formClassIds.length > 1;
+      const rows = plan.create.map((r) => ({ ...payload, ...r, subject_teacher_id: multi ? null : payload.subject_teacher_id }));
+      setSubmitting(true);
+      const { error } = await supabase.from("subjects").insert(rows as any);
+      setSubmitting(false);
+      if (error) {
+        toast({ title: "Save failed", description: /Only 4 core/i.test(error.message) ? "Only 4 core subjects allowed for this class" : error.message, variant: "destructive" });
+        return;
+      }
+      const notes = [
+        plan.skipped.length ? `skipped ${names(plan.skipped)}: already exists` : "",
+        plan.nonCore.length ? `set as non-core in ${names(plan.nonCore)}: 4 core subjects limit reached` : "",
+      ].filter(Boolean).join("; ");
+      toast({ title: `Added ${payload.name} to ${rows.length} class${rows.length > 1 ? "es" : ""}`, description: notes || undefined });
+      setOpen(false);
+      load();
+      return;
     }
+
+    // Client-side core limit check (per class)
+    if (parsed.data.is_core) {
+      const count = coreCountForClass(parsed.data.class_id, editing?.id);
+      if (count >= 4) {
+        toast({ title: "Limit reached", description: "Only 4 core subjects allowed for this class", variant: "destructive" });
+        return;
+      }
+    }
+
+    setSubmitting(true);
+    const { error } = await supabase.from("subjects").update(payload).eq("id", editing.id);
     setSubmitting(false);
     if (error) {
       const msg = /Only 4 core/i.test(error.message)
@@ -218,13 +248,45 @@ export default function SubjectsPage() {
               <form onSubmit={handleSubmit} className="space-y-3">
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
-                    <Label htmlFor="class_id">Class *</Label>
-                    <Select value={formClassId} onValueChange={setFormClassId}>
-                      <SelectTrigger id="class_id"><SelectValue placeholder="Select class" /></SelectTrigger>
-                      <SelectContent>
-                        {classes.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}{c.level ? ` (${c.level})` : ""}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
+                    <Label htmlFor="class_id">{editing ? "Class *" : "Classes *"}</Label>
+                    {editing ? (
+                      <Select value={formClassId} onValueChange={setFormClassId}>
+                        <SelectTrigger id="class_id"><SelectValue placeholder="Select class" /></SelectTrigger>
+                        <SelectContent>
+                          {classes.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}{c.level ? ` (${c.level})` : ""}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button id="class_id" type="button" variant="outline" className="w-full justify-between font-normal">
+                            <span className="truncate">
+                              {formClassIds.length === 0 ? "Select classes"
+                                : formClassIds.length === 1 ? className(formClassIds[0])
+                                : `${formClassIds.length} classes selected`}
+                            </span>
+                            <ChevronDown className="h-4 w-4 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-64 p-2" align="start">
+                          <div className="flex justify-between pb-2 border-b mb-1">
+                            <Button type="button" size="sm" variant="ghost" onClick={() => setFormClassIds(classes.map((c) => c.id))}>Select all</Button>
+                            <Button type="button" size="sm" variant="ghost" onClick={() => setFormClassIds([])}>Clear</Button>
+                          </div>
+                          <div className="max-h-60 overflow-y-auto space-y-1">
+                            {classes.map((c) => (
+                              <label key={c.id} className="flex items-center gap-2 rounded px-2 py-1.5 hover:bg-accent cursor-pointer text-sm">
+                                <Checkbox
+                                  checked={formClassIds.includes(c.id)}
+                                  onCheckedChange={(v) => setFormClassIds((prev) => v ? [...prev, c.id] : prev.filter((x) => x !== c.id))}
+                                />
+                                {c.name}{c.level ? ` (${c.level})` : ""}
+                              </label>
+                            ))}
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                    )}
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="code">Code *</Label>
@@ -267,13 +329,16 @@ export default function SubjectsPage() {
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="subject_teacher_id">Subject teacher</Label>
-                  <Select name="subject_teacher_id" defaultValue={editing?.subject_teacher_id ?? "none"}>
+                  <Select name="subject_teacher_id" defaultValue={editing?.subject_teacher_id ?? "none"} disabled={!editing && formClassIds.length > 1}>
                     <SelectTrigger id="subject_teacher_id"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">Unassigned</SelectItem>
                       {teachers.map((t) => <SelectItem key={t.id} value={t.id}>{t.full_name}</SelectItem>)}
                     </SelectContent>
                   </Select>
+                  {!editing && formClassIds.length > 1 && (
+                    <p className="text-xs text-muted-foreground">Assign teachers per class later by editing each subject.</p>
+                  )}
                 </div>
                 <div className="flex items-center gap-2 pt-1">
                   <Checkbox id="is_core" checked={formIsCore} onCheckedChange={(v) => setFormIsCore(!!v)} />
