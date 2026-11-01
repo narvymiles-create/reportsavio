@@ -1,7 +1,7 @@
 # Roadmap
 
-- [ ] Separate Terms and Years settings and use the school's current year across system/report outputs.
-- [ ] Verify independent current term/year selection and report year propagation.
+- [x] Separate Terms and Years settings and use the school's current year across system/report outputs.
+- [x] Verify independent year switching with the signed-in account, matching term/report data and Primary report loader; restored the original current year and removed the temporary test year. Fourteen focused tests pass.
 
 - [x] Add Hide remarks to Primary marksheet print/download options (existing Grading Scale remarks).
 - [x] Share row-safe pagination between Primary marksheet print and PDF, repeating the grading scale and placing summaries only on the final page.
