@@ -8,6 +8,13 @@
       "when": 1793026797262,
       "tag": "0000_independent_academic_years",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1793697964963,
+      "tag": "0001_report_card_templates",
+      "breakpoints": true
     }
   ]
 }
