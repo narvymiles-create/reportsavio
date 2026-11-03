@@ -215,7 +215,6 @@ export async function fillTemplate(
   const doc = await PDFDocument.load(templateBytes as ArrayBuffer);
   const pages = doc.getPages();
   const pageFor = (f: TplField) => pages[Math.min(Math.max((f.page ?? 1) - 1, 0), pages.length - 1)];
-  const page = pages[0];
   const [r, b, i, bi] = await Promise.all([
     doc.embedFont(StandardFonts.Helvetica),
     doc.embedFont(StandardFonts.HelveticaBold),
