@@ -138,6 +138,51 @@ export type Database = {
           },
         ]
       }
+      custom_field_values: {
+        Row: {
+          field_id: string
+          id: string
+          learner_id: string | null
+          school_id: string
+          term_id: string | null
+          updated_at: string
+          value: string
+        }
+        Insert: {
+          field_id: string
+          id?: string
+          learner_id?: string | null
+          school_id: string
+          term_id?: string | null
+          updated_at?: string
+          value?: string
+        }
+        Update: {
+          field_id?: string
+          id?: string
+          learner_id?: string | null
+          school_id?: string
+          term_id?: string | null
+          updated_at?: string
+          value?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custom_field_values_field_id_fkey"
+            columns: ["field_id"]
+            isOneToOne: false
+            referencedRelation: "template_custom_fields"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "custom_field_values_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       division_rules: {
         Row: {
           created_at: string
@@ -858,6 +903,53 @@ export type Database = {
           },
         ]
       }
+      report_templates: {
+        Row: {
+          created_at: string
+          file_path: string
+          id: string
+          is_active: boolean
+          level: string
+          name: string
+          page_height: number
+          page_width: number
+          school_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          file_path: string
+          id?: string
+          is_active?: boolean
+          level: string
+          name: string
+          page_height?: number
+          page_width?: number
+          school_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          file_path?: string
+          id?: string
+          is_active?: boolean
+          level?: string
+          name?: string
+          page_height?: number
+          page_width?: number
+          school_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_templates_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       school_info: {
         Row: {
           created_at: string
@@ -1223,6 +1315,120 @@ export type Database = {
             columns: ["school_id"]
             isOneToOne: false
             referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      template_custom_fields: {
+        Row: {
+          created_at: string
+          description: string | null
+          field_type: string
+          id: string
+          label: string
+          school_id: string
+          scope: string
+          sort_order: number
+          template_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          field_type?: string
+          id?: string
+          label: string
+          school_id: string
+          scope?: string
+          sort_order?: number
+          template_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          field_type?: string
+          id?: string
+          label?: string
+          school_id?: string
+          scope?: string
+          sort_order?: number
+          template_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "template_custom_fields_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "template_custom_fields_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "report_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      template_field_mappings: {
+        Row: {
+          align: string
+          created_at: string
+          field_key: string
+          font_size: number
+          height: number
+          id: string
+          page: number
+          school_id: string
+          template_id: string
+          width: number
+          x: number
+          y: number
+        }
+        Insert: {
+          align?: string
+          created_at?: string
+          field_key: string
+          font_size?: number
+          height?: number
+          id?: string
+          page?: number
+          school_id: string
+          template_id: string
+          width?: number
+          x: number
+          y: number
+        }
+        Update: {
+          align?: string
+          created_at?: string
+          field_key?: string
+          font_size?: number
+          height?: number
+          id?: string
+          page?: number
+          school_id?: string
+          template_id?: string
+          width?: number
+          x?: number
+          y?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "template_field_mappings_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "template_field_mappings_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "report_templates"
             referencedColumns: ["id"]
           },
         ]
