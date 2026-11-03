@@ -22,3 +22,11 @@
 - [x] Validate one A4 page per learner with six regression tests and isolated single/bulk viewer command checks.
 - [x] Verify real learner single and bulk PDF previews, downloads and native tab opening: one A4 page for single, 24 A4 pages for 24 bulk learners, no runtime errors.
 - [ ] Verify Chrome's native print dialog and physical output — blocked: automated headless Chrome does not expose the native PDF print dialog; the user confirmed downloaded PDFs print correctly there.
+
+## Report card template upload + manual field mapping
+- [ ] Database: report_templates, template_field_mappings, template_custom_fields, custom_field_values tables + report-templates storage bucket, school-scoped RLS, one active template per level.
+- [ ] Template Management page: upload (Nursery/Primary only), preview, activate/deactivate, replace, delete with confirmation; defaults remain when no active custom template.
+- [ ] Mapping editor: click on the actual uploaded PDF preview to place fields; field panel with mapped/unmapped state; custom fields (text/number/date/percentage/multiline, school-wide or learner-specific).
+- [ ] Custom field values: school-wide central values; learner-specific per learner+term.
+- [ ] Generation: active custom template renders via the pdf-lib template engine for Preview, Download and Print; fallback to existing default report cards; Nursery never uses Primary templates and vice versa.
+- [ ] Tests + AGENTS.md rule.
