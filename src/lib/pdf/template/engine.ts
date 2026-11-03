@@ -28,6 +28,8 @@ export type TplField = {
   maxWidth: number;
   color: number[];
   box: number[]; // [left, bottom, right, top]
+  /** 1-based page index; defaults to page 1. */
+  page?: number;
 };
 
 export type TplDef = {
@@ -211,7 +213,9 @@ export async function fillTemplate(
   values: ValueMap,
 ): Promise<Uint8Array> {
   const doc = await PDFDocument.load(templateBytes as ArrayBuffer);
-  const page = doc.getPages()[0];
+  const pages = doc.getPages();
+  const pageFor = (f: TplField) => pages[Math.min(Math.max((f.page ?? 1) - 1, 0), pages.length - 1)];
+  const page = pages[0];
   const [r, b, i, bi] = await Promise.all([
     doc.embedFont(StandardFonts.Helvetica),
     doc.embedFont(StandardFonts.HelveticaBold),
