@@ -6,7 +6,7 @@ import { Printer, Download, Loader2 } from "lucide-react";
 import { NurseryReportSheet } from "@/components/NurseryReportSheet";
 import { PrimaryPdfPages } from "@/components/PrimaryPdfPages";
 import { downloadNurseryReportCardPDF, generateNurseryReportCardBlob } from "@/lib/nurseryPdfGenerator";
-import { createPrimaryPdfSession, type PrimaryPdfSession } from "@/lib/pdf/primaryPdfSession";
+import { createPrimaryPdfSession } from "@/lib/pdf/primaryPdfSession";
 import { getActiveTemplate } from "@/lib/templates";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -26,7 +26,7 @@ export default function PrintNurseryReportCard() {
   const [useCustom, setUseCustom] = useState<boolean | null>(null);
   const [pdfDoc, setPdfDoc] = useState<PDFDocumentProxy | null>(null);
   const [pdfError, setPdfError] = useState<string | null>(null);
-  const sessionRef = useRef<PrimaryPdfSession | null>(null);
+  const sessionRef = useRef<ReturnType<typeof createPrimaryPdfSession> | null>(null);
 
   useEffect(() => {
     if (!learnerId) return;
