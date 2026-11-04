@@ -56,7 +56,13 @@ const primaryGroups = [
     ],
   },
   { label: "Reports", items: [{ title: "Report Cards", url: "/report-cards", icon: FileText }] },
-  { label: "System", items: [{ title: "Settings", url: "/settings", icon: SettingsIcon }] },
+  {
+    label: "System",
+    items: [
+      { title: "Templates", url: "/templates", icon: LayoutTemplate },
+      { title: "Settings", url: "/settings", icon: SettingsIcon },
+    ],
+  },
 ];
 
 const nurseryGroups = [
