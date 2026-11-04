@@ -259,6 +259,11 @@ export async function renderNurseryReport(d: NurseryData, doc?: PDFDocument): Pr
 }
 
 export async function nurseryReportBlob(learnerId: string, termId: string): Promise<Blob> {
+  // An active custom template applies to every Nursery learner/term/year.
+  const custom = await import("./customTemplate")
+    .then((m) => m.renderWithCustomTemplate("nursery", learnerId, termId))
+    .catch((e) => { console.error("[custom nursery template] falling back to default", e); return null; });
+  if (custom) return bytesToPdfBlob(custom);
   const pdf = await buildNurseryReportPdf(learnerId, termId);
   return bytesToPdfBlob(await pdf.save());
 }
