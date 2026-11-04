@@ -28,6 +28,8 @@ import MarksEOTPage from "./pages/MarksEOTPage";
 import SignaturesPage from "./pages/SignaturesPage";
 import ReportCardsPage from "./pages/ReportCardsPage";
 import SettingsPage from "./pages/SettingsPage";
+import TemplatesPage from "./pages/TemplatesPage";
+import TemplateMappingPage from "./pages/TemplateMappingPage";
 import PrintReportCard from "./pages/PrintReportCard";
 import BulkReportCardsPage from "./pages/BulkReportCardsPage";
 import NurseryClassesPage from "./pages/nursery/NurseryClassesPage";
@@ -81,6 +83,8 @@ const App = () => (
             <Route path="/signatures" element={<Protected><SignaturesPage /></Protected>} />
             <Route path="/report-cards" element={<Protected><ReportCardsPage /></Protected>} />
             <Route path="/settings" element={<Protected><SettingsPage /></Protected>} />
+            <Route path="/templates" element={<Protected><TemplatesPage /></Protected>} />
+            <Route path="/templates/:templateId" element={<Protected><TemplateMappingPage /></Protected>} />
             <Route path="/print/report-card/:learnerId/:termId" element={<RequireAdmin><PrintReportCard /></RequireAdmin>} />
             <Route path="/print/bulk/:termId/:classId" element={<RequireAdmin><BulkReportCardsPage /></RequireAdmin>} />
             {/* Nursery module */}
