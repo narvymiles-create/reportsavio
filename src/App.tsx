@@ -28,6 +28,8 @@ import MarksEOTPage from "./pages/MarksEOTPage";
 import SignaturesPage from "./pages/SignaturesPage";
 import ReportCardsPage from "./pages/ReportCardsPage";
 import SettingsPage from "./pages/SettingsPage";
+import TemplatesPage from "./pages/TemplatesPage";
+import TemplateMappingPage from "./pages/TemplateMappingPage";
 import PrintReportCard from "./pages/PrintReportCard";
 import BulkReportCardsPage from "./pages/BulkReportCardsPage";
 import NurseryClassesPage from "./pages/nursery/NurseryClassesPage";
