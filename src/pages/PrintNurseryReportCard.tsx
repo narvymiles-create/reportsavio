@@ -70,14 +70,17 @@ export default function PrintNurseryReportCard() {
     return () => { cancelled = true; };
   }, [learnerId, termId]);
 
-  useEffect(() => () => { sessionRef.current?.previewClosed(); }, []);
+  useEffect(() => () => { sessionRef.current?.dispose(); }, []);
 
   const runPrint = () => {
     if (useCustom) {
       const session = sessionRef.current;
       if (!session) return toast({ title: "Please wait, report still loading" });
-      const tab = session.openInNativeTab();
-      if (!tab) toast({ title: "Popup blocked", description: "Allow popups to print the report.", variant: "destructive" });
+      try {
+        session.open();
+      } catch (e: any) {
+        toast({ title: "Could not open the PDF", description: e?.message, variant: "destructive" });
+      }
       return;
     }
     if (!ready || !sheetRef.current) return toast({ title: "Please wait, report still loading" });
