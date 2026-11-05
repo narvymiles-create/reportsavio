@@ -92,9 +92,7 @@ export default function TemplateMappingPage() {
       import("pdfjs-dist/build/pdf.worker.min.mjs?url"),
     ]);
     pdfjs.GlobalWorkerOptions.workerSrc = worker.default;
-    console.log("[tpl] got bytes", bytes.length);
     const doc = await pdfjs.getDocument({ data: bytes, isEvalSupported: false }).promise;
-    console.log("[tpl] doc loaded", doc.numPages);
     setPdfDoc(doc);
     setPageCount(doc.numPages);
 
@@ -120,8 +118,7 @@ export default function TemplateMappingPage() {
   /* ---------------------------------------------------------- canvas render */
 
   useEffect(() => {
-    console.log("[tpl] canvas effect, pdfDoc:", !!pdfDoc);
-    if (!pdfDoc) return;
+    if (!pdfDoc || loading) return;
     let cancelled = false;
     (async () => {
       const pdfPage = await pdfDoc.getPage(page);
@@ -138,7 +135,7 @@ export default function TemplateMappingPage() {
       toast({ title: "Could not display the template page", description: err instanceof Error ? err.message : undefined, variant: "destructive" });
     });
     return () => { cancelled = true; };
-  }, [pdfDoc, page]);
+  }, [pdfDoc, page, loading]);
 
   /* ------------------------------------------------------------- placement */
 
