@@ -84,12 +84,15 @@ export default function TemplateMappingPage() {
     setCustomFields(cfs);
 
     const url = await templateFileUrl(tpl as any);
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`Could not download the template file (${res.status})`);
+    const bytes = new Uint8Array(await res.arrayBuffer());
     const [pdfjs, worker] = await Promise.all([
       import("pdfjs-dist"),
       import("pdfjs-dist/build/pdf.worker.min.mjs?url"),
     ]);
     pdfjs.GlobalWorkerOptions.workerSrc = worker.default;
-    const doc = await pdfjs.getDocument({ url, isEvalSupported: false }).promise;
+    const doc = await pdfjs.getDocument({ data: bytes, isEvalSupported: false }).promise;
     setPdfDoc(doc);
     setPageCount(doc.numPages);
 
@@ -126,7 +129,10 @@ export default function TemplateMappingPage() {
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
       await pdfPage.render({ canvasContext: ctx, viewport }).promise;
-    })().catch(() => {});
+    })().catch((err) => {
+      console.error("[template preview] render failed", err);
+      toast({ title: "Could not display the template page", description: err instanceof Error ? err.message : undefined, variant: "destructive" });
+    });
     return () => { cancelled = true; };
   }, [pdfDoc, page]);
 
