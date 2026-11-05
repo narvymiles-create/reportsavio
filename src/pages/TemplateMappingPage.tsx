@@ -110,6 +110,7 @@ export default function TemplateMappingPage() {
 
   useEffect(() => {
     reload().catch((e) => {
+      console.error("[template mapping] load failed", e);
       toast({ title: "Could not open template", description: e.message, variant: "destructive" });
     }).finally(() => setLoading(false));
   }, [reload]);
