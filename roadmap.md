@@ -24,9 +24,9 @@
 - [ ] Verify Chrome's native print dialog and physical output — blocked: automated headless Chrome does not expose the native PDF print dialog; the user confirmed downloaded PDFs print correctly there.
 
 ## Report card template upload + manual field mapping
-- [ ] Database: report_templates, template_field_mappings, template_custom_fields, custom_field_values tables + report-templates storage bucket, school-scoped RLS, one active template per level.
-- [ ] Template Management page: upload (Nursery/Primary only), preview, activate/deactivate, replace, delete with confirmation; defaults remain when no active custom template.
-- [ ] Mapping editor: click on the actual uploaded PDF preview to place fields; field panel with mapped/unmapped state; custom fields (text/number/date/percentage/multiline, school-wide or learner-specific).
-- [ ] Custom field values: school-wide central values; learner-specific per learner+term.
-- [ ] Generation: active custom template renders via the pdf-lib template engine for Preview, Download and Print; fallback to existing default report cards; Nursery never uses Primary templates and vice versa.
-- [ ] Tests + AGENTS.md rule.
+- [x] Database: report_templates, template_field_mappings, template_custom_fields, custom_field_values tables + report-templates storage bucket, school-scoped RLS, one active template per level.
+- [x] Template Management page: upload (Nursery/Primary only), preview, activate/deactivate, replace, delete with confirmation; defaults remain when no active custom template.
+- [x] Mapping editor: click on the actual uploaded PDF preview to place fields; field panel with mapped/unmapped state; custom fields (text/number/date/percentage/multiline, school-wide or learner-specific).
+- [x] Custom field values: school-wide central values; learner-specific per learner+term.
+- [x] Generation: active custom template renders via the pdf-lib template engine for Preview, Download and Print; fallback to existing default report cards; Nursery never uses Primary templates and vice versa.
+- [x] Tests + AGENTS.md rule. Verified in browser: upload, click-to-map, custom field creation, activation, real-learner report rendered on the custom template, and default fallback after deletion (sample template removed).
