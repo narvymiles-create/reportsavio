@@ -92,7 +92,9 @@ export default function TemplateMappingPage() {
       import("pdfjs-dist/build/pdf.worker.min.mjs?url"),
     ]);
     pdfjs.GlobalWorkerOptions.workerSrc = worker.default;
+    console.log("[tpl] got bytes", bytes.length);
     const doc = await pdfjs.getDocument({ data: bytes, isEvalSupported: false }).promise;
+    console.log("[tpl] doc loaded", doc.numPages);
     setPdfDoc(doc);
     setPageCount(doc.numPages);
 
@@ -118,6 +120,7 @@ export default function TemplateMappingPage() {
   /* ---------------------------------------------------------- canvas render */
 
   useEffect(() => {
+    console.log("[tpl] canvas effect, pdfDoc:", !!pdfDoc);
     if (!pdfDoc) return;
     let cancelled = false;
     (async () => {
