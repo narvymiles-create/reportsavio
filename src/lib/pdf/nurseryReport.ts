@@ -200,7 +200,7 @@ export async function renderNurseryReport(d: NurseryData, doc?: PDFDocument): Pr
     p.text(a.name ?? "", { x: textX, y: ry + 1.2, size: 7.4, bold: true, width: textW });
     const comment = d.assessments[a.id]?.comment ?? "";
     if (comment) {
-      p.paragraph(comment, { x: textX, y: ry + 5.4, size: 6.8, width: textW, maxLines: Math.max(1, Math.floor((rowH - 6) / 3)), color: "#1f2937" });
+      p.paragraph(comment, { x: textX, y: ry + 5.4, size: 6.8, width: textW, maxLines: Math.max(1, Math.floor((rowH - 6) / 3)), color: "#1d4ed8" });
     }
 
     const grade = (d.assessments[a.id]?.grade ?? "").toUpperCase();
