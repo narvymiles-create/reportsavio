@@ -30,3 +30,8 @@
 - [x] Custom field values: school-wide central values; learner-specific per learner+term.
 - [x] Generation: active custom template renders via the pdf-lib template engine for Preview, Download and Print; fallback to existing default report cards; Nursery never uses Primary templates and vice versa.
 - [x] Tests + AGENTS.md rule. Verified in browser: upload, click-to-map, custom field creation, activation, real-learner report rendered on the custom template, and default fallback after deletion (sample template removed).
+
+## View the default report card templates
+- [x] Add View to the default Nursery and Primary template cards; preview the built-in design from the same PDF bytes it downloads as.
+- [x] Test preview target selection: current term wins over newer terms, fullest learner wins, empty states return null; 7 new tests, 40 total pass.
+- [x] Verify in the browser: Primary dialog renders one A4 page for ALEDY ATER BULLEN · Term 2 with a working Download PDF button; Nursery dialog renders for a temporary learner then that learner is removed (0 rows left).

@@ -16,8 +16,9 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { FileUp, Loader2, MapPin, RefreshCw, Trash2, FileText, CheckCircle2 } from "lucide-react";
+import { FileUp, Loader2, MapPin, RefreshCw, Trash2, FileText, CheckCircle2, Eye } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { DefaultTemplatePreview } from "@/components/DefaultTemplatePreview";
 import {
   deleteTemplate, listTemplates, replaceTemplateFile, setTemplateActive, uploadTemplate,
   type ReportTemplate, type TemplateLevel,
@@ -122,6 +123,7 @@ export default function TemplatesPage() {
   const [uploadName, setUploadName] = useState("");
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [previewLevel, setPreviewLevel] = useState<TemplateLevel | null>(null);
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -169,6 +171,11 @@ export default function TemplatesPage() {
               template below is activated.
             </CardDescription>
           </CardHeader>
+          <CardContent className="flex flex-wrap gap-2">
+            <Button size="sm" variant="outline" onClick={() => setPreviewLevel(level)}>
+              <Eye className="mr-1 h-4 w-4" /> View
+            </Button>
+          </CardContent>
         </Card>
         {list.map((t) => <TemplateCard key={t.id} template={t} onChanged={reload} />)}
         {!list.length && (
@@ -207,6 +214,12 @@ export default function TemplatesPage() {
           <TabsContent value="nursery" className="mt-4">{renderLevel("nursery")}</TabsContent>
         </Tabs>
       )}
+
+      <DefaultTemplatePreview
+        level={previewLevel ?? "primary"}
+        open={!!previewLevel}
+        onOpenChange={(open) => { if (!open) setPreviewLevel(null); }}
+      />
 
       <Dialog open={uploadOpen} onOpenChange={setUploadOpen}>
         <DialogContent>
