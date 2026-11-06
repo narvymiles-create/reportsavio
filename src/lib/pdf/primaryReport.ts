@@ -115,7 +115,7 @@ export async function loadPrimaryData(learnerId: string, termId: string) {
 
 /* --------------------------------------------------------------- compute */
 
-export function computeAll(d: PrimaryData) {
+function computeAll(d: PrimaryData) {
   const { subjects, marks, bands } = d;
   const bySubject = new Map<string, Any>();
   marks.forEach((m: Any) => bySubject.set(m.subject_id, m));
@@ -605,11 +605,6 @@ export async function primaryReportBytes(learnerId: string, termId: string): Pro
 }
 
 export async function primaryReportBlob(learnerId: string, termId: string): Promise<Blob> {
-  // An active custom template applies to every Primary learner/term/year.
-  const custom = await import("./customTemplate")
-    .then((m) => m.renderWithCustomTemplate("primary", learnerId, termId))
-    .catch((e) => { console.error("[custom primary template] falling back to default", e); return null; });
-  if (custom) return bytesToPdfBlob(custom);
   return bytesToPdfBlob(await primaryReportBytes(learnerId, termId));
 }
 

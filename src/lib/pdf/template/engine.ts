@@ -28,8 +28,6 @@ export type TplField = {
   maxWidth: number;
   color: number[];
   box: number[]; // [left, bottom, right, top]
-  /** 1-based page index; defaults to page 1. */
-  page?: number;
 };
 
 export type TplDef = {
@@ -213,8 +211,7 @@ export async function fillTemplate(
   values: ValueMap,
 ): Promise<Uint8Array> {
   const doc = await PDFDocument.load(templateBytes as ArrayBuffer);
-  const pages = doc.getPages();
-  const pageFor = (f: TplField) => pages[Math.min(Math.max((f.page ?? 1) - 1, 0), pages.length - 1)];
+  const page = doc.getPages()[0];
   const [r, b, i, bi] = await Promise.all([
     doc.embedFont(StandardFonts.Helvetica),
     doc.embedFont(StandardFonts.HelveticaBold),
@@ -227,19 +224,17 @@ export async function fillTemplate(
   for (const f of def.fields) {
     const v = values[f.name];
     if (!isImageValue(v)) continue;
-    const target = pageFor(f);
-    if (v.erase !== false) eraseRect(target, v.box, v.eraseColor ?? [1, 1, 1]);
+    if (v.erase !== false) eraseRect(page, v.box, v.eraseColor ?? [1, 1, 1]);
     if (!v.image) continue;
     const img = await embedImage(doc, v.image);
-    if (img) paintImage(target, img, v.box, v.opacity);
+    if (img) paintImage(page, img, v.box, v.opacity);
   }
 
   for (const field of def.fields) {
     const v = values[field.name];
     if (v == null || isImageValue(v)) continue;
-    const target = pageFor(field);
-    if (isTextValue(v)) paintText(target, fonts, field, v);
-    else paintText(target, fonts, field, String(v));
+    if (isTextValue(v)) paintText(page, fonts, field, v);
+    else paintText(page, fonts, field, String(v));
   }
 
   return doc.save();
