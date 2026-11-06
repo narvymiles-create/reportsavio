@@ -52,7 +52,7 @@ async function markCounts(table: string, termId: string, schoolId: string): Prom
     .limit(20000);
   if (error) throw new Error(error.message);
   const counts = new Map<string, number>();
-  ((data as { learner_id: string }[]) ?? []).forEach((row) => {
+  ((data as unknown as { learner_id: string }[]) ?? []).forEach((row) => {
     counts.set(row.learner_id, (counts.get(row.learner_id) ?? 0) + 1);
   });
   return counts;
@@ -81,7 +81,7 @@ export async function renderDefaultTemplatePreview(level: TemplateLevel): Promis
     .order("full_name");
   if (learnerError) throw new Error(learnerError.message);
 
-  let rows = ((learnerRows as { id: string; full_name: string; class_id: string | null }[]) ?? []);
+  let rows = ((learnerRows as unknown as { id: string; full_name: string; class_id: string | null }[]) ?? []);
   // Primary subject grids need a class; the Nursery sheet does not.
   if (level === "primary") rows = rows.filter((r) => !!r.class_id);
 
