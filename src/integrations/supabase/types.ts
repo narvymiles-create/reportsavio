@@ -906,11 +906,13 @@ export type Database = {
       report_templates: {
         Row: {
           created_at: string
+          field_names: Json
           file_path: string
           id: string
           is_active: boolean
           level: string
           name: string
+          page_count: number
           page_height: number
           page_width: number
           school_id: string
@@ -918,11 +920,13 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          field_names?: Json
           file_path: string
           id?: string
           is_active?: boolean
           level: string
           name: string
+          page_count?: number
           page_height?: number
           page_width?: number
           school_id: string
@@ -930,11 +934,13 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          field_names?: Json
           file_path?: string
           id?: string
           is_active?: boolean
           level?: string
           name?: string
+          page_count?: number
           page_height?: number
           page_width?: number
           school_id?: string
@@ -1527,6 +1533,10 @@ export type Database = {
         Returns: boolean
       }
       is_super_admin: { Args: never; Returns: boolean }
+      select_report_template: {
+        Args: { _level: string; _template_id?: string }
+        Returns: undefined
+      }
       set_current_academic_year: { Args: { _id: string }; Returns: undefined }
     }
     Enums: {
