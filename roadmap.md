@@ -21,4 +21,7 @@
 - [x] Unify Primary preview, single print and bulk print with the existing PDF download output.
 - [x] Validate one A4 page per learner with six regression tests and isolated single/bulk viewer command checks.
 - [x] Verify real learner single and bulk PDF previews, downloads and native tab opening: one A4 page for single, 24 A4 pages for 24 bulk learners, no runtime errors.
-- [ ] Verify Chrome's native print dialog and physical output — blocked: automated headless Chrome does not expose the native PDF print dialog; the user confirmed downloaded PDFs print correctly there.
+- [ ] Verify Chrome's native print dialog and physical output — blocked: automated headless Chrome does expose no native PDF print dialog; the user confirmed downloaded PDFs print correctly there.
+
+- [x] Show learning-area comments in the configured blue on the Nursery report card across preview, print and download.
+- [x] Verify the colour in the live preview and in a downloaded PDF from a real learner record; two regression tests added, 27 tests pass.
