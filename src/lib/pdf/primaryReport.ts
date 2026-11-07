@@ -115,7 +115,7 @@ export async function loadPrimaryData(learnerId: string, termId: string) {
 
 /* --------------------------------------------------------------- compute */
 
-function computeAll(d: PrimaryData) {
+export function computeAll(d: PrimaryData) {
   const { subjects, marks, bands } = d;
   const bySubject = new Map<string, Any>();
   marks.forEach((m: Any) => bySubject.set(m.subject_id, m));
