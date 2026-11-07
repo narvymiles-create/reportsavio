@@ -1,5 +1,9 @@
 # Roadmap
 
+- [ ] Add private school PDF template upload, preview, activation, deactivation and deletion for Primary/Nursery.
+- [ ] Select active alternatives consistently in preview, download and print; fill supported fields with actual data only and preserve default generation.
+- [ ] Verify template permissions, selection and output with focused tests and the signed-in upload flow.
+
 - [x] Separate Terms and Years settings and use the school's current year across system/report outputs.
 - [x] Verify independent year switching with the signed-in account, matching term/report data and Primary report loader; restored the original current year and removed the temporary test year. Fourteen focused tests pass.
 
