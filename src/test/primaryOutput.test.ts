@@ -7,6 +7,7 @@ import { renderPrimaryBytes, type PrimaryData } from "@/lib/pdf/primaryReport";
 const generator = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/pdfGenerator", () => ({ generateReportCardBlob: generator }));
 vi.mock("@/integrations/supabase/client", () => ({ supabase: {} }));
+vi.mock("@/lib/reportTemplates", () => ({ getActiveTemplate: vi.fn().mockResolvedValue(null) }));
 
 const fixture: PrimaryData = {
   learner: { id: "one", full_name: "TEST LEARNER", age: 10, sex: "F", lin_no: "LIN001" },
