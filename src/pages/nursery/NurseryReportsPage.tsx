@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
 import { FileText, Save, Eye, Printer, Users, Download, Loader2 } from "lucide-react";
 import { NurseryReportSheet } from "@/components/NurseryReportSheet";
+import { NurseryTemplateOutput } from "@/components/NurseryTemplateOutput";
 import { downloadNurseryReportCardPDF, downloadNurseryReportCardsZip, type BulkProgress } from "@/lib/nurseryPdfGenerator";
 
 type Cls = { id: string; name: string };
@@ -199,7 +200,7 @@ export default function NurseryReportsPage() {
           <CardHeader><CardTitle className="flex items-center gap-2"><Eye className="h-4 w-4" />Live Preview</CardTitle></CardHeader>
           <CardContent>
             <div className="overflow-auto border rounded p-4 bg-muted/20">
-              <NurseryReportSheet learnerId={learnerId} termId={termId} />
+              <NurseryTemplateOutput learnerIds={[learnerId]} termId={termId}><NurseryReportSheet learnerId={learnerId} termId={termId} /></NurseryTemplateOutput>
             </div>
           </CardContent>
         </Card>
@@ -213,12 +214,12 @@ export default function NurseryReportsPage() {
           </CardHeader>
           <CardContent>
             <div className="overflow-auto border rounded p-4 bg-muted/20 space-y-6 max-h-[80vh]">
-              {filteredLearners.map((l) => (
+              <NurseryTemplateOutput learnerIds={filteredLearners.map(l => l.id)} termId={termId}>{filteredLearners.map((l) => (
                 <div key={l.id}>
                   <div className="text-xs text-muted-foreground mb-2 font-semibold">{l.full_name}</div>
                   <NurseryReportSheet learnerId={l.id} termId={termId} />
                 </div>
-              ))}
+              ))}</NurseryTemplateOutput>
             </div>
           </CardContent>
         </Card>

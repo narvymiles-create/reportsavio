@@ -8,6 +8,8 @@
 import JSZip from "jszip";
 import { primaryReportBlob } from "@/lib/pdf/primaryReport";
 import { safeFilename, triggerBlobDownload } from "@/lib/pdf/core";
+import { getActiveTemplate } from "@/lib/reportTemplates";
+import { generateCustomOutput } from "@/lib/pdf/customReport";
 
 const MIN_VALID_PDF_BYTES = 800;
 
@@ -18,7 +20,8 @@ function assertValidPdfBlob(blob: Blob): void {
 }
 
 export async function generateReportCardBlob(learnerId: string, termId: string): Promise<Blob> {
-  const blob = await primaryReportBlob(learnerId, termId);
+  const template = await getActiveTemplate("primary");
+  const blob = template ? await generateCustomOutput(template, [learnerId], termId) : await primaryReportBlob(learnerId, termId);
   assertValidPdfBlob(blob);
   return blob;
 }

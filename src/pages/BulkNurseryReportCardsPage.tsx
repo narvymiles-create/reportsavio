@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Printer } from "lucide-react";
 import { NurseryReportSheet } from "@/components/NurseryReportSheet";
 import { toast } from "@/hooks/use-toast";
+import { NurseryTemplateOutput } from "@/components/NurseryTemplateOutput";
 
 type Learner = { id: string; full_name: string; stream_id: string | null };
 
@@ -89,9 +90,10 @@ export default function BulkNurseryReportCardsPage() {
   );
 
   const allReady = readyCount >= learners.length;
+  if (!termId) return <p>Missing term.</p>;
 
   return (
-    <div>
+    <NurseryTemplateOutput learnerIds={learners.map(l => l.id)} termId={termId}><div>
       <div className="no-print sticky top-0 z-10 bg-background border-b p-3 flex items-center justify-between gap-2">
         <div className="text-sm">
           <strong>{learners.length}</strong> nursery report(s) — {allReady ? "ready" : `loading ${readyCount}/${learners.length}…`}
@@ -106,12 +108,12 @@ export default function BulkNurseryReportCardsPage() {
           <NurseryReportSheet
             key={l.id}
             learnerId={l.id}
-            termId={termId!}
+            termId={termId}
             pageBreak={i < learners.length - 1}
             onReady={() => { if (mountedRef.current) setReadyCount(c => c + 1); }}
           />
         ))}
       </div>
-    </div>
+    </div></NurseryTemplateOutput>
   );
 }

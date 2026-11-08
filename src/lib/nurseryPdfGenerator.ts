@@ -4,6 +4,8 @@
 import JSZip from "jszip";
 import { nurseryReportBlob } from "@/lib/pdf/nurseryReport";
 import { safeFilename, triggerBlobDownload } from "@/lib/pdf/core";
+import { getActiveTemplate } from "@/lib/reportTemplates";
+import { generateCustomOutput } from "@/lib/pdf/customReport";
 
 const MIN_VALID_PDF_BYTES = 800;
 
@@ -14,7 +16,8 @@ function assertValidPdfBlob(blob: Blob): void {
 }
 
 export async function generateNurseryReportCardBlob(learnerId: string, termId: string): Promise<Blob> {
-  const blob = await nurseryReportBlob(learnerId, termId);
+  const template = await getActiveTemplate("nursery");
+  const blob = template ? await generateCustomOutput(template, [learnerId], termId) : await nurseryReportBlob(learnerId, termId);
   assertValidPdfBlob(blob);
   return blob;
 }
