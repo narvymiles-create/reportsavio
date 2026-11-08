@@ -68,7 +68,7 @@ export default function ReportTemplatesPage() {
   });
   return <div className="space-y-6 p-6">
     <header><h1 className="text-2xl font-semibold">Report Card Templates</h1><p className="text-sm text-muted-foreground">Nursery & Primary</p></header>
-    {canManage && <form className="grid gap-4 border-y py-5 md:grid-cols-[1fr_2fr_2fr_auto]" onSubmit={e => { e.preventDefault(); upload(); }}>
+    {canManage && <form className="grid gap-4 border-y py-5 lg:grid-cols-2 xl:grid-cols-[1fr_2fr_2fr_auto]" onSubmit={e => { e.preventDefault(); upload(); }}>
       <div className="space-y-2"><Label>Education level</Label><Select value={level} onValueChange={value => setLevel(value as Level)}><SelectTrigger aria-label="Education level"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="primary">Primary</SelectItem><SelectItem value="nursery">Nursery</SelectItem></SelectContent></Select></div>
       <div className="space-y-2"><Label htmlFor="template-name">Template name</Label><Input id="template-name" value={name} onChange={e => setName(e.target.value)} required disabled={busy} /></div>
       <div className="space-y-2"><Label htmlFor="template-file">PDF template</Label><Input id="template-file" ref={inputRef} type="file" accept="application/pdf,.pdf" onChange={e => setFile(e.target.files?.[0] ?? null)} required disabled={busy} /></div>
