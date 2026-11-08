@@ -20,7 +20,8 @@ export function fieldValue(name: string, values: TemplateValues): string {
 
 function originalStandardFont(field: PDFTextField): StandardFonts | null {
   const appearance = field.acroField.getDefaultAppearance() ?? "";
-  const fontName = /\/([^\s]+)\s+[\d.]+\s+Tf/.exec(appearance)?.[1] ?? "Helv";
+  const fontName = /\/([^\s]+)\s+[\d.]+\s+Tf/.exec(appearance)?.[1];
+  if (!fontName) return null;
   const fonts: Record<string, StandardFonts> = {
     Helv: StandardFonts.Helvetica, Helvetica: StandardFonts.Helvetica,
     HeBo: StandardFonts.HelveticaBold, "Helvetica-Bold": StandardFonts.HelveticaBold,

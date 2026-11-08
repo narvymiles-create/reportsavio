@@ -6,8 +6,9 @@ import { fillTemplate, normalizeField, type TemplateValues } from "./template/fo
 import { templateBytes, type SchoolTemplate } from "@/lib/reportTemplates";
 import { bytesToPdfBlob } from "./core";
 
-export async function customReportValues(level: string, learnerId: string, termId: string): Promise<TemplateValues> {
+export async function customReportValues(level: string, learnerId: string, termId: string, schoolId?: string): Promise<TemplateValues> {
   const d = level === "primary" ? await loadPrimaryData(learnerId, termId) : await loadNurseryData(learnerId, termId);
+  if (schoolId && (d.learner.school_id !== schoolId || d.term?.school_id !== schoolId)) throw new Error("The learner and term must belong to the template's school.");
   const primary = "klass" in d ? d : null;
   const values: TemplateValues = {};
   const add = (prefix: string, record: Record<string, unknown> | null | undefined) => {
@@ -57,10 +58,11 @@ export async function generateCustomOutput(template: SchoolTemplate, learnerIds:
   const bytes = await templateBytes(template);
   const merged = await PDFDocument.create();
   for (const [index, learnerId] of learnerIds.entries()) {
-    const filled = await fillTemplate(bytes, await customReportValues(template.level, learnerId, termId));
+    const filled = await fillTemplate(bytes, await customReportValues(template.level, learnerId, termId, template.school_id));
     onProgress?.(index + 1, learnerIds.length);
     if (learnerIds.length === 1) return bytesToPdfBlob(filled);
     const source = await PDFDocument.load(filled);
+    source.getForm().flatten({ updateFieldAppearances: false });
     const pages = await merged.copyPages(source, source.getPageIndices());
     pages.forEach(page => merged.addPage(page));
   }
