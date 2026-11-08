@@ -1,5 +1,7 @@
 import { PDFDocument, PrintScaling } from "pdf-lib";
 import { generateReportCardBlob } from "@/lib/pdfGenerator";
+import { getActiveTemplate } from "@/lib/reportTemplates";
+import { generateCustomOutput } from "@/lib/pdf/customReport";
 
 const A4_WIDTH_PT = 210 * 72 / 25.4;
 const A4_HEIGHT_PT = 297 * 72 / 25.4;
@@ -33,6 +35,8 @@ export async function generatePrimaryOutput(
   onProgress?: (done: number, total: number) => void,
 ): Promise<Blob> {
   if (!learnerIds.length) throw new Error("No learners selected");
+  const template = await getActiveTemplate("primary");
+  if (template) return generateCustomOutput(template, learnerIds, termId, onProgress);
   if (learnerIds.length === 1) {
     const blob = await generateReportCardBlob(learnerIds[0], termId);
     await validatePrimaryPdf(blob, 1);

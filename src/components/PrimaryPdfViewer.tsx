@@ -13,10 +13,11 @@ type Props = {
   termId: string;
   autoPrint?: boolean;
   filename?: string;
+  generate?: typeof generatePrimaryOutput;
 };
 
 /** PDF.js reads the download bytes for preview; Chrome prints those bytes directly. */
-export function PrimaryPdfViewer({ learnerIds, termId, autoPrint = false, filename = "report-card" }: Props) {
+export function PrimaryPdfViewer({ learnerIds, termId, autoPrint = false, filename = "report-card", generate = generatePrimaryOutput }: Props) {
   const printRef = useRef<HTMLButtonElement>(null);
   const [output, setOutput] = useState<{ key: string; blob: Blob; document: PDFDocumentProxy; session: ReturnType<typeof createPrimaryPdfSession> } | null>(null);
   const rendered = useRef(new Set<number>());
@@ -38,7 +39,7 @@ export function PrimaryPdfViewer({ learnerIds, termId, autoPrint = false, filena
     setError("");
     setDone(0);
     const [ids, selectedTerm] = JSON.parse(key) as [string[], string, number];
-    generatePrimaryOutput(ids, selectedTerm, (count) => {
+    generate(ids, selectedTerm, (count) => {
       if (!cancelled) setDone(count);
     }).then(async (generated) => {
       if (cancelled) return;
@@ -52,7 +53,7 @@ export function PrimaryPdfViewer({ learnerIds, termId, autoPrint = false, filena
       task = pdfjs.getDocument({ data, isEvalSupported: false });
       const document = await task.promise;
       if (cancelled) return;
-      if (document.numPages !== ids.length) throw new Error(`PDF preview expected ${ids.length} pages, received ${document.numPages}.`);
+      if (document.numPages < ids.length) throw new Error(`PDF preview expected at least ${ids.length} pages, received ${document.numPages}.`);
       session = createPrimaryPdfSession(blob);
       setOutput({ key, blob, document, session });
     }).catch((reason: unknown) => {
@@ -63,7 +64,7 @@ export function PrimaryPdfViewer({ learnerIds, termId, autoPrint = false, filena
       session?.dispose();
       void task?.destroy();
     };
-  }, [key]);
+  }, [key, generate]);
 
   const open = (printing: boolean) => {
     if (!output || output.key !== key || !ready) return;
@@ -98,7 +99,7 @@ export function PrimaryPdfViewer({ learnerIds, termId, autoPrint = false, filena
   return (
     <section className="flex min-h-screen flex-col bg-muted" aria-label="Primary report PDF">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b bg-background p-3">
-        <span role="status" className="text-sm">{learnerIds.length} report card(s) · A4 portrait · {ready ? "Ready" : "Loading PDF pages…"}</span>
+        <span role="status" className="text-sm">{learnerIds.length} report card(s) · {output.document.numPages} page(s) · {ready ? "Ready" : "Loading PDF pages…"}</span>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={() => open(false)} disabled={!ready}>
             <ExternalLink className="mr-2 h-4 w-4" /> Open PDF

@@ -55,7 +55,7 @@ const primaryGroups = [
       { title: "Signatures", url: "/signatures", icon: PenLine },
     ],
   },
-  { label: "Reports", items: [{ title: "Report Cards", url: "/report-cards", icon: FileText }] },
+  { label: "Reports", items: [{ title: "Report Cards", url: "/report-cards", icon: FileText }, { title: "Report Templates", url: "/report-templates", icon: FileText }] },
   { label: "System", items: [{ title: "Settings", url: "/settings", icon: SettingsIcon }] },
 ];
 
@@ -81,7 +81,7 @@ const nurseryGroups = [
       { title: "Signatures", url: "/signatures", icon: PenLine },
     ],
   },
-  { label: "Reports", items: [{ title: "Nursery Report Cards", url: "/nursery/reports", icon: FileText }] },
+  { label: "Reports", items: [{ title: "Nursery Report Cards", url: "/nursery/reports", icon: FileText }, { title: "Report Templates", url: "/report-templates", icon: FileText }] },
   { label: "System", items: [{ title: "Nursery Settings", url: "/settings", icon: SettingsIcon }] },
 ];
 

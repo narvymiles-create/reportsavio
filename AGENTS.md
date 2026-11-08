@@ -1,5 +1,7 @@
 # Architecture rules
 
+- Optional school templates use private report-templates storage and an atomic school/level selection RPC; supported AcroForm text fields are filled without drawing or mapping, and active alternatives share PDF bytes across preview/print/download while defaults retain their existing renderers.
+
 - Academic years are school-scoped independent settings; database triggers project the current year onto the compatibility `terms.year` field so every existing selector and report renderer uses it without changing report artwork or marks identities. Current-year switches are atomic and admin-authorized.
 
 - Primary marksheet summary tables render in `MarksFormPage` from its existing grading bands and computed summary data; keep the 80/20 summary arrangement in shared screen/export/print CSS so layout changes do not alter calculations or report-card PDF generation.
