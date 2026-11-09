@@ -1,5 +1,9 @@
 # Roadmap
 
+- [ ] Add level-specific custom field definitions, typed school/learner/period values and simple template associations in Settings.
+- [ ] Enforce school/level/admin validation and retain values independently of template associations.
+- [ ] Populate uploaded templates consistently across preview, download and print; verify saved values and isolation with tests and signed-in checks.
+
 - [x] Scope template upload and management to the sidebar level and school, with backend upload validation; fixed sidebar persistence for accounts with multiple school memberships.
 - [x] Add default previews and retain uploaded previews; verified signed-in uploads for both levels, previews, cross-level rejection, list isolation and test cleanup. Twenty focused tests pass.
 
