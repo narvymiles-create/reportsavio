@@ -1,6 +1,6 @@
 # Architecture rules
 
-- Optional school templates use private report-templates storage and an atomic school/level selection RPC; supported AcroForm text fields are filled without drawing or mapping, and active alternatives share PDF bytes across preview/print/download while defaults retain their existing renderers.
+- Optional school templates use private report-templates storage and atomic school/level selection; active alternatives share PDF bytes across preview/print/download while defaults retain their existing renderers. Custom fields use independent level-scoped definitions and contextual values with validated associations; archive definitions and cascade only associations on template removal to retain historical values. Supported AcroForm fields preserve their fonts; static placements use top-left PDF-point rectangles and fit text without erasing or reflowing artwork.
 - Template management remounts its form/list on school or sidebar-level changes; uploads use a server-validated current-level RPC and immutable school/level/file scope. Default previews call the existing default renderers directly, bypassing active alternatives.
 
 - Academic years are school-scoped independent settings; database triggers project the current year onto the compatibility `terms.year` field so every existing selector and report renderer uses it without changing report artwork or marks identities. Current-year switches are atomic and admin-authorized.
