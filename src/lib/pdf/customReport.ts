@@ -5,6 +5,8 @@ import { gradeFor } from "@/lib/grading";
 import { fillTemplate, normalizeField, type TemplateValues } from "./template/forms";
 import { templateBytes, type SchoolTemplate } from "@/lib/reportTemplates";
 import { bytesToPdfBlob } from "./core";
+import { loadReportCustomFields, associationValues } from "@/lib/reportCustomFields";
+import { applyCustomPlacements } from "./template/customPlacements";
 
 export async function customReportValues(level: string, learnerId: string, termId: string, schoolId?: string): Promise<TemplateValues> {
   const d = level === "primary" ? await loadPrimaryData(learnerId, termId) : await loadNurseryData(learnerId, termId);
@@ -56,9 +58,13 @@ export async function customReportValues(level: string, learnerId: string, termI
 export async function generateCustomOutput(template: SchoolTemplate, learnerIds: string[], termId: string, onProgress?: (done: number, total: number) => void): Promise<Blob> {
   if (!learnerIds.length) throw new Error("No learners selected");
   const bytes = await templateBytes(template);
+  const custom = await loadReportCustomFields(template.school_id, template.level, template.id);
   const merged = await PDFDocument.create();
   for (const [index, learnerId] of learnerIds.entries()) {
-    const filled = await fillTemplate(bytes, await customReportValues(template.level, learnerId, termId, template.school_id));
+    const values = await customReportValues(template.level, learnerId, termId, template.school_id);
+    const associations = associationValues(custom, values, learnerId, termId);
+    const overrides = Object.fromEntries(associations.filter(a => a.pdf_field).map(a => [normalizeField(a.pdf_field ?? ""), a.value]));
+    const filled = await applyCustomPlacements(await fillTemplate(bytes, values, overrides), associations);
     onProgress?.(index + 1, learnerIds.length);
     if (learnerIds.length === 1) return bytesToPdfBlob(filled);
     const source = await PDFDocument.load(filled);

@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { ReportFieldsManagement } from "@/components/ReportFieldsManagement";
+import { useReportModule } from "@/hooks/useReportModule";
 import { useBorderStyle, BORDER_STYLES, type BorderStyleKey } from "@/hooks/useBorderStyle";
 import { useNurseryFontStyle, NURSERY_FONT_STYLES, type NurseryFontStyleKey } from "@/hooks/useNurseryFontStyle";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,6 +28,7 @@ type House = { id: string; name: string; color: string | null; sort_order: numbe
 
 export default function SettingsPage() {
   const { schoolId } = useAuth();
+  const { module, loading: moduleLoading } = useReportModule();
   const [houses, setHouses] = useState<House[]>([]);
   const [loadingHouses, setLoadingHouses] = useState(true);
   const [open, setOpen] = useState(false);
@@ -144,6 +147,7 @@ export default function SettingsPage() {
       </div>
 
       {/* SECTION A: HOUSES */}
+      {schoolId && !moduleLoading && <ReportFieldsManagement key={`${schoolId}:${module}`} schoolId={schoolId} level={module} />}
       <Card>
         <CardHeader className="flex flex-row items-start justify-between gap-2">
           <div>

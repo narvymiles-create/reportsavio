@@ -22,6 +22,20 @@
       "when": 1794210199197,
       "tag": "0002_template_upload_active_level",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1794211029791,
+      "tag": "0003_uploaded_template_custom_fields",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794211321865,
+      "tag": "0004_report_custom_field_existing_data_validation",
+      "breakpoints": true
     }
   ]
 }

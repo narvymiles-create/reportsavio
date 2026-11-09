@@ -1,5 +1,9 @@
 # Roadmap
 
+- [x] Add level-specific custom field definitions, typed school/learner/period values and simple template associations in Settings.
+- [x] Enforce school/level/admin validation and retain values independently of template associations; signed-in cross-level attempts and invalid percentages rejected, removing associations retains saved values.
+- [x] Populate uploaded templates through the shared PDF output; signed-in learner fillable and static-placement previews/downloads contain saved 95%, Nursery school-wide save verified, 31 focused tests pass. Temporary values/templates removed and test definitions archived; native physical print remains unavailable in headless Chrome.
+
 - [x] Scope template upload and management to the sidebar level and school, with backend upload validation; fixed sidebar persistence for accounts with multiple school memberships.
 - [x] Add default previews and retain uploaded previews; verified signed-in uploads for both levels, previews, cross-level rejection, list isolation and test cleanup. Twenty focused tests pass.
 
