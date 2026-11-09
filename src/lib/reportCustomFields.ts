@@ -7,6 +7,15 @@ export type ReportValue = Tables<"report_field_values">;
 export type ReportAssociation = Tables<"report_field_associations">;
 export const DATA_SOURCES = ["school.name", "school.motto", "school.location", "school.tel", "school.email", "learner.full.name", "learner.age", "learner.sex", "learner.house", "learner.conduct", "learner.co.curricular", "learner.lin.no", "learner.reg.no", "learner.pay.code", "class.name", "stream.name", "term.name", "academic.year", "term.next.begins.on", "term.ends.on", "report.class.teacher.comment", "report.head.teacher.comment", "bot.total", "bot.average", "bot.aggregate", "bot.division", "bot.position", "mid.total", "mid.average", "mid.aggregate", "mid.division", "mid.position", "eot.total", "eot.average", "eot.aggregate", "eot.division", "eot.position"];
 
+export function reportDataSources(level: string, fieldNames: unknown) {
+  const sources = DATA_SOURCES.filter(key => level === "primary" || !/^(bot|mid|eot)\./.test(key));
+  const indexed = level === "primary"
+    ? Array.from({ length: 7 }, (_, i) => ["name", "bot", "bot.grade", "bot.points", "mid", "mid.grade", "mid.points", "eot", "eot.grade", "eot.points"].map(key => `subject.${i + 1}.${key}`)).flat()
+    : Array.from({ length: 20 }, (_, i) => ["name", "grade", "comment"].map(key => `learning.area.${i + 1}.${key}`)).flat();
+  const detected = Array.isArray(fieldNames) ? fieldNames.filter((name): name is string => typeof name === "string").map(normalizeField).filter(key => /^(subject|learning\.area)\./.test(key)) : [];
+  return [...new Set([...sources, ...indexed, ...detected])];
+}
+
 export function validateFieldValue(type: string, value: string) {
   if (!value) return;
   if (value.length > 5000) throw new Error("Maximum 5000 characters.");
