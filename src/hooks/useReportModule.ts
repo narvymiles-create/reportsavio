@@ -6,6 +6,7 @@ const KEY = "report_module";
 
 let listeners = new Set<(m: ReportModule) => void>();
 let cached: ReportModule | null = null;
+let selectionVersion = 0;
 
 async function fetchModule(): Promise<ReportModule> {
   const { data } = await supabase
@@ -25,15 +26,18 @@ export function useReportModule() {
   useEffect(() => {
     let alive = true;
     if (cached === null) {
+      const version = selectionVersion;
       fetchModule().then((m) => {
+        if (version !== selectionVersion) return;
         cached = m;
+        listeners.forEach(l => l(m));
         if (alive) {
           setModuleState(m);
           setLoading(false);
         }
       });
     }
-    const cb = (m: ReportModule) => setModuleState(m);
+    const cb = (m: ReportModule) => { setModuleState(m); setLoading(false); };
     listeners.add(cb);
     return () => {
       alive = false;
@@ -42,6 +46,7 @@ export function useReportModule() {
   }, []);
 
   const setModule = useCallback(async (m: ReportModule) => {
+    selectionVersion += 1;
     cached = m;
     listeners.forEach((l) => l(m));
     // Resolve current user's school via school_members (RLS-safe)
