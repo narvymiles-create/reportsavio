@@ -903,6 +903,178 @@ export type Database = {
           },
         ]
       }
+      report_field_associations: {
+        Row: {
+          align: string
+          definition_id: string | null
+          font_size: number
+          height: number
+          id: string
+          level: string
+          page: number
+          pdf_field: string | null
+          school_id: string
+          source_key: string | null
+          template_id: string
+          width: number
+          x: number
+          y: number
+        }
+        Insert: {
+          align?: string
+          definition_id?: string | null
+          font_size?: number
+          height?: number
+          id?: string
+          level: string
+          page?: number
+          pdf_field?: string | null
+          school_id: string
+          source_key?: string | null
+          template_id: string
+          width?: number
+          x?: number
+          y?: number
+        }
+        Update: {
+          align?: string
+          definition_id?: string | null
+          font_size?: number
+          height?: number
+          id?: string
+          level?: string
+          page?: number
+          pdf_field?: string | null
+          school_id?: string
+          source_key?: string | null
+          template_id?: string
+          width?: number
+          x?: number
+          y?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_field_associations_definition_id_fkey"
+            columns: ["definition_id"]
+            isOneToOne: false
+            referencedRelation: "report_field_definitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "report_field_associations_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "report_field_associations_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "report_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      report_field_definitions: {
+        Row: {
+          archived: boolean
+          created_at: string
+          field_type: string
+          id: string
+          label: string
+          level: string
+          school_id: string
+          scope: string
+        }
+        Insert: {
+          archived?: boolean
+          created_at?: string
+          field_type?: string
+          id?: string
+          label: string
+          level: string
+          school_id: string
+          scope?: string
+        }
+        Update: {
+          archived?: boolean
+          created_at?: string
+          field_type?: string
+          id?: string
+          label?: string
+          level?: string
+          school_id?: string
+          scope?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_field_definitions_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      report_field_values: {
+        Row: {
+          academic_year: number | null
+          definition_id: string
+          id: string
+          learner_id: string | null
+          level: string
+          school_id: string
+          term_id: string | null
+          updated_at: string
+          value: string
+        }
+        Insert: {
+          academic_year?: number | null
+          definition_id: string
+          id?: string
+          learner_id?: string | null
+          level: string
+          school_id: string
+          term_id?: string | null
+          updated_at?: string
+          value?: string
+        }
+        Update: {
+          academic_year?: number | null
+          definition_id?: string
+          id?: string
+          learner_id?: string | null
+          level?: string
+          school_id?: string
+          term_id?: string | null
+          updated_at?: string
+          value?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_field_values_definition_id_fkey"
+            columns: ["definition_id"]
+            isOneToOne: false
+            referencedRelation: "report_field_definitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "report_field_values_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "report_field_values_term_id_fkey"
+            columns: ["term_id"]
+            isOneToOne: false
+            referencedRelation: "terms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       report_templates: {
         Row: {
           created_at: string
