@@ -47,7 +47,7 @@ export async function inspectTemplate(bytes: Uint8Array) {
   return { pageCount: doc.getPageCount(), width: page.getWidth(), height: page.getHeight(), fieldNames: textFields.map(f => f.getName()), unsupportedCount: fields.length - textFields.length };
 }
 
-export async function fillTemplate(bytes: Uint8Array, values: TemplateValues): Promise<Uint8Array> {
+export async function fillTemplate(bytes: Uint8Array, values: TemplateValues, overrides: TemplateValues = {}): Promise<Uint8Array> {
   const doc = await PDFDocument.load(bytes);
   const form = doc.getForm();
   if (form.hasXFA()) throw new Error("XFA templates cannot be populated.");
@@ -57,7 +57,8 @@ export async function fillTemplate(bytes: Uint8Array, values: TemplateValues): P
     const originalFont = originalStandardFont(field);
     if (!originalFont) continue; // Never substitute a different typeface.
     const font = await doc.embedFont(originalFont);
-    const value = fieldValue(field.getName(), values);
+    const key = normalizeField(field.getName());
+    const value = Object.prototype.hasOwnProperty.call(overrides, key) ? String(overrides[key] ?? "") : fieldValue(field.getName(), values);
     try { font.encodeText(value); }
     catch { throw new Error(`The original font in “${field.getName()}” cannot display this value.`); }
     const maxLength = field.getMaxLength();
