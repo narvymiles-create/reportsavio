@@ -1,7 +1,7 @@
 # Roadmap
 
-- [ ] Scope template upload and management to the sidebar level and school, with backend upload validation.
-- [ ] Add default previews and retain uploaded previews; verify level switching and upload isolation.
+- [x] Scope template upload and management to the sidebar level and school, with backend upload validation; fixed sidebar persistence for accounts with multiple school memberships.
+- [x] Add default previews and retain uploaded previews; verified signed-in uploads for both levels, previews, cross-level rejection, list isolation and test cleanup. Twenty focused tests pass.
 
 - [x] Add private school PDF template upload, preview, activation, deactivation and deletion for Primary/Nursery.
 - [x] Select active alternatives consistently in preview, download and print; fill supported fields with actual data only and preserve default generation.
