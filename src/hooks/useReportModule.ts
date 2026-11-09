@@ -6,12 +6,16 @@ const KEY = "report_module";
 
 let listeners = new Set<(m: ReportModule) => void>();
 let cached: ReportModule | null = null;
+let selectionVersion = 0;
 
 async function fetchModule(): Promise<ReportModule> {
+  const { data: schoolId } = await supabase.rpc("current_user_school_id");
+  if (!schoolId) return "primary";
   const { data } = await supabase
     .from("system_settings" as any)
     .select("value")
     .eq("key", KEY)
+    .eq("school_id", schoolId)
     .maybeSingle();
   const v = (data as any)?.value;
   const parsed = typeof v === "string" ? v : v;
@@ -25,15 +29,18 @@ export function useReportModule() {
   useEffect(() => {
     let alive = true;
     if (cached === null) {
+      const version = selectionVersion;
       fetchModule().then((m) => {
+        if (version !== selectionVersion) return;
         cached = m;
+        listeners.forEach(l => l(m));
         if (alive) {
           setModuleState(m);
           setLoading(false);
         }
       });
     }
-    const cb = (m: ReportModule) => setModuleState(m);
+    const cb = (m: ReportModule) => { setModuleState(m); setLoading(false); };
     listeners.add(cb);
     return () => {
       alive = false;
@@ -42,18 +49,12 @@ export function useReportModule() {
   }, []);
 
   const setModule = useCallback(async (m: ReportModule) => {
+    selectionVersion += 1;
     cached = m;
     listeners.forEach((l) => l(m));
-    // Resolve current user's school via school_members (RLS-safe)
-    const { data: auth } = await supabase.auth.getUser();
-    const userId = auth?.user?.id;
-    if (!userId) return;
-    const { data: mem } = await supabase
-      .from("school_members" as any)
-      .select("school_id")
-      .eq("user_id", userId)
-      .maybeSingle();
-    const schoolId = (mem as any)?.school_id as string | undefined;
+    const version = selectionVersion;
+    const { data: schoolId } = await supabase.rpc("current_user_school_id");
+    if (version !== selectionVersion) return;
     if (!schoolId) return;
     await supabase
       .from("system_settings" as any)

@@ -1538,6 +1538,18 @@ export type Database = {
         Returns: undefined
       }
       set_current_academic_year: { Args: { _id: string }; Returns: undefined }
+      upload_report_template: {
+        Args: {
+          _expected_level: string
+          _field_names: Json
+          _file_path: string
+          _name: string
+          _page_count: number
+          _page_height: number
+          _page_width: number
+        }
+        Returns: string
+      }
     }
     Enums: {
       app_role: "admin" | "teacher" | "super_admin"

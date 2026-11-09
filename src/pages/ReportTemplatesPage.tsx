@@ -5,7 +5,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
@@ -13,13 +12,17 @@ import { toast } from "@/hooks/use-toast";
 import { inspectTemplate } from "@/lib/pdf/template/forms";
 import { templateBytes, type SchoolTemplate } from "@/lib/reportTemplates";
 import { PrimaryPdfViewer } from "@/components/PrimaryPdfViewer";
-import type { Level } from "@/lib/pdf/template/registry";
+import { useReportModule } from "@/hooks/useReportModule";
+import { defaultTemplatePreview } from "@/lib/pdf/defaultTemplatePreview";
 
 export default function ReportTemplatesPage() {
+  const { module, loading: levelLoading } = useReportModule();
   const { schoolId, isAdmin, isSuperAdmin } = useAuth();
-  const canManage = isAdmin || isSuperAdmin;
+  return <LevelTemplates key={`${schoolId}:${module}`} level={module} levelLoading={levelLoading} schoolId={schoolId} canManage={isAdmin || isSuperAdmin} />;
+}
+
+function LevelTemplates({ level, levelLoading, schoolId, canManage }: { level: "primary" | "nursery"; levelLoading: boolean; schoolId: string | null; canManage: boolean }) {
   const [templates, setTemplates] = useState<SchoolTemplate[]>([]);
-  const [level, setLevel] = useState<Level>("primary");
   const [name, setName] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
@@ -28,13 +31,16 @@ export default function ReportTemplatesPage() {
   const [preview, setPreview] = useState<{ name: string; generate: () => Promise<Blob> } | null>(null);
   const [deleting, setDeleting] = useState<SchoolTemplate | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const mounted = useRef(true);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   const refresh = async () => {
     if (!schoolId) { setLoading(false); return; }
-    const { data, error } = await supabase.from("report_templates").select("*").eq("school_id", schoolId).in("level", ["primary", "nursery"]).order("created_at", { ascending: false });
+    const { data, error } = await supabase.from("report_templates").select("*").eq("school_id", schoolId).eq("level", level).order("created_at", { ascending: false });
     if (error) throw error;
+    if (!mounted.current) return;
     setTemplates(data ?? []); setError(""); setLoading(false);
   };
-  useEffect(() => { refresh().catch(e => { setError(e.message); setLoading(false); }); }, [schoolId]);
+  useEffect(() => { if (!levelLoading) refresh().catch(e => { if (mounted.current) { setError(e.message); setLoading(false); } }); }, [schoolId, level, levelLoading]);
   const run = async (action: () => Promise<void>) => {
     setBusy(true);
     try { await action(); await refresh(); }
@@ -50,10 +56,11 @@ export default function ReportTemplatesPage() {
     if (!schoolId || !file || !name.trim()) throw new Error("Enter a template name and choose a PDF.");
     const bytes = new Uint8Array(await file.arrayBuffer());
     const info = await inspectTemplate(bytes);
+    if (!mounted.current) throw new Error("The education level changed. Choose the PDF again in the selected level.");
     const path = `${schoolId}/${level}/${crypto.randomUUID()}.pdf`;
     const { error: uploadError } = await supabase.storage.from("report-templates").upload(path, file, { contentType: "application/pdf", upsert: false });
     if (uploadError) throw uploadError;
-    const { error: insertError } = await supabase.from("report_templates").insert({ school_id: schoolId, level, name: name.trim(), file_path: path, page_width: info.width, page_height: info.height, page_count: info.pageCount, field_names: info.fieldNames, is_active: false });
+    const { error: insertError } = await supabase.rpc("upload_report_template", { _expected_level: level, _name: name.trim(), _file_path: path, _page_width: info.width, _page_height: info.height, _page_count: info.pageCount, _field_names: info.fieldNames });
     if (insertError) { await supabase.storage.from("report-templates").remove([path]); throw insertError; }
     setFile(null); setName(""); if (inputRef.current) inputRef.current.value = "";
     toast({ title: "Template uploaded — inactive", description: info.fieldNames.length ? `${info.fieldNames.length} supported text fields. ${info.unsupportedCount ? `${info.unsupportedCount} other fields remain unchanged.` : ""}` : "No supported fillable text fields; the design will be used unchanged." });
@@ -62,21 +69,20 @@ export default function ReportTemplatesPage() {
     if (!deleting) return;
     const { error } = await supabase.storage.from("report-templates").remove([deleting.file_path]);
     if (error) throw error;
-    const { error: rowError } = await supabase.from("report_templates").delete().eq("id", deleting.id).eq("school_id", schoolId ?? "");
+    const { error: rowError } = await supabase.from("report_templates").delete().eq("id", deleting.id).eq("school_id", schoolId ?? "").eq("level", level);
     if (rowError) throw rowError;
     setDeleting(null); toast({ title: "Template deleted" });
   });
   return <div className="space-y-6 p-6">
-    <header><h1 className="text-2xl font-semibold">Report Card Templates</h1><p className="text-sm text-muted-foreground">Nursery & Primary</p></header>
-    {canManage && <form className="grid gap-4 border-y py-5 lg:grid-cols-2 xl:grid-cols-[1fr_2fr_2fr_auto]" onSubmit={e => { e.preventDefault(); upload(); }}>
-      <div className="space-y-2"><Label>Education level</Label><Select value={level} onValueChange={value => setLevel(value as Level)}><SelectTrigger aria-label="Education level"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="primary">Primary</SelectItem><SelectItem value="nursery">Nursery</SelectItem></SelectContent></Select></div>
+    <header><h1 className="text-2xl font-semibold">Report Card Templates</h1><p className="text-sm capitalize text-muted-foreground">{level}</p></header>
+    {canManage && !levelLoading && <form className="grid gap-4 border-y py-5 lg:grid-cols-2 xl:grid-cols-[2fr_2fr_auto]" onSubmit={e => { e.preventDefault(); upload(); }}>
       <div className="space-y-2"><Label htmlFor="template-name">Template name</Label><Input id="template-name" value={name} onChange={e => setName(e.target.value)} required disabled={busy} /></div>
       <div className="space-y-2"><Label htmlFor="template-file">PDF template</Label><Input id="template-file" ref={inputRef} type="file" accept="application/pdf,.pdf" onChange={e => setFile(e.target.files?.[0] ?? null)} required disabled={busy} /></div>
       <Button type="submit" className="self-end" disabled={busy || !schoolId || !file || !name.trim()}>{busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}Upload PDF</Button>
     </form>}
     {error && <p role="alert" className="text-destructive">{error}</p>}
     {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Table><TableHeader><TableRow><TableHead>Template</TableHead><TableHead>Level</TableHead><TableHead>Status</TableHead><TableHead>PDF fields</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader><TableBody>
-      {(["primary", "nursery"] as const).map(defaultLevel => <TableRow key={defaultLevel}><TableCell className="font-medium"><FileText className="mr-2 inline h-4 w-4" />Existing {defaultLevel === "primary" ? "Primary" : "Nursery"} default</TableCell><TableCell className="capitalize">{defaultLevel}</TableCell><TableCell><Badge variant={templates.some(t => t.level === defaultLevel && t.is_active) ? "outline" : "default"}>{templates.some(t => t.level === defaultLevel && t.is_active) ? "Available" : "Active"}</Badge></TableCell><TableCell>Built-in</TableCell><TableCell className="text-right">{canManage && templates.some(t => t.level === defaultLevel && t.is_active) && <Button variant="outline" disabled={busy} onClick={() => select(defaultLevel, null)}>Use default</Button>}</TableCell></TableRow>)}
+      <TableRow><TableCell className="font-medium"><FileText className="mr-2 inline h-4 w-4" />Existing {level === "primary" ? "Primary" : "Nursery"} default</TableCell><TableCell className="capitalize">{level}</TableCell><TableCell><Badge variant={templates.some(t => t.is_active) ? "outline" : "default"}>{templates.some(t => t.is_active) ? "Available" : "Active"}</Badge></TableCell><TableCell>Built-in</TableCell><TableCell><div className="flex justify-end gap-2"><Button variant="ghost" size="icon" title="Preview default template" aria-label={`Preview ${level} default`} disabled={!schoolId} onClick={() => { if (schoolId) setPreview({ name: `${level === "primary" ? "Primary" : "Nursery"} default`, generate: () => defaultTemplatePreview(level, schoolId) }); }}><Eye className="h-4 w-4" /></Button>{canManage && templates.some(t => t.is_active) && <Button variant="outline" disabled={busy} onClick={() => select(level, null)}>Use default</Button>}</div></TableCell></TableRow>
       {templates.map(template => <TableRow key={template.id}><TableCell className="font-medium">{template.name}<span className="ml-2 text-xs text-muted-foreground">{template.page_count} page(s)</span></TableCell><TableCell className="capitalize">{template.level}</TableCell><TableCell><Badge variant={template.is_active ? "default" : "outline"}>{template.is_active ? "Active" : "Inactive"}</Badge></TableCell><TableCell>{Array.isArray(template.field_names) && template.field_names.length ? `${template.field_names.length} supported` : "Design only"}</TableCell><TableCell><div className="flex justify-end gap-2"><Button variant="ghost" size="icon" title="Preview template" aria-label={`Preview ${template.name}`} onClick={() => setPreview({ name: template.name, generate: async () => new Blob([new Uint8Array(await templateBytes(template)).buffer], { type: "application/pdf" }) })}><Eye className="h-4 w-4" /></Button>{canManage && <><Button variant="outline" disabled={busy} onClick={() => select(template.level, template.is_active ? null : template.id)}>{template.is_active ? "Deactivate" : "Activate"}</Button><Button variant="ghost" size="icon" disabled={busy} title="Delete template" aria-label={`Delete ${template.name}`} onClick={() => setDeleting(template)}><Trash2 className="h-4 w-4 text-destructive" /></Button></>}</div></TableCell></TableRow>)}
     </TableBody></Table>}
     <details className="border-t pt-4 text-sm"><summary className="cursor-pointer text-muted-foreground">Supported PDF text field names</summary><div className="mt-3 space-y-2 text-muted-foreground"><p>school.name, school.location, school.tel, school.email, school.motto; learner.full_name, learner.age, learner.sex, learner.lin_no, learner.reg_no, learner.pay_code; class.name, stream.name, term.name, academic.year, term.next_begins_on, term.ends_on; report.class_teacher_comment, report.head_teacher_comment.</p><p>Primary: bot.total, bot.average, bot.aggregate, bot.division, bot.position (also mid/eot); subject.1.name, subject.1.bot, subject.1.bot.grade (also mid/eot and each configured subject).</p><p>Nursery: learning_area.1.name, learning_area.1.grade, learning_area.1.comment (each configured learning area).</p><p>Missing or unrecognised text values are blank. Only standard-font AcroForm text fields are supported; other fields retain their original appearance. Non-fillable PDFs remain unchanged. No images are inserted into text fields.</p></div></details>
