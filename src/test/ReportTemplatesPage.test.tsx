@@ -16,6 +16,7 @@ vi.mock("@/integrations/supabase/client", () => ({ supabase: {
 
 beforeEach(() => {
   cleanup(); state.level = "primary"; state.school = "school-one"; vi.clearAllMocks();
+  Object.defineProperty(globalThis.crypto, "randomUUID", { configurable: true, value: () => "test-pdf-id" });
   state.upload.mockResolvedValue({ error: null }); state.rpc.mockResolvedValue({ error: null });
 });
 
@@ -34,7 +35,7 @@ describe("Template upload scope", () => {
     Object.defineProperty(file, "arrayBuffer", { value: async () => new ArrayBuffer(3) });
     fireEvent.change(await screen.findByLabelText("Template name"), { target: { value: "School template" } });
     fireEvent.change(screen.getByLabelText("PDF template"), { target: { files: [file] } });
-    fireEvent.click(screen.getByRole("button", { name: "Upload PDF" }));
+    fireEvent.submit(screen.getByRole("button", { name: "Upload PDF" }).closest("form") as HTMLFormElement);
     await waitFor(() => expect(state.rpc).toHaveBeenCalledWith("upload_report_template", expect.objectContaining({ _expected_level: level, _file_path: expect.stringMatching(new RegExp(`^school-one/${level}/`)) })));
   });
 
@@ -42,6 +43,7 @@ describe("Template upload scope", () => {
     const view = render(<ReportTemplatesPage />);
     fireEvent.change(await screen.findByLabelText("Template name"), { target: { value: "Primary form" } });
     state.level = "nursery"; view.rerender(<ReportTemplatesPage />);
+    await waitFor(() => expect(state.eq).toHaveBeenCalledWith("level", "nursery"));
     expect(screen.getByLabelText("Template name")).toHaveValue("");
     expect(screen.getByRole("button", { name: "Upload PDF" })).toBeDisabled();
   });
