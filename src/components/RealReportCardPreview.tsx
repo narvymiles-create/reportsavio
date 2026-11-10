@@ -1,5 +1,55 @@
 import { useEffect, useRef, useState } from "react";
 import "@/pages/PrintReportCard.css";
+import { useReportModule } from "@/hooks/useReportModule";
+import { useAuth } from "@/contexts/AuthContext";
+import { getActiveTemplate, templateBytes, REPORT_TEMPLATE_CHANGED, type SchoolTemplate } from "@/lib/reportTemplates";
+
+/** Page 1 of the active uploaded template, drawn to fill the container width. */
+function UploadedTemplateBackground({ template }: { template: SchoolTemplate }) {
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    let cancelled = false;
+    let destroy: (() => void) | undefined;
+    (async () => {
+      const [pdfjs, worker, bytes] = await Promise.all([import("pdfjs-dist"), import("pdfjs-dist/build/pdf.worker.min.mjs?url"), templateBytes(template)]);
+      pdfjs.GlobalWorkerOptions.workerSrc = worker.default;
+      const task = pdfjs.getDocument({ data: bytes, isEvalSupported: false });
+      destroy = () => { task.destroy(); };
+      const doc = await task.promise;
+      const page = await doc.getPage(1);
+      const canvas = canvasRef.current, wrap = wrapRef.current;
+      if (cancelled || !canvas || !wrap) return;
+      const base = page.getViewport({ scale: 1 });
+      const viewport = page.getViewport({ scale: Math.max(1, (wrap.clientWidth * 2) / base.width) });
+      canvas.width = Math.ceil(viewport.width); canvas.height = Math.ceil(viewport.height);
+      await page.render({ canvasContext: canvas.getContext("2d")!, viewport }).promise;
+    })().catch(e => { if (!cancelled) setError(e instanceof Error ? e.message : "Could not show the template."); });
+    return () => { cancelled = true; destroy?.(); };
+  }, [template.id]);
+  return <div ref={wrapRef} className="relative w-full overflow-hidden rounded-md border bg-background">
+    <canvas ref={canvasRef} role="img" aria-label={`Active template: ${template.name}`} className="block h-auto w-full" />
+    {error && <p role="alert" className="p-4 text-sm text-destructive">{error}</p>}
+  </div>;
+}
+
+/** Active report template for the sidebar level; null means the default card. */
+export function useActiveReportTemplate() {
+  const { module, loading } = useReportModule();
+  const { schoolId } = useAuth();
+  const [state, setState] = useState<{ key: string; template: SchoolTemplate | null } | null>(null);
+  const key = `${schoolId}:${module}`;
+  useEffect(() => {
+    if (loading || !schoolId) return;
+    let alive = true;
+    const load = () => getActiveTemplate(module).then(template => { if (alive) setState({ key, template }); }).catch(() => { if (alive) setState({ key, template: null }); });
+    load();
+    window.addEventListener(REPORT_TEMPLATE_CHANGED, load);
+    return () => { alive = false; window.removeEventListener(REPORT_TEMPLATE_CHANGED, load); };
+  }, [key, loading]);
+  return state?.key === key ? state.template : null;
+}
 
 /**
  * Renders a REAL empty A4 report card sheet (210x297mm) using the exact
@@ -9,6 +59,12 @@ import "@/pages/PrintReportCard.css";
  * pixel-for-pixel.
  */
 export function RealReportCardPreview() {
+  const template = useActiveReportTemplate();
+  if (template) return <UploadedTemplateBackground key={template.id} template={template} />;
+  return <DefaultReportCardPreview />;
+}
+
+function DefaultReportCardPreview() {
   const wrapRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.3);
 

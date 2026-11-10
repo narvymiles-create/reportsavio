@@ -20,3 +20,5 @@ export async function templateBytes(template: SchoolTemplate) {
   if (!data) throw new Error("The template file could not be loaded.");
   return new Uint8Array(await data.arrayBuffer());
 }
+/** Window event fired after a school changes its active template, so previews refresh immediately. */
+export const REPORT_TEMPLATE_CHANGED = "report-template-changed";
