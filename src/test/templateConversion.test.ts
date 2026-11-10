@@ -12,7 +12,7 @@ const file = (bytes: string | Uint8Array, name: string) => new NodeFile([typeof 
 describe("template upload conversion", () => {
   it("converts a PNG into a one-page fixed PDF at 96 dpi", async () => {
     const result = await convertTemplateFile(file(png, "scan.png"));
-    const doc = await PDFDocument.load(await result.blob.arrayBuffer());
+    const doc = await PDFDocument.load(new Uint8Array(await result.blob.arrayBuffer()));
     expect(result.info).toMatchObject({ pageCount: 1, width: 0.75, height: 0.75, fieldNames: [] });
     expect(doc.getPageCount()).toBe(1);
   });
