@@ -65,14 +65,17 @@ export async function applyTemplateDecorations(bytes: Uint8Array, o: TemplateDec
   const stamp = s.stamp_path ? await image("stamp") : null;
   pages.forEach((page, index) => {
     onA4(page, fonts, p => {
-      if (watermark && (o.level === "nursery" || s.watermark_enabled)) {
-        const opacity = Number(s.watermark_opacity ?? (o.level === "nursery" ? 0.15 : 0.3));
-        const mode = o.level === "primary" ? (s.watermark_mode as string) || "custom" : "custom";
+      if (watermark && o.level === "nursery") {
+        const w = A4_W * 0.5 * Number(s.watermark_scale ?? 1);
+        const h = w / (watermark.width / watermark.height);
+        p.image(watermark, { x: (A4_W * Number(s.watermark_x ?? 50)) / 100 - w / 2, y: (A4_H * Number(s.watermark_y ?? 50)) / 100 - h / 2, w, h }, { opacity: Number(s.watermark_opacity ?? 0.15) });
+      } else if (watermark && s.watermark_enabled) {
+        const opacity = Number(s.watermark_opacity ?? 0.3);
+        const mode = (s.watermark_mode as string) || "custom";
         if (mode === "fit" || mode === "fill") p.image(watermark, { x: 10, y: 10, w: A4_W - 20, h: A4_H - 20 }, { opacity, cover: mode === "fill" });
         else {
           const w = A4_W * 0.4 * Number(s.watermark_scale ?? 1);
-          const h = w / (watermark.width / watermark.height);
-          p.image(watermark, { x: (A4_W * Number(s.watermark_x ?? 50)) / 100 - w / 2, y: (A4_H * Number(s.watermark_y ?? 50)) / 100 - h / 2, w, h }, { opacity });
+          p.image(watermark, { x: (A4_W * Number(s.watermark_x ?? 50)) / 100 - w / 2, y: (A4_H * Number(s.watermark_y ?? 50)) / 100 - w / 2, w, h: w }, { opacity });
         }
       }
       if (o.border) drawBorder(p, o.border);
