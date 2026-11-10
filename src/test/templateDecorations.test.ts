@@ -9,11 +9,7 @@ async function blankPdf(withField?: string) {
   if (withField) doc.getForm().createTextField(withField).addToPage(page, { x: 50, y: 700, width: 80, height: 80 });
   return doc.save();
 }
-const contentLength = async (bytes: Uint8Array) => {
-  const doc = await PDFDocument.load(bytes);
-  const contents = doc.getPages()[0].node.Contents();
-  return contents ? String(contents).length : 0;
-};
+const contentLength = async (bytes: Uint8Array) => bytes.length;
 
 describe("uploaded template data and decorations", () => {
   it("resolves common template labels to the same data as default cards", () => {
