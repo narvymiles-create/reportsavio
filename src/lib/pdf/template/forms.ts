@@ -37,7 +37,12 @@ function originalStandardFont(field: PDFTextField): StandardFonts | null {
 
 export async function inspectTemplate(bytes: Uint8Array) {
   if (String.fromCharCode(...bytes.slice(0, 5)) !== "%PDF-") throw new Error("Choose a valid PDF file.");
-  const doc = await PDFDocument.load(bytes);
+  let doc: PDFDocument;
+  try { doc = await PDFDocument.load(bytes); }
+  catch (error) {
+    if (error instanceof Error && /encrypt/i.test(error.message)) throw new Error("Password-protected PDFs cannot be used as templates. Save an unlocked PDF and upload it again.");
+    throw new Error("The PDF is damaged or unreadable. Export a new PDF and try again.");
+  }
   const form = doc.getForm();
   if (form.hasXFA()) throw new Error("XFA forms are not supported. Upload a standard PDF or AcroForm PDF.");
   const page = doc.getPages()[0];
