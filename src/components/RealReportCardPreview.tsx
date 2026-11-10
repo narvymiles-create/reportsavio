@@ -28,8 +28,8 @@ function UploadedTemplateBackground({ template }: { template: SchoolTemplate }) 
     })().catch(e => { if (!cancelled) setError(e instanceof Error ? e.message : "Could not show the template."); });
     return () => { cancelled = true; destroy?.(); };
   }, [template.id]);
-  return <div ref={wrapRef} className="relative w-full overflow-hidden rounded-md border bg-background">
-    <canvas ref={canvasRef} role="img" aria-label={`Active template: ${template.name}`} className="block h-auto w-full" />
+  return <div ref={wrapRef} className="absolute inset-0 overflow-hidden rounded-md border bg-background">
+    <canvas ref={canvasRef} role="img" aria-label={`Active template: ${template.name}`} className="block h-full w-full" />
     {error && <p role="alert" className="p-4 text-sm text-destructive">{error}</p>}
   </div>;
 }

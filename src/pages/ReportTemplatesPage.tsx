@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { convertTemplateFile, TEMPLATE_FILE_ACCEPT } from "@/lib/templateConversion";
 import { templateErrorMessage } from "@/lib/templateErrors";
-import { templateBytes, type SchoolTemplate } from "@/lib/reportTemplates";
+import { templateBytes, type SchoolTemplate , REPORT_TEMPLATE_CHANGED } from "@/lib/reportTemplates";
 import { PrimaryPdfViewer } from "@/components/PrimaryPdfViewer";
 import { useReportModule, ensureReportModuleSaved } from "@/hooks/useReportModule";
 import { defaultTemplatePreview } from "@/lib/pdf/defaultTemplatePreview";
@@ -51,6 +51,7 @@ function LevelTemplates({ level, levelLoading, schoolId, canManage }: { level: "
   const select = (selectedLevel: string, id: string | null) => run(async () => {
     const { error } = await supabase.rpc("select_report_template", { _level: selectedLevel, _template_id: id ?? undefined });
     if (error) throw error;
+    window.dispatchEvent(new Event(REPORT_TEMPLATE_CHANGED));
     toast({ title: id ? "Template activated" : "Default report restored" });
   });
   const upload = () => run(async () => {
