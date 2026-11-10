@@ -1,5 +1,8 @@
 # Roadmap
 
+- [ ] Expand template upload to PDF/scanned PDF/images and faithful Word conversion; preserve field placement and defaults.
+- [ ] Fix upload level synchronization and meaningful errors; verify school-isolated uploads and output.
+
 - [x] Add level-specific custom field definitions, typed school/learner/period values and simple template associations in Settings.
 - [x] Enforce school/level/admin validation and retain values independently of template associations; signed-in cross-level attempts and invalid percentages rejected, removing associations retains saved values.
 - [x] Populate uploaded templates through the shared PDF output; signed-in learner fillable and static-placement previews/downloads contain saved 95%, Nursery school-wide save verified, 31 focused tests pass. Temporary values/templates removed and test definitions archived; native physical print remains unavailable in headless Chrome.
