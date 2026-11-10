@@ -4,10 +4,10 @@ import ReportTemplatesPage from "@/pages/ReportTemplatesPage";
 
 const state = vi.hoisted(() => ({ level: "primary" as "primary" | "nursery", school: "school-one", eq: vi.fn(), rpc: vi.fn(), upload: vi.fn(), preview: vi.fn() }));
 vi.mock("@/contexts/AuthContext", () => ({ useAuth: () => ({ schoolId: state.school, isAdmin: true, isSuperAdmin: false }) }));
-vi.mock("@/hooks/useReportModule", () => ({ useReportModule: () => ({ module: state.level, loading: false }) }));
+vi.mock("@/hooks/useReportModule", () => ({ useReportModule: () => ({ module: state.level, loading: false }), ensureReportModuleSaved: async () => {} }));
 vi.mock("@/lib/pdf/defaultTemplatePreview", () => ({ defaultTemplatePreview: state.preview }));
 vi.mock("@/components/PrimaryPdfViewer", () => ({ PrimaryPdfViewer: () => null }));
-vi.mock("@/lib/pdf/template/forms", () => ({ inspectTemplate: async () => ({ width: 595, height: 842, pageCount: 1, fieldNames: [], unsupportedCount: 0 }) }));
+vi.mock("@/lib/templateConversion", () => ({ TEMPLATE_FILE_ACCEPT: ".pdf", convertTemplateFile: async () => ({ blob: new Blob(["%PDF-"]), info: { width: 595, height: 842, pageCount: 1, fieldNames: [], unsupportedCount: 0 } }) }));
 vi.mock("@/integrations/supabase/client", () => ({ supabase: {
   from: () => { const chain = { select: () => chain, eq: (key: string, value: string) => { state.eq(key, value); return chain; }, order: async () => ({ data: [], error: null }) }; return chain; },
   rpc: state.rpc,
@@ -34,8 +34,8 @@ describe("Template upload scope", () => {
     const file = new File(["PDF"], "template.pdf", { type: "application/pdf" });
     Object.defineProperty(file, "arrayBuffer", { value: async () => new ArrayBuffer(3) });
     fireEvent.change(await screen.findByLabelText("Template name"), { target: { value: "School template" } });
-    fireEvent.change(screen.getByLabelText("PDF template"), { target: { files: [file] } });
-    fireEvent.submit(screen.getByRole("button", { name: "Upload PDF" }).closest("form") as HTMLFormElement);
+    fireEvent.change(screen.getByLabelText("PDF or image template"), { target: { files: [file] } });
+    fireEvent.submit(screen.getByRole("button", { name: "Upload template" }).closest("form") as HTMLFormElement);
     await waitFor(() => expect(state.rpc).toHaveBeenCalledWith("upload_report_template", expect.objectContaining({ _expected_level: level, _file_path: expect.stringMatching(new RegExp(`^school-one/${level}/`)) })));
   });
 
@@ -45,6 +45,6 @@ describe("Template upload scope", () => {
     state.level = "nursery"; view.rerender(<ReportTemplatesPage />);
     await waitFor(() => expect(state.eq).toHaveBeenCalledWith("level", "nursery"));
     expect(screen.getByLabelText("Template name")).toHaveValue("");
-    expect(screen.getByRole("button", { name: "Upload PDF" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Upload template" })).toBeDisabled();
   });
 });
