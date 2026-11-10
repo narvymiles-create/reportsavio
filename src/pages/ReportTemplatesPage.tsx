@@ -9,10 +9,11 @@ import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
-import { inspectTemplate } from "@/lib/pdf/template/forms";
+import { convertTemplateFile, TEMPLATE_FILE_ACCEPT } from "@/lib/templateConversion";
+import { templateErrorMessage } from "@/lib/templateErrors";
 import { templateBytes, type SchoolTemplate } from "@/lib/reportTemplates";
 import { PrimaryPdfViewer } from "@/components/PrimaryPdfViewer";
-import { useReportModule } from "@/hooks/useReportModule";
+import { useReportModule, ensureReportModuleSaved } from "@/hooks/useReportModule";
 import { defaultTemplatePreview } from "@/lib/pdf/defaultTemplatePreview";
 
 export default function ReportTemplatesPage() {
@@ -40,12 +41,12 @@ function LevelTemplates({ level, levelLoading, schoolId, canManage }: { level: "
     if (!mounted.current) return;
     setTemplates(data ?? []); setError(""); setLoading(false);
   };
-  useEffect(() => { if (!levelLoading) refresh().catch(e => { if (mounted.current) { setError(e.message); setLoading(false); } }); }, [schoolId, level, levelLoading]);
+  useEffect(() => { if (!levelLoading) refresh().catch(e => { if (mounted.current) { setError(templateErrorMessage(e)); setLoading(false); } }); }, [schoolId, level, levelLoading]);
   const run = async (action: () => Promise<void>) => {
     setBusy(true);
     try { await action(); await refresh(); }
-    catch (e) { toast({ title: "Template action failed", description: e instanceof Error ? e.message : String(e), variant: "destructive" }); }
-    finally { setBusy(false); }
+    catch (e) { toast({ title: "Template action failed", description: templateErrorMessage(e), variant: "destructive" }); }
+    finally { if (mounted.current) setBusy(false); }
   };
   const select = (selectedLevel: string, id: string | null) => run(async () => {
     const { error } = await supabase.rpc("select_report_template", { _level: selectedLevel, _template_id: id ?? undefined });
@@ -53,17 +54,25 @@ function LevelTemplates({ level, levelLoading, schoolId, canManage }: { level: "
     toast({ title: id ? "Template activated" : "Default report restored" });
   });
   const upload = () => run(async () => {
-    if (!schoolId || !file || !name.trim()) throw new Error("Enter a template name and choose a PDF.");
-    const bytes = new Uint8Array(await file.arrayBuffer());
-    const info = await inspectTemplate(bytes);
-    if (!mounted.current) throw new Error("The education level changed. Choose the PDF again in the selected level.");
+    if (!schoolId || !file || !name.trim()) throw new Error("Enter a template name and choose a PDF or image.");
+    await ensureReportModuleSaved(schoolId, level);
+    const { blob, info } = await convertTemplateFile(file);
+    if (!mounted.current) throw new Error("The school or education level changed. Choose the file again in the selected level.");
     const path = `${schoolId}/${level}/${crypto.randomUUID()}.pdf`;
-    const { error: uploadError } = await supabase.storage.from("report-templates").upload(path, file, { contentType: "application/pdf", upsert: false });
+    const { error: uploadError } = await supabase.storage.from("report-templates").upload(path, blob, { contentType: "application/pdf", upsert: false });
     if (uploadError) throw uploadError;
-    const { error: insertError } = await supabase.rpc("upload_report_template", { _expected_level: level, _name: name.trim(), _file_path: path, _page_width: info.width, _page_height: info.height, _page_count: info.pageCount, _field_names: info.fieldNames });
-    if (insertError) { await supabase.storage.from("report-templates").remove([path]); throw insertError; }
+    try {
+      if (!mounted.current) throw new Error("The school or education level changed during upload. Retry in the selected level.");
+      const { error: insertError } = await supabase.rpc("upload_report_template", { _expected_level: level, _name: name.trim(), _file_path: path, _page_width: info.width, _page_height: info.height, _page_count: info.pageCount, _field_names: info.fieldNames });
+      if (insertError) throw insertError;
+    } catch (error) {
+      const { error: cleanupError } = await supabase.storage.from("report-templates").remove([path]);
+      if (cleanupError) throw new Error(`${templateErrorMessage(error)} The unfinished upload could not be removed: ${templateErrorMessage(cleanupError)}`);
+      throw error;
+    }
+    if (!mounted.current) return;
     setFile(null); setName(""); if (inputRef.current) inputRef.current.value = "";
-    toast({ title: "Template uploaded — inactive", description: info.fieldNames.length ? `${info.fieldNames.length} supported text fields. ${info.unsupportedCount ? `${info.unsupportedCount} other fields remain unchanged.` : ""}` : "No supported fillable text fields; the design will be used unchanged." });
+    toast({ title: "Template uploaded — inactive", description: info.fieldNames.length ? `${info.fieldNames.length} supported text fields. ${info.unsupportedCount ? `${info.unsupportedCount} other fields remain unchanged.` : ""}` : "Fixed PDF saved. Manual placements are available in Report Card Fields Management." });
   });
   const remove = () => run(async () => {
     if (!deleting) return;
@@ -77,8 +86,8 @@ function LevelTemplates({ level, levelLoading, schoolId, canManage }: { level: "
     <header><h1 className="text-2xl font-semibold">Report Card Templates</h1><p className="text-sm capitalize text-muted-foreground">{level}</p></header>
     {canManage && !levelLoading && <form className="grid gap-4 border-y py-5 lg:grid-cols-2 xl:grid-cols-[2fr_2fr_auto]" onSubmit={e => { e.preventDefault(); upload(); }}>
       <div className="space-y-2"><Label htmlFor="template-name">Template name</Label><Input id="template-name" value={name} onChange={e => setName(e.target.value)} required disabled={busy} /></div>
-      <div className="space-y-2"><Label htmlFor="template-file">PDF template</Label><Input id="template-file" ref={inputRef} type="file" accept="application/pdf,.pdf" onChange={e => setFile(e.target.files?.[0] ?? null)} required disabled={busy} /></div>
-      <Button type="submit" className="self-end" disabled={busy || !schoolId || !file || !name.trim()}>{busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}Upload PDF</Button>
+      <div className="space-y-2"><Label htmlFor="template-file">PDF or image template</Label><Input id="template-file" ref={inputRef} type="file" accept={TEMPLATE_FILE_ACCEPT} onChange={e => setFile(e.target.files?.[0] ?? null)} required disabled={busy} /></div>
+      <Button type="submit" className="self-end" disabled={busy || !schoolId || !file || !name.trim()}>{busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}Upload template</Button>
     </form>}
     {error && <p role="alert" className="text-destructive">{error}</p>}
     {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Table><TableHeader><TableRow><TableHead>Template</TableHead><TableHead>Level</TableHead><TableHead>Status</TableHead><TableHead>PDF fields</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader><TableBody>
