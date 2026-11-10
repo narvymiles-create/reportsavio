@@ -12,10 +12,25 @@ const aliases: Record<string, string> = {
   "age": "learner.age", "sex": "learner.sex", "house": "learner.house", "section": "learner.section",
   "lin.no": "learner.lin.no", "index.no": "learner.index.no", "reg.no": "learner.reg.no", "pay.code": "learner.pay.code",
 };
+Object.assign(aliases, {
+  "admission.no": "learner.reg.no", "registration.no": "learner.reg.no", "dob": "learner.dob", "date.of.birth": "learner.dob",
+  "conduct": "learner.conduct", "co.curricular": "learner.co.curricular", "class.teacher": "class.teacher.name", "head.teacher": "head.teacher.name",
+  "class.teacher.comment": "report.class.teacher.comment", "class.teachers.comment": "report.class.teacher.comment",
+  "head.teacher.comment": "report.head.teacher.comment", "head.teachers.comment": "report.head.teacher.comment",
+  "next.term.begins": "term.next.begins.on", "next.term.begins.on": "term.next.begins.on", "next.term": "term.next.begins.on", "ends.on": "term.ends.on", "term.ends": "term.ends.on",
+  "motto": "school.motto", "location": "school.location", "tel": "school.tel", "telephone": "school.tel", "po.box": "school.po.box", "school.email": "school.email", "website": "school.website",
+  "total": "eot.total", "total.marks": "eot.total", "average": "eot.average", "aggregate": "eot.aggregate", "aggregates": "eot.aggregate", "division": "eot.division", "position": "eot.position", "class.size": "eot.class.size", "out.of": "eot.class.size",
+});
+const PREFIXES = ["learner.", "school.", "report.", "term.", "class.", "eot."];
+/** Resolve a template field name to system data: exact key, known alias, then common prefixes. */
 export function fieldValue(name: string, values: TemplateValues): string {
-  const key = normalizeField(name);
-  const value = values[aliases[key] ?? key];
-  return value == null ? "" : String(value);
+  const key = normalizeField(name).replace(/[^a-z0-9.]+/g, "").replace(/\.+/g, ".").replace(/^\.|\.$/g, "");
+  const candidates = [aliases[key] ?? key, key, ...PREFIXES.map(prefix => prefix + key)];
+  for (const candidate of candidates) {
+    const value = values[candidate];
+    if (value != null && value !== "") return String(value);
+  }
+  return "";
 }
 
 function originalStandardFont(field: PDFTextField): StandardFonts | null {

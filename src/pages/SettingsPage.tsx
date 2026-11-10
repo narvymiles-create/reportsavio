@@ -4,6 +4,7 @@ import { useReportModule } from "@/hooks/useReportModule";
 import { useBorderStyle, BORDER_STYLES, type BorderStyleKey } from "@/hooks/useBorderStyle";
 import { useNurseryFontStyle, NURSERY_FONT_STYLES, type NurseryFontStyleKey } from "@/hooks/useNurseryFontStyle";
 import { supabase } from "@/integrations/supabase/client";
+import { templateBorderKey } from "@/lib/pdf/customReport";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -308,10 +309,37 @@ export default function SettingsPage() {
 
       {/* SECTION D: BORDER TEMPLATE PICKER */}
       <BorderTemplatePicker />
+      {schoolId && !moduleLoading && <UploadedTemplateBorderToggle key={`${schoolId}:${module}`} schoolId={schoolId} level={module} />}
 
       {/* SECTION E: NURSERY FONT STYLE */}
       <NurseryFontStylePicker />
     </div>
+  );
+}
+
+function UploadedTemplateBorderToggle({ schoolId, level }: { schoolId: string; level: "primary" | "nursery" }) {
+  const { isAdmin, isSuperAdmin } = useAuth();
+  const key = templateBorderKey(level);
+  const [enabled, setEnabled] = useState<boolean | null>(null);
+  useEffect(() => {
+    supabase.from("system_settings").select("value").eq("school_id", schoolId).eq("key", key).maybeSingle()
+      .then(({ data }) => setEnabled(data?.value === true));
+  }, [schoolId, key]);
+  const save = async (next: boolean) => {
+    setEnabled(next);
+    const { error } = await supabase.from("system_settings").upsert({ key, value: next, school_id: schoolId }, { onConflict: "school_id,key" });
+    if (error) { setEnabled(!next); toast({ title: "Save failed", description: error.message, variant: "destructive" }); }
+  };
+  return (
+    <Card>
+      <CardContent className="flex items-center justify-between gap-4 pt-6">
+        <div>
+          <Label htmlFor="uploaded-template-border">Use the selected border on uploaded {level === "primary" ? "Primary" : "Nursery"} templates</Label>
+          <p className="text-sm text-muted-foreground">When off, uploaded templates keep their own original border. Default report cards always use the selected border.</p>
+        </div>
+        <Switch id="uploaded-template-border" checked={!!enabled} disabled={enabled === null || !(isAdmin || isSuperAdmin)} onCheckedChange={save} />
+      </CardContent>
+    </Card>
   );
 }
 

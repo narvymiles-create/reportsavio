@@ -72,6 +72,10 @@ export function ReportFieldsManagement({ level, schoolId }: { level: "primary" |
     setYears((results[6].data ?? []).map(y => ({ id: String(y.year), name: String(y.year) }))); setError("");
   };
   useEffect(() => { refresh().catch(e => setError(e.message)).finally(() => setLoading(false)); }, []);
+  const activeTemplate = templates.find(t => t.is_active) ?? null;
+  useEffect(() => { if (activeTemplate) setTemplateId(id => id || activeTemplate.id); }, [activeTemplate?.id]);
+  const activeLabels = activeTemplate && Array.isArray(activeTemplate.field_names) ? activeTemplate.field_names.filter((n): n is string => typeof n === "string") : [];
+  const activeAssociations = activeTemplate ? associations.filter(a => a.template_id === activeTemplate.id) : [];
   useEffect(() => { setValue(existingValue?.value ?? ""); }, [existingValue?.id, existingValue?.value, fieldId, learnerId, termId, year]);
   const run = async (action: () => Promise<void>) => {
     if (!canManage) return;
@@ -109,9 +113,21 @@ export function ReportFieldsManagement({ level, schoolId }: { level: "primary" |
     toast({ title: table === "report_field_values" ? "Value deleted" : "Association removed" });
   });
   if (loading) return <Loader2 aria-label="Loading report fields" className="h-5 w-5 animate-spin" />;
-  return <section className="space-y-4 border-y py-6">
-    <header className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-xl font-semibold">Report Card Fields Management</h2><p className="text-sm capitalize text-muted-foreground">{level} · Uploaded templates</p></div>{canManage && <Button onClick={() => { setEditing(null); setLabel(""); setType("text"); setScope("learner"); setFieldOpen(true); }}><Plus className="mr-2 h-4 w-4" />Add field</Button>}</header>
+  if (!activeTemplate) return <section className="space-y-2 border-y py-6">
+    <h2 className="text-xl font-semibold">Report Card Fields Management</h2>
     {error && <p role="alert" className="text-destructive">{error}</p>}
+    <p className="text-sm text-muted-foreground">Custom fields are available only for uploaded report card templates.</p>
+  </section>;
+  return <section className="space-y-4 border-y py-6">
+    <header className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-xl font-semibold">Report Card Fields Management</h2><p className="text-sm capitalize text-muted-foreground">{level} · Active template: <span className="normal-case">{activeTemplate.name}</span></p></div>{canManage && <Button onClick={() => { setEditing(null); setLabel(""); setType("text"); setScope("learner"); setFieldOpen(true); }}><Plus className="mr-2 h-4 w-4" />Add field</Button>}</header>
+    {error && <p role="alert" className="text-destructive">{error}</p>}
+    <div className="space-y-2">
+      <h3 className="text-sm font-medium">Labels in the active template</h3>
+      {activeLabels.length || activeAssociations.length ? <ul className="flex flex-wrap gap-2" aria-label="Active template labels">
+        {activeLabels.map(n => <li key={`f:${n}`} className="rounded border px-2 py-1 text-xs">{n}{activeAssociations.some(a => a.pdf_field === n) ? " · associated" : ""}</li>)}
+        {activeAssociations.filter(a => !a.pdf_field).map(a => <li key={a.id} className="rounded border px-2 py-1 text-xs">{fields.find(f => f.id === a.definition_id)?.label ?? a.source_key ?? "Archived field"} · placed on page {a.page}</li>)}
+      </ul> : <p className="text-sm text-muted-foreground">No labels were detected in this template and none have been associated yet. Add them under Template associations.</p>}
+    </div>
     <Tabs defaultValue="fields"><TabsList className="max-w-full"><TabsTrigger value="fields">Fields</TabsTrigger><TabsTrigger value="values">Saved values</TabsTrigger><TabsTrigger value="associations">Template associations</TabsTrigger></TabsList>
       <TabsContent value="fields"><Table><TableHeader><TableRow><TableHead>Exact label</TableHead><TableHead>Type</TableHead><TableHead>Scope</TableHead><TableHead>Saved values</TableHead><TableHead /></TableRow></TableHeader><TableBody>{fields.map(f => <TableRow key={f.id}><TableCell>{f.label}</TableCell><TableCell>{TYPES.find(t => t.id === f.field_type)?.name}</TableCell><TableCell>{SCOPES.find(s => s.id === f.scope)?.name}</TableCell><TableCell>{values.filter(v => v.definition_id === f.id).length}</TableCell><TableCell><div className="flex gap-1">{canManage && <><Button variant="ghost" size="icon" aria-label={`Edit ${f.label}`} title="Edit field" onClick={() => { setEditing(f); setLabel(f.label); setType(f.field_type); setScope(f.scope); setFieldOpen(true); }}><Pencil className="h-4 w-4" /></Button><Button variant="ghost" size="icon" aria-label={`Archive ${f.label}`} title="Archive field" onClick={() => run(async () => { if (!confirm("Archive this field? Historical values will be retained.")) return; const result = await supabase.from("report_field_definitions").update({ archived: true }).eq("id", f.id); if (result.error) throw result.error; })}><Trash2 className="h-4 w-4 text-destructive" /></Button></>}</div></TableCell></TableRow>)}</TableBody></Table>{!fields.length && <p className="py-5 text-sm text-muted-foreground">No custom fields.</p>}</TabsContent>
       <TabsContent value="values" className="space-y-5">

@@ -39,3 +39,7 @@
 
 - [x] Show learning-area comments in the configured blue on the Nursery report card across preview, print and download.
 - [x] Verify the colour in the live preview and in a downloaded PDF from a real learner record; two regression tests added, 27 tests pass.
+
+- [x] Uploaded templates: reuse default report data (marks, totals, divisions, comments, dates, teachers), image fields, stamp, watermark and an optional Settings border per level.
+- [x] Settings previews show the active uploaded template; Fields Management follows the active template and is hidden for defaults.
+- [ ] Verify a filled uploaded template end-to-end with a real learner — not done: the signed-in school has no active uploaded template.
