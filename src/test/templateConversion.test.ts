@@ -2,9 +2,12 @@ import { describe, expect, it } from "vitest";
 import { PDFDocument } from "pdf-lib";
 import { convertTemplateFile } from "@/lib/templateConversion";
 import { templateErrorMessage } from "@/lib/templateErrors";
+import { File as NodeFile, Blob as NodeBlob } from "node:buffer";
+import { vi } from "vitest";
+vi.stubGlobal("Blob", NodeBlob);
 
 const png = Uint8Array.from(atob("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="), c => c.charCodeAt(0));
-const file = (bytes: BlobPart, name: string) => new File([bytes], name);
+const file = (bytes: string | Uint8Array, name: string) => new NodeFile([typeof bytes === "string" ? bytes : new Uint8Array(bytes).buffer], name) as unknown as File;
 
 describe("template upload conversion", () => {
   it("converts a PNG into a one-page fixed PDF at 96 dpi", async () => {
