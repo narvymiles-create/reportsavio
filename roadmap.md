@@ -1,7 +1,7 @@
 # Roadmap
 
-- [ ] Expand template upload to PDF/scanned PDF/images and faithful Word conversion; preserve field placement and defaults.
-- [ ] Fix upload level synchronization and meaningful errors; verify school-isolated uploads and output.
+- [x] Expand local template uploads to PDF/scanned PDF/JPG/JPEG/PNG with fixed-PDF image conversion; preserve fields and defaults. User selected local-only handling, so DOC/DOCX must be exported to PDF before upload.
+- [x] Fix school-scoped sidebar persistence, serialize switches and await saved level before uploads; normalize service errors and clean up failed registrations. Signed-in Primary PNG/Nursery JPG uploads, previews and deletion verified; 35 regression tests pass.
 
 - [x] Add level-specific custom field definitions, typed school/learner/period values and simple template associations in Settings.
 - [x] Enforce school/level/admin validation and retain values independently of template associations; signed-in cross-level attempts and invalid percentages rejected, removing associations retains saved values.
