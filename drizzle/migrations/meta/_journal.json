@@ -36,6 +36,13 @@
       "when": 1794211321865,
       "tag": "0004_report_custom_field_existing_data_validation",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794381856710,
+      "tag": "0005_template_pre_activation_verification",
+      "breakpoints": true
     }
   ]
 }

@@ -1,5 +1,7 @@
 # Architecture rules
 
+- Pre-activation tests use the shared custom PDF pipeline and explicit year context without mutating terms; database-validated association checks and configuration fingerprints gate activation, while missing values only warn. Inactive template corrections reuse Fields Management in an explicitly scoped test dialog to keep defaults read-only.
+
 - Optional school templates use private report-templates storage and atomic school/level selection; active alternatives share PDF bytes across preview/print/download while defaults retain their existing renderers. Custom fields use independent level-scoped definitions and contextual values with validated associations; archive definitions and cascade only associations on template removal to retain historical values. Supported AcroForm fields preserve their fonts; static placements use top-left PDF-point rectangles and fit text without erasing or reflowing artwork.
 - Template management remounts its form/list on school or sidebar-level changes; uploads use a server-validated current-level RPC and immutable school/level/file scope. Default previews call the existing default renderers directly, bypassing active alternatives.
 - Sidebar selections are cached per school and writes serialized; template uploads await and verify the saved level before storage and registration to avoid stale-level races.

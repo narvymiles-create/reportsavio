@@ -23,7 +23,7 @@ function Choice({ label, value, onChange, options, disabled = false }: { label: 
 const TYPES = [{ id: "text", name: "Text" }, { id: "number", name: "Number" }, { id: "date", name: "Date" }, { id: "percentage", name: "Percentage" }, { id: "multiline", name: "Multiline Text" }];
 const SCOPES = [{ id: "school", name: "School-wide" }, { id: "learner", name: "Learner-specific" }];
 
-export function ReportFieldsManagement({ level, schoolId }: { level: "primary" | "nursery"; schoolId: string }) {
+export function ReportFieldsManagement({ level, schoolId, verificationTemplateId, initialTarget = "", initialTab = "fields", initialLearnerId = "", initialTermId = "all", initialYear = "all" }: { level: "primary" | "nursery"; schoolId: string; verificationTemplateId?: string; initialTarget?: string; initialTab?: string; initialLearnerId?: string; initialTermId?: string; initialYear?: string }) {
   const { isAdmin, isSuperAdmin } = useAuth();
   const canManage = isAdmin || isSuperAdmin;
   const [fields, setFields] = useState<ReportField[]>([]);
@@ -42,13 +42,13 @@ export function ReportFieldsManagement({ level, schoolId }: { level: "primary" |
   const [type, setType] = useState("text");
   const [scope, setScope] = useState("learner");
   const [fieldId, setFieldId] = useState("");
-  const [learnerId, setLearnerId] = useState("");
-  const [termId, setTermId] = useState("all");
-  const [year, setYear] = useState("all");
+  const [learnerId, setLearnerId] = useState(initialLearnerId);
+  const [termId, setTermId] = useState(initialTermId);
+  const [year, setYear] = useState(initialYear);
   const [value, setValue] = useState("");
-  const [templateId, setTemplateId] = useState("");
+  const [templateId, setTemplateId] = useState(verificationTemplateId ?? "");
   const [source, setSource] = useState("");
-  const [target, setTarget] = useState("");
+  const [target, setTarget] = useState(initialTarget);
   const [position, setPosition] = useState({ page: 1, x: 30, y: 100, width: 150, height: 25, font_size: 10 });
   const [align, setAlign] = useState("left");
   const [preview, setPreview] = useState<{ name: string; generate: () => Promise<Blob> } | null>(null);
@@ -72,7 +72,7 @@ export function ReportFieldsManagement({ level, schoolId }: { level: "primary" |
     setYears((results[6].data ?? []).map(y => ({ id: String(y.year), name: String(y.year) }))); setError("");
   };
   useEffect(() => { refresh().catch(e => setError(e.message)).finally(() => setLoading(false)); }, []);
-  const activeTemplate = templates.find(t => t.is_active) ?? null;
+  const activeTemplate = templates.find(t => verificationTemplateId ? t.id === verificationTemplateId : t.is_active) ?? null;
   useEffect(() => { if (activeTemplate) setTemplateId(id => id || activeTemplate.id); }, [activeTemplate?.id]);
   const activeLabels = activeTemplate && Array.isArray(activeTemplate.field_names) ? activeTemplate.field_names.filter((n): n is string => typeof n === "string") : [];
   const activeAssociations = activeTemplate ? associations.filter(a => a.template_id === activeTemplate.id) : [];
@@ -119,7 +119,7 @@ export function ReportFieldsManagement({ level, schoolId }: { level: "primary" |
     <p className="text-sm text-muted-foreground">Custom fields are available only for uploaded report card templates.</p>
   </section>;
   return <section className="space-y-4 border-y py-6">
-    <header className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-xl font-semibold">Report Card Fields Management</h2><p className="text-sm capitalize text-muted-foreground">{level} · Active template: <span className="normal-case">{activeTemplate.name}</span></p></div>{canManage && <Button onClick={() => { setEditing(null); setLabel(""); setType("text"); setScope("learner"); setFieldOpen(true); }}><Plus className="mr-2 h-4 w-4" />Add field</Button>}</header>
+    <header className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-xl font-semibold">Report Card Fields Management</h2><p className="text-sm capitalize text-muted-foreground">{level} · {verificationTemplateId ? "Test template" : "Active template"}: <span className="normal-case">{activeTemplate.name}</span></p></div>{canManage && <Button onClick={() => { setEditing(null); setLabel(initialTarget); setType("text"); setScope("learner"); setFieldOpen(true); }}><Plus className="mr-2 h-4 w-4" />Add field</Button>}</header>
     {error && <p role="alert" className="text-destructive">{error}</p>}
     <div className="space-y-2">
       <h3 className="text-sm font-medium">Labels in the active template</h3>
@@ -128,7 +128,7 @@ export function ReportFieldsManagement({ level, schoolId }: { level: "primary" |
         {activeAssociations.filter(a => !a.pdf_field).map(a => <li key={a.id} className="rounded border px-2 py-1 text-xs">{fields.find(f => f.id === a.definition_id)?.label ?? a.source_key ?? "Archived field"} · placed on page {a.page}</li>)}
       </ul> : <p className="text-sm text-muted-foreground">No labels were detected in this template and none have been associated yet. Add them under Template associations.</p>}
     </div>
-    <Tabs defaultValue="fields"><TabsList className="max-w-full"><TabsTrigger value="fields">Fields</TabsTrigger><TabsTrigger value="values">Saved values</TabsTrigger><TabsTrigger value="associations">Template associations</TabsTrigger></TabsList>
+    <Tabs defaultValue={initialTab}><TabsList className="max-w-full"><TabsTrigger value="fields">Fields</TabsTrigger><TabsTrigger value="values">Saved values</TabsTrigger><TabsTrigger value="associations">Template associations</TabsTrigger></TabsList>
       <TabsContent value="fields"><Table><TableHeader><TableRow><TableHead>Exact label</TableHead><TableHead>Type</TableHead><TableHead>Scope</TableHead><TableHead>Saved values</TableHead><TableHead /></TableRow></TableHeader><TableBody>{fields.map(f => <TableRow key={f.id}><TableCell>{f.label}</TableCell><TableCell>{TYPES.find(t => t.id === f.field_type)?.name}</TableCell><TableCell>{SCOPES.find(s => s.id === f.scope)?.name}</TableCell><TableCell>{values.filter(v => v.definition_id === f.id).length}</TableCell><TableCell><div className="flex gap-1">{canManage && <><Button variant="ghost" size="icon" aria-label={`Edit ${f.label}`} title="Edit field" onClick={() => { setEditing(f); setLabel(f.label); setType(f.field_type); setScope(f.scope); setFieldOpen(true); }}><Pencil className="h-4 w-4" /></Button><Button variant="ghost" size="icon" aria-label={`Archive ${f.label}`} title="Archive field" onClick={() => run(async () => { if (!confirm("Archive this field? Historical values will be retained.")) return; const result = await supabase.from("report_field_definitions").update({ archived: true }).eq("id", f.id); if (result.error) throw result.error; })}><Trash2 className="h-4 w-4 text-destructive" /></Button></>}</div></TableCell></TableRow>)}</TableBody></Table>{!fields.length && <p className="py-5 text-sm text-muted-foreground">No custom fields.</p>}</TabsContent>
       <TabsContent value="values" className="space-y-5">
         <form className="space-y-4 border-b py-4" onSubmit={e => { e.preventDefault(); saveValue(); }}><div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

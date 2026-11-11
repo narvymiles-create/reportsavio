@@ -4,7 +4,7 @@ export type TemplateValues = Record<string, string | number | null | undefined>;
 export const normalizeField = (name: string) => name.trim().toLowerCase().replace(/[\s_-]+/g, ".");
 
 // Only named text fields are filled; no coordinates, artwork, or table reflow.
-const aliases: Record<string, string> = {
+export const FIELD_ALIASES: Record<string, string> = {
   "school.name": "school.name", "schoolname": "school.name",
   "learner.name": "learner.full.name", "student.name": "learner.full.name", "pupil.name": "learner.full.name",
   "full.name": "learner.full.name", "name": "learner.full.name",
@@ -12,7 +12,7 @@ const aliases: Record<string, string> = {
   "age": "learner.age", "sex": "learner.sex", "house": "learner.house", "section": "learner.section",
   "lin.no": "learner.lin.no", "index.no": "learner.index.no", "reg.no": "learner.reg.no", "pay.code": "learner.pay.code",
 };
-Object.assign(aliases, {
+Object.assign(FIELD_ALIASES, {
   "admission.no": "learner.reg.no", "registration.no": "learner.reg.no", "dob": "learner.dob", "date.of.birth": "learner.dob",
   "conduct": "learner.conduct", "co.curricular": "learner.co.curricular", "class.teacher": "class.teacher.name", "head.teacher": "head.teacher.name",
   "class.teacher.comment": "report.class.teacher.comment", "class.teachers.comment": "report.class.teacher.comment",
@@ -25,7 +25,7 @@ const PREFIXES = ["learner.", "school.", "report.", "term.", "class.", "eot."];
 /** Resolve a template field name to system data: exact key, known alias, then common prefixes. */
 export function fieldValue(name: string, values: TemplateValues): string {
   const key = normalizeField(name).replace(/[^a-z0-9.]+/g, "").replace(/\.+/g, ".").replace(/^\.|\.$/g, "");
-  const candidates = [aliases[key] ?? key, key, ...PREFIXES.map(prefix => prefix + key)];
+  const candidates = [FIELD_ALIASES[key] ?? key, key, ...PREFIXES.map(prefix => prefix + key)];
   for (const candidate of candidates) {
     const value = values[candidate];
     if (value != null && value !== "") return String(value);
