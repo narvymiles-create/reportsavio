@@ -25,7 +25,7 @@ export async function customReportValues(level: string, learnerId: string, termI
 }
 
 /** Same loaders and calculations as the default report cards, flattened into template keys. */
-export async function customReportData(level: string, learnerId: string, termId: string, schoolId?: string): Promise<{ values: TemplateValues; decorations: Omit<TemplateDecorations, "border"> & { borderStyle: string } }> {
+export async function customReportData(level: string, learnerId: string, termId: string, schoolId?: string, academicYear?: number): Promise<{ values: TemplateValues; decorations: Omit<TemplateDecorations, "border"> & { borderStyle: string } }> {
   const d = level === "primary" ? await loadPrimaryData(learnerId, termId) : await loadNurseryData(learnerId, termId);
   if (schoolId && (d.learner.school_id !== schoolId || d.term?.school_id !== schoolId)) throw new Error("The learner and term must belong to the template's school.");
   const primary = "klass" in d ? d : null;
@@ -37,7 +37,8 @@ export async function customReportData(level: string, learnerId: string, termId:
   };
   add("school", d.school); add("learner", d.learner); add("term", d.term); add("report", d.report);
   add("class", "klass" in d ? d.klass : d.cls); add("stream", d.stream); add("class.teacher", d.classTeacher);
-  values["academic.year"] = d.term?.year;
+  values["academic.year"] = academicYear ?? d.term?.year;
+  values["term.year"] = academicYear ?? d.term?.year;
   values["term.next.begins.on"] = fmtDate(d.term?.next_begins_on);
   values["term.ends.on"] = fmtDate(d.term?.ends_on);
   values["learner.dob"] = fmtDate(d.learner?.dob);
@@ -86,14 +87,14 @@ export async function customReportData(level: string, learnerId: string, termId:
   return { values, decorations: { level, school: d.school, assets: d.assets, borderStyle: d.borderStyle } };
 }
 
-export async function generateCustomOutput(template: SchoolTemplate, learnerIds: string[], termId: string, onProgress?: (done: number, total: number) => void): Promise<Blob> {
+export async function generateCustomOutput(template: SchoolTemplate, learnerIds: string[], termId: string, onProgress?: (done: number, total: number) => void, academicYear?: number): Promise<Blob> {
   if (!learnerIds.length) throw new Error("No learners selected");
   const bytes = await templateBytes(template);
   const custom = await loadReportCustomFields(template.school_id, template.level, template.id);
   const settingsBorder = await usesSettingsBorder(template.school_id, template.level);
   const merged = await PDFDocument.create();
   for (const [index, learnerId] of learnerIds.entries()) {
-    const { values, decorations } = await customReportData(template.level, learnerId, termId, template.school_id);
+    const { values, decorations } = await customReportData(template.level, learnerId, termId, template.school_id, academicYear);
     const associations = associationValues(custom, values, learnerId, termId);
     const overrides = Object.fromEntries(associations.filter(a => a.pdf_field).map(a => [normalizeField(a.pdf_field ?? ""), a.value]));
     const placed = await applyCustomPlacements(await fillTemplate(bytes, values, overrides), associations);
