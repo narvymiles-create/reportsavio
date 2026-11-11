@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Upload, Eye, Trash2, Loader2, FileText } from "lucide-react";
+import { Upload, Eye, Trash2, Loader2, FileText, FlaskConical } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ import { templateBytes, type SchoolTemplate , REPORT_TEMPLATE_CHANGED } from "@/
 import { PrimaryPdfViewer } from "@/components/PrimaryPdfViewer";
 import { useReportModule, ensureReportModuleSaved } from "@/hooks/useReportModule";
 import { defaultTemplatePreview } from "@/lib/pdf/defaultTemplatePreview";
+import { TemplateVerificationDialog } from "@/components/TemplateVerificationDialog";
 
 export default function ReportTemplatesPage() {
   const { module, loading: levelLoading } = useReportModule();
@@ -31,6 +32,7 @@ function LevelTemplates({ level, levelLoading, schoolId, canManage }: { level: "
   const [error, setError] = useState("");
   const [preview, setPreview] = useState<{ name: string; generate: () => Promise<Blob> } | null>(null);
   const [deleting, setDeleting] = useState<SchoolTemplate | null>(null);
+  const [testing, setTesting] = useState<SchoolTemplate | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const mounted = useRef(true);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
@@ -48,12 +50,14 @@ function LevelTemplates({ level, levelLoading, schoolId, canManage }: { level: "
     catch (e) { toast({ title: "Template action failed", description: templateErrorMessage(e), variant: "destructive" }); }
     finally { if (mounted.current) setBusy(false); }
   };
-  const select = (selectedLevel: string, id: string | null) => run(async () => {
+  const activate = async (selectedLevel: string, id: string | null) => {
     const { error } = await supabase.rpc("select_report_template", { _level: selectedLevel, _template_id: id ?? undefined });
     if (error) throw error;
     window.dispatchEvent(new Event(REPORT_TEMPLATE_CHANGED));
     toast({ title: id ? "Template activated" : "Default report restored" });
-  });
+    await refresh();
+  };
+  const select = (selectedLevel: string, id: string | null) => run(() => activate(selectedLevel, id));
   const upload = () => run(async () => {
     if (!schoolId || !file || !name.trim()) throw new Error("Enter a template name and choose a PDF or image.");
     await ensureReportModuleSaved(schoolId, level);
@@ -93,10 +97,11 @@ function LevelTemplates({ level, levelLoading, schoolId, canManage }: { level: "
     {error && <p role="alert" className="text-destructive">{error}</p>}
     {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Table><TableHeader><TableRow><TableHead>Template</TableHead><TableHead>Level</TableHead><TableHead>Status</TableHead><TableHead>PDF fields</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader><TableBody>
       <TableRow><TableCell className="font-medium"><FileText className="mr-2 inline h-4 w-4" />Existing {level === "primary" ? "Primary" : "Nursery"} default</TableCell><TableCell className="capitalize">{level}</TableCell><TableCell><Badge variant={templates.some(t => t.is_active) ? "outline" : "default"}>{templates.some(t => t.is_active) ? "Available" : "Active"}</Badge></TableCell><TableCell>Built-in</TableCell><TableCell><div className="flex justify-end gap-2"><Button variant="ghost" size="icon" title="Preview default template" aria-label={`Preview ${level} default`} disabled={!schoolId} onClick={() => { if (schoolId) setPreview({ name: `${level === "primary" ? "Primary" : "Nursery"} default`, generate: () => defaultTemplatePreview(level, schoolId) }); }}><Eye className="h-4 w-4" /></Button>{canManage && templates.some(t => t.is_active) && <Button variant="outline" disabled={busy} onClick={() => select(level, null)}>Use default</Button>}</div></TableCell></TableRow>
-      {templates.map(template => <TableRow key={template.id}><TableCell className="font-medium">{template.name}<span className="ml-2 text-xs text-muted-foreground">{template.page_count} page(s)</span></TableCell><TableCell className="capitalize">{template.level}</TableCell><TableCell><Badge variant={template.is_active ? "default" : "outline"}>{template.is_active ? "Active" : "Inactive"}</Badge></TableCell><TableCell>{Array.isArray(template.field_names) && template.field_names.length ? `${template.field_names.length} supported` : "Design only"}</TableCell><TableCell><div className="flex justify-end gap-2"><Button variant="ghost" size="icon" title="Preview template" aria-label={`Preview ${template.name}`} onClick={() => setPreview({ name: template.name, generate: async () => new Blob([new Uint8Array(await templateBytes(template)).buffer], { type: "application/pdf" }) })}><Eye className="h-4 w-4" /></Button>{canManage && <><Button variant="outline" disabled={busy} onClick={() => select(template.level, template.is_active ? null : template.id)}>{template.is_active ? "Deactivate" : "Activate"}</Button><Button variant="ghost" size="icon" disabled={busy} title="Delete template" aria-label={`Delete ${template.name}`} onClick={() => setDeleting(template)}><Trash2 className="h-4 w-4 text-destructive" /></Button></>}</div></TableCell></TableRow>)}
+      {templates.map(template => <TableRow key={template.id}><TableCell className="font-medium">{template.name}<span className="ml-2 text-xs text-muted-foreground">{template.page_count} page(s)</span></TableCell><TableCell className="capitalize">{template.level}</TableCell><TableCell><Badge variant={template.is_active ? "default" : "outline"}>{template.is_active ? "Active" : "Inactive"}</Badge></TableCell><TableCell>{Array.isArray(template.field_names) && template.field_names.length ? `${template.field_names.length} supported` : "Design only"}</TableCell><TableCell><div className="flex flex-wrap justify-end gap-2"><Button variant="ghost" size="icon" title="Preview template" aria-label={`Preview ${template.name}`} onClick={() => setPreview({ name: template.name, generate: async () => new Blob([new Uint8Array(await templateBytes(template)).buffer], { type: "application/pdf" }) })}><Eye className="h-4 w-4" /></Button>{canManage && <><Button variant="outline" disabled={busy} onClick={() => setTesting(template)}><FlaskConical className="mr-2 h-4 w-4" />Test Template</Button><Button variant="outline" disabled={busy} onClick={() => template.is_active ? select(template.level, null) : setTesting(template)}>{template.is_active ? "Deactivate" : "Activate"}</Button><Button variant="ghost" size="icon" disabled={busy} title="Delete template" aria-label={`Delete ${template.name}`} onClick={() => setDeleting(template)}><Trash2 className="h-4 w-4 text-destructive" /></Button></>}</div></TableCell></TableRow>)}
     </TableBody></Table>}
     <details className="border-t pt-4 text-sm"><summary className="cursor-pointer text-muted-foreground">Supported PDF text field names</summary><div className="mt-3 space-y-2 text-muted-foreground"><p>school.name, school.location, school.tel, school.email, school.motto; learner.full_name, learner.age, learner.sex, learner.lin_no, learner.reg_no, learner.pay_code; class.name, stream.name, term.name, academic.year, term.next_begins_on, term.ends_on; report.class_teacher_comment, report.head_teacher_comment.</p><p>Primary: bot.total, bot.average, bot.aggregate, bot.division, bot.position (also mid/eot); subject.1.name, subject.1.bot, subject.1.bot.grade (also mid/eot and each configured subject).</p><p>Nursery: learning_area.1.name, learning_area.1.grade, learning_area.1.comment (each configured learning area).</p><p>Missing or unrecognised text values are blank. Only standard-font AcroForm text fields are supported; other fields retain their original appearance. Non-fillable PDFs remain unchanged. No images are inserted into text fields.</p></div></details>
     <Dialog open={!!preview} onOpenChange={open => { if (!open) setPreview(null); }}><DialogContent className="max-h-[90vh] max-w-5xl overflow-auto"><DialogHeader><DialogTitle>{preview?.name}</DialogTitle></DialogHeader>{preview && <PrimaryPdfViewer learnerIds={["template"]} termId="template" generate={preview.generate} filename={preview.name} />}</DialogContent></Dialog>
+    {testing && <TemplateVerificationDialog key={testing.id} template={testing} close={() => setTesting(null)} activate={() => activate(testing.level, testing.id)} />}
     <Dialog open={!!deleting} onOpenChange={open => { if (!open && !busy) setDeleting(null); }}><DialogContent><DialogHeader><DialogTitle>Delete {deleting?.name}?</DialogTitle></DialogHeader><p className="text-sm text-muted-foreground">This removes the uploaded PDF. The existing default remains available.</p><div className="flex justify-end gap-2"><Button variant="outline" disabled={busy} onClick={() => setDeleting(null)}>Cancel</Button><Button variant="destructive" disabled={busy} onClick={remove}>Delete template</Button></div></DialogContent></Dialog>
   </div>;
 }
