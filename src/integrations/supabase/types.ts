@@ -1611,6 +1611,93 @@ export type Database = {
           },
         ]
       }
+      template_field_rules: {
+        Row: {
+          field_key: string
+          required: boolean
+          template_id: string
+        }
+        Insert: {
+          field_key: string
+          required?: boolean
+          template_id: string
+        }
+        Update: {
+          field_key?: string
+          required?: boolean
+          template_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "template_field_rules_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "report_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      template_verifications: {
+        Row: {
+          academic_year: number
+          configuration_hash: string
+          learner_id: string
+          level: string
+          results: Json
+          school_id: string
+          template_id: string
+          term_id: string
+          verified_at: string
+          verified_by: string
+        }
+        Insert: {
+          academic_year: number
+          configuration_hash: string
+          learner_id: string
+          level: string
+          results: Json
+          school_id: string
+          template_id: string
+          term_id: string
+          verified_at?: string
+          verified_by: string
+        }
+        Update: {
+          academic_year?: number
+          configuration_hash?: string
+          learner_id?: string
+          level?: string
+          results?: Json
+          school_id?: string
+          template_id?: string
+          term_id?: string
+          verified_at?: string
+          verified_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "template_verifications_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "template_verifications_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: true
+            referencedRelation: "report_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "template_verifications_term_id_fkey"
+            columns: ["term_id"]
+            isOneToOne: false
+            referencedRelation: "terms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       terms: {
         Row: {
           created_at: string
@@ -1705,11 +1792,30 @@ export type Database = {
         Returns: boolean
       }
       is_super_admin: { Args: never; Returns: boolean }
+      record_template_verification: {
+        Args: {
+          _academic_year: number
+          _learner_id: string
+          _results: Json
+          _template_id: string
+          _term_id: string
+        }
+        Returns: undefined
+      }
       select_report_template: {
         Args: { _level: string; _template_id?: string }
         Returns: undefined
       }
       set_current_academic_year: { Args: { _id: string }; Returns: undefined }
+      template_auto_source: {
+        Args: { lvl: string; n: string }
+        Returns: string
+      }
+      template_configuration_hash: { Args: { tid: string }; Returns: string }
+      template_system_source: {
+        Args: { k: string; lvl: string }
+        Returns: boolean
+      }
       upload_report_template: {
         Args: {
           _expected_level: string
