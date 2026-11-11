@@ -1,5 +1,8 @@
 # Roadmap
 
+- [ ] Add real-learner pre-activation testing for both levels with matched/missing/unmatched checks, field corrections and saved required/optional choices.
+- [ ] Enforce current successful required-association verification before activation in the database; verify signed-in previews, warnings, blocked activation and corrections.
+
 - [x] Expand local template uploads to PDF/scanned PDF/JPG/JPEG/PNG with fixed-PDF image conversion; preserve fields and defaults. User selected local-only handling, so DOC/DOCX must be exported to PDF before upload.
 - [x] Fix school-scoped sidebar persistence, serialize switches and await saved level before uploads; normalize service errors and clean up failed registrations. Signed-in Primary PNG/Nursery JPG uploads, previews and deletion verified; 35 regression tests pass.
 
