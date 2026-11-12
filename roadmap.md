@@ -1,7 +1,7 @@
 # Roadmap
 
-- [ ] Add real-learner pre-activation testing for both levels with matched/missing/unmatched checks, field corrections and saved required/optional choices.
-- [ ] Enforce current successful required-association verification before activation in the database; verify signed-in previews, warnings, blocked activation and corrections.
+- [x] Add real-learner pre-activation testing for both levels with matched/missing/unmatched checks, field corrections and saved required/optional choices.
+- [x] Enforce current successful required-association verification before activation in the database; signed-in Primary/Nursery previews, missing-data warnings, optional blanks, required-field corrections, successful activation and stale-check rejection verified; 31 focused tests pass. Temporary uploads removed and original selection restored.
 
 - [x] Expand local template uploads to PDF/scanned PDF/JPG/JPEG/PNG with fixed-PDF image conversion; preserve fields and defaults. User selected local-only handling, so DOC/DOCX must be exported to PDF before upload.
 - [x] Fix school-scoped sidebar persistence, serialize switches and await saved level before uploads; normalize service errors and clean up failed registrations. Signed-in Primary PNG/Nursery JPG uploads, previews and deletion verified; 35 regression tests pass.
@@ -45,4 +45,4 @@
 
 - [x] Uploaded templates: reuse default report data (marks, totals, divisions, comments, dates, teachers), image fields, stamp, watermark and an optional Settings border per level.
 - [x] Settings previews show the active uploaded template; Fields Management follows the active template and is hidden for defaults.
-- [ ] Verify a filled uploaded template end-to-end with a real learner — not done: the signed-in school has no active uploaded template.
+- [x] Verify filled uploaded templates with real Primary and Nursery learners through pre-activation testing, including saved associations and Settings stamp/watermark; temporary uploads removed and defaults restored.
