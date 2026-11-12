@@ -1088,6 +1088,7 @@ export type Database = {
           page_height: number
           page_width: number
           school_id: string
+          section_map: Json
           updated_at: string
         }
         Insert: {
@@ -1102,6 +1103,7 @@ export type Database = {
           page_height?: number
           page_width?: number
           school_id: string
+          section_map?: Json
           updated_at?: string
         }
         Update: {
@@ -1116,6 +1118,7 @@ export type Database = {
           page_height?: number
           page_width?: number
           school_id?: string
+          section_map?: Json
           updated_at?: string
         }
         Relationships: [

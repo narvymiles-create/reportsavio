@@ -5,10 +5,12 @@ import { gradeFor } from "@/lib/grading";
 import { fillTemplate, normalizeField, type TemplateValues } from "./template/forms";
 import { templateBytes, type SchoolTemplate } from "@/lib/reportTemplates";
 import { bytesToPdfBlob } from "./core";
-import { loadReportCustomFields, associationValues } from "@/lib/reportCustomFields";
+import { loadReportCustomFields, associationValues, resolveSavedValue, type ReportField, type ReportValue } from "@/lib/reportCustomFields";
 import { applyCustomPlacements } from "./template/customPlacements";
 import { applyTemplateDecorations, type TemplateDecorations } from "./template/decorations";
 import { supabase } from "@/integrations/supabase/client";
+import { recogniseField, valueKey, type Level, type SectionMap } from "@/lib/templateSections";
+import { applySectionTables } from "./template/sectionTables";
 
 const fmtDate = (value?: string | null) => value ? new Date(value).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" }) : "";
 
@@ -54,6 +56,29 @@ export async function customReportData(level: string, learnerId: string, termId:
       values[`${phase}.aggregate`] = summary.aggregateText;
       values[`${phase}.class.size`] = summary.has ? summary.classSize : "";
     }
+    // Complete section tables: row n is the nth configured subject (stable subject IDs, class sort order).
+    primary.subjects.forEach((subject, index) => {
+      const marks = computed.bySubject.get(subject.id);
+      const initials = (subject.subject_teacher_id && primary.teachersById[subject.subject_teacher_id]?.initials) || marks?.teacher_initials || "";
+      for (const phase of ["bot", "mid", "eot"] as const) {
+        const row = `table.${phase}.${index + 1}`;
+        const raw = marks?.[phase];
+        const mark = raw == null || raw === "" || isNaN(Number(raw)) ? null : Number(raw);
+        const band = mark == null ? null : gradeFor(mark, primary.bands);
+        values[`${row}.subject`] = subject.name; values[`${row}.code`] = subject.code_label || subject.code;
+        values[`${row}.full`] = subject.max_marks; values[`${row}.marks`] = mark;
+        values[`${row}.grade`] = band?.grade; values[`${row}.points`] = band?.points; values[`${row}.remark`] = band?.remark;
+        values[`${row}.initials`] = mark == null ? "" : initials;
+      }
+    });
+    for (const phase of ["bot", "mid", "eot"] as const) {
+      const summary = computed[phase];
+      Object.assign(values, { [`table.${phase}.total`]: summary.has ? summary.total : "", [`table.${phase}.average`]: summary.has ? summary.avg : "", [`table.${phase}.aggregate`]: summary.aggregateText, [`table.${phase}.division`]: summary.division, [`table.${phase}.position`]: summary.has ? summary.position : "", [`table.${phase}.class.size`]: summary.has ? summary.classSize : "" });
+    }
+    primary.bands.forEach((band, index) => {
+      const row = `table.grading.${index + 1}`;
+      Object.assign(values, { [`${row}.grade`]: band.grade, [`${row}.points`]: band.points, [`${row}.remark`]: band.remark, [`${row}.range`]: `${band.min_mark} - ${band.max_mark}` });
+    });
     primary.subjects.forEach((subject, index) => {
       const prefixes = [`subject.${index + 1}`, `subject.${normalizeField(subject.code_label || subject.code)}`];
       prefixes.forEach(prefix => {
@@ -76,6 +101,14 @@ export async function customReportData(level: string, learnerId: string, termId:
       });
     });
   } else if ("areas" in d) {
+    const colors = d.colors as { grade: string; label: string }[];
+    colors.forEach((c, index) => { values[`table.key.${index + 1}.grade`] = c.grade; values[`table.key.${index + 1}.rating`] = c.label; });
+    d.areas.forEach((area, index) => {
+      const a = d.assessments[area.id];
+      const row = `table.assessment.${index + 1}`;
+      values[`${row}.subject`] = area.name; values[`${row}.grade`] = a?.grade; values[`${row}.remark`] = a?.comment;
+      values[`${row}.rating`] = colors.find(c => c.grade === a?.grade)?.label ?? "";
+    });
     d.areas.forEach((area, index) => {
       for (const prefix of [`learning.area.${index + 1}`, `learning.area.${normalizeField(area.name)}`]) {
         values[`${prefix}.name`] = area.name;
@@ -87,6 +120,21 @@ export async function customReportData(level: string, learnerId: string, termId:
   return { values, decorations: { level, school: d.school, assets: d.assets, borderStyle: d.borderStyle } };
 }
 
+export const sectionMapOf = (template: Pick<SchoolTemplate, "section_map">): SectionMap => (template.section_map && typeof template.section_map === "object" && !Array.isArray(template.section_map) ? template.section_map : {}) as SectionMap;
+export const templateFieldNames = (template: Pick<SchoolTemplate, "field_names">) => Array.isArray(template.field_names) ? template.field_names.filter((n): n is string => typeof n === "string") : [];
+
+/** Recognised sections take precedence over legacy one-by-one matches; custom fields fill labels with their exact name. */
+export function recognisedValues(template: Pick<SchoolTemplate, "level" | "field_names" | "section_map">, values: TemplateValues, fields: ReportField[] = [], saved: ReportValue[] = [], learnerId = "", termId = ""): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const name of templateFieldNames(template)) {
+    const custom = fields.find(f => normalizeField(f.label) === normalizeField(name));
+    if (custom) { out[normalizeField(name)] = resolveSavedValue(custom, saved, learnerId, termId, Number(values["academic.year"])); continue; }
+    const key = valueKey(recogniseField(name, template.level as Level, sectionMapOf(template)));
+    if (key) out[normalizeField(name)] = values[key] == null ? "" : String(values[key]);
+  }
+  return out;
+}
+
 export async function generateCustomOutput(template: SchoolTemplate, learnerIds: string[], termId: string, onProgress?: (done: number, total: number) => void, academicYear?: number): Promise<Blob> {
   if (!learnerIds.length) throw new Error("No learners selected");
   const bytes = await templateBytes(template);
@@ -96,8 +144,8 @@ export async function generateCustomOutput(template: SchoolTemplate, learnerIds:
   for (const [index, learnerId] of learnerIds.entries()) {
     const { values, decorations } = await customReportData(template.level, learnerId, termId, template.school_id, academicYear);
     const associations = associationValues(custom, values, learnerId, termId);
-    const overrides = Object.fromEntries(associations.filter(a => a.pdf_field).map(a => [normalizeField(a.pdf_field ?? ""), a.value]));
-    const placed = await applyCustomPlacements(await fillTemplate(bytes, values, overrides), associations);
+    const overrides = { ...Object.fromEntries(associations.filter(a => a.pdf_field).map(a => [normalizeField(a.pdf_field ?? ""), a.value])), ...recognisedValues(template, values, custom.fields, custom.values, learnerId, termId) };
+    const placed = await applySectionTables(await applyCustomPlacements(await fillTemplate(bytes, values, overrides), associations), sectionMapOf(template).tables ?? [], values);
     const filled = await applyTemplateDecorations(placed, { ...decorations, border: settingsBorder ? decorations.borderStyle : null });
     onProgress?.(index + 1, learnerIds.length);
     if (learnerIds.length === 1) return bytesToPdfBlob(filled);
