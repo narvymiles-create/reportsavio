@@ -74,9 +74,8 @@ export async function fillTemplate(bytes: Uint8Array, values: TemplateValues, ov
   if (!form.getFields().length) return bytes; // Static artwork stays byte-for-byte unchanged.
   for (const field of form.getFields()) {
     if (!(field instanceof PDFTextField)) continue;
-    const originalFont = originalStandardFont(field);
-    if (!originalFont) continue; // Never substitute a different typeface.
-    const font = await doc.embedFont(originalFont);
+    // Keep the template's standard font; fall back to Helvetica only when the field's font cannot be reused.
+    const font = await doc.embedFont(originalStandardFont(field) ?? StandardFonts.Helvetica);
     const key = normalizeField(field.getName());
     const value = Object.prototype.hasOwnProperty.call(overrides, key) ? String(overrides[key] ?? "") : fieldValue(field.getName(), values);
     try { font.encodeText(value); }

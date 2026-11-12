@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Eye, Loader2, Pencil, Plus, Save, Trash2, Unlink } from "lucide-react";
+import { Eye, Loader2, Pencil, Plus, Save, Search, Trash2, Unlink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,12 @@ import { generateCustomOutput } from "@/lib/pdf/customReport";
 
 function Choice({ label, value, onChange, options, disabled = false }: { label: string; value: string; onChange: (value: string) => void; options: { id: string; name: string }[]; disabled?: boolean }) {
   return <div className="min-w-0 space-y-2"><Label>{label}</Label><Select value={value} onValueChange={onChange} disabled={disabled}><SelectTrigger aria-label={label}><SelectValue placeholder={`Select ${label.toLowerCase()}`} /></SelectTrigger><SelectContent>{options.map(o => <SelectItem key={o.id} value={o.id}>{o.name}</SelectItem>)}</SelectContent></Select></div>;
+}
+function PickList({ label, search, onSearch, items, selected, onSelect }: { label: string; search: string; onSearch: (v: string) => void; items: { id: string; name: string }[]; selected: string; onSelect: (id: string) => void }) {
+  const q = search.trim().toLowerCase();
+  const shown = q ? items.filter(i => i.name.toLowerCase().includes(q) || i.id.toLowerCase().includes(q)) : items;
+  return <div className="min-w-0 space-y-2"><Label>{label}</Label><div className="relative"><Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" /><Input aria-label={`Search ${label.toLowerCase()}`} placeholder="Search…" className="pl-8" value={search} onChange={e => onSearch(e.target.value)} /></div>
+    <ul role="listbox" aria-label={label} className="h-56 overflow-auto rounded border">{shown.map(i => <li key={i.id} role="option" aria-selected={selected === i.id}><button type="button" onClick={() => onSelect(i.id)} className={`w-full px-3 py-1.5 text-left text-sm hover:bg-muted ${selected === i.id ? "bg-primary text-primary-foreground hover:bg-primary" : ""}`}>{i.name}</button></li>)}{!shown.length && <li className="px-3 py-2 text-sm text-muted-foreground">No available fields.</li>}</ul></div>;
 }
 const TYPES = [{ id: "text", name: "Text" }, { id: "number", name: "Number" }, { id: "date", name: "Date" }, { id: "percentage", name: "Percentage" }, { id: "multiline", name: "Multiline Text" }];
 const SCOPES = [{ id: "school", name: "School-wide" }, { id: "learner", name: "Learner-specific" }];
@@ -51,6 +57,8 @@ export function ReportFieldsManagement({ level, schoolId, verificationTemplateId
   const [target, setTarget] = useState(initialTarget);
   const [position, setPosition] = useState({ page: 1, x: 30, y: 100, width: 150, height: 25, font_size: 10 });
   const [align, setAlign] = useState("left");
+  const [sourceSearch, setSourceSearch] = useState("");
+  const [targetSearch, setTargetSearch] = useState("");
   const [preview, setPreview] = useState<{ name: string; generate: () => Promise<Blob> } | null>(null);
   const selectedField = fields.find(f => f.id === fieldId);
   const template = templates.find(t => t.id === templateId);
@@ -101,10 +109,14 @@ export function ReportFieldsManagement({ level, schoolId, verificationTemplateId
     toast({ title: "Value saved" });
   });
   const saveAssociation = () => run(async () => {
-    if (!template || !source || !target) throw new Error("Choose a template, value source and PDF location.");
+    if (!template || !source || !target) throw new Error("Choose an uploaded template field and a system field.");
+    const taken = associations.filter(a => a.template_id === template.id);
+    if (target !== "placement" && taken.some(a => a.pdf_field === target)) throw new Error("This template field is already matched.");
+    if (taken.some(a => source.startsWith("custom:") ? a.definition_id === source.slice(7) : a.source_key === source)) throw new Error("This system field is already matched.");
     const result = await supabase.from("report_field_associations").insert({ school_id: schoolId, level, template_id: template.id, definition_id: source.startsWith("custom:") ? source.slice(7) : null, source_key: source.startsWith("custom:") ? null : source, pdf_field: target === "placement" ? null : target, ...position, align });
     if (result.error) throw result.error;
-    toast({ title: "Template association saved" });
+    setSource(""); setTarget("");
+    toast({ title: "Fields matched" });
   });
   const remove = (table: "report_field_values" | "report_field_associations", id: string) => run(async () => {
     if (!confirm(table === "report_field_values" ? "Delete this saved value?" : "Remove this association? Saved values will be retained.")) return;
@@ -141,12 +153,19 @@ export function ReportFieldsManagement({ level, schoolId, verificationTemplateId
       </TabsContent>
       <TabsContent value="associations" className="space-y-4">
         <div className="grid gap-4 sm:grid-cols-2"><Choice label="Uploaded template" value={templateId} onChange={id => { setTemplateId(id); setTarget(""); }} options={templates.map(t => ({ id: t.id, name: t.name }))} />{template && <Button className="self-end justify-self-start" variant="outline" onClick={() => setPreview({ name: template.name, generate: async () => new Blob([new Uint8Array(await templateBytes(template)).buffer], { type: "application/pdf" }) })}><Eye className="mr-2 h-4 w-4" />View template</Button>}</div>
-        {template && <><form className="space-y-4 border-b pb-5" onSubmit={e => { e.preventDefault(); saveAssociation(); }}><div className="grid gap-4 sm:grid-cols-2"><Choice label="Value source" value={source} onChange={setSource} options={[...fields.map(f => ({ id: `custom:${f.id}`, name: f.label })), ...reportDataSources(level, template.field_names).map(s => ({ id: s, name: `Existing: ${s}` }))]} /><Choice label="PDF location" value={target} onChange={setTarget} options={[...(Array.isArray(template.field_names) ? template.field_names.filter((s): s is string => typeof s === "string").map(s => ({ id: s, name: s })) : []), { id: "placement", name: "One-time placement" }]} /></div>
+        {template && (() => {
+          const templateAssociations = associations.filter(a => a.template_id === template.id);
+          const usedTargets = new Set(templateAssociations.map(a => a.pdf_field).filter(Boolean));
+          const usedSources = new Set(templateAssociations.map(a => a.definition_id ? `custom:${a.definition_id}` : a.source_key ?? ""));
+          const targetItems = [...(Array.isArray(template.field_names) ? template.field_names.filter((n): n is string => typeof n === "string" && !usedTargets.has(n)).map(n => ({ id: n, name: n })) : []), { id: "placement", name: "One-time placement (position manually)" }];
+          const sourceItems = [...fields.map(f => ({ id: `custom:${f.id}`, name: f.label })), ...reportDataSources(level, template.field_names).map(k => ({ id: k, name: `Existing: ${k}` }))].filter(i => !usedSources.has(i.id));
+          return <><form className="space-y-4 border-b pb-5" onSubmit={e => { e.preventDefault(); saveAssociation(); }}><div className="grid gap-4 sm:grid-cols-2"><PickList label="Uploaded template fields" search={targetSearch} onSearch={setTargetSearch} items={targetItems} selected={target} onSelect={setTarget} /><PickList label="Existing system fields" search={sourceSearch} onSearch={setSourceSearch} items={sourceItems} selected={source} onSelect={setSource} /></div>
           {target === "placement" && <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">{Object.entries(position).map(([key, number]) => <div className="space-y-2" key={key}><Label htmlFor={`placement-${key}`}>{({ page: "Page", x: "Left (pt)", y: "Top (pt)", width: "Width (pt)", height: "Height (pt)", font_size: "Font size (pt)" } as Record<string, string>)[key]}</Label><Input id={`placement-${key}`} type="number" step={key === "page" ? 1 : "any"} min={key === "x" || key === "y" ? 0 : 1} max={key === "page" ? template.page_count : undefined} value={number} onChange={e => setPosition(p => ({ ...p, [key]: Number(e.target.value) }))} required /></div>)}<Choice label="Alignment" value={align} onChange={setAlign} options={[{ id: "left", name: "Left" }, { id: "center", name: "Center" }, { id: "right", name: "Right" }]} /></div>}
-          {canManage && <Button type="submit" disabled={busy || !source || !target}><Save className="mr-2 h-4 w-4" />Save association</Button>}</form>
-          <Table><TableHeader><TableRow><TableHead>Value source</TableHead><TableHead>PDF location</TableHead><TableHead /></TableRow></TableHeader><TableBody>{associations.filter(a => a.template_id === template.id).map(a => <TableRow key={a.id}><TableCell>{fields.find(f => f.id === a.definition_id)?.label ?? a.source_key ?? "Archived field"}</TableCell><TableCell>{a.pdf_field ?? `Page ${a.page} · left ${a.x}, top ${a.y} · ${a.width} × ${a.height} pt`}</TableCell><TableCell>{canManage && <Button variant="ghost" size="icon" aria-label="Remove association" title="Remove association" disabled={busy} onClick={() => remove("report_field_associations", a.id)}><Unlink className="h-4 w-4" /></Button>}</TableCell></TableRow>)}</TableBody></Table>
+          {canManage && <Button type="submit" disabled={busy || !source || !target || usedSources.has(source) || usedTargets.has(target)}><Save className="mr-2 h-4 w-4" />Match fields</Button>}</form>
+          <h3 className="text-sm font-medium">Matched Fields</h3>
+          <Table><TableHeader><TableRow><TableHead>Uploaded template field</TableHead><TableHead>System field</TableHead><TableHead /></TableRow></TableHeader><TableBody>{templateAssociations.map(a => <TableRow key={a.id}><TableCell>{a.pdf_field ?? `Page ${a.page} · left ${a.x}, top ${a.y} · ${a.width} × ${a.height} pt`}</TableCell><TableCell>{fields.find(f => f.id === a.definition_id)?.label ?? a.source_key ?? "Archived field"}</TableCell><TableCell>{canManage && <div className="flex gap-1"><Button variant="ghost" size="icon" aria-label="Edit match" title="Edit match" disabled={busy} onClick={() => run(async () => { const result = await supabase.from("report_field_associations").delete().eq("id", a.id).eq("school_id", schoolId).eq("level", level); if (result.error) throw result.error; setTarget(a.pdf_field ?? "placement"); setSource(a.definition_id ? `custom:${a.definition_id}` : a.source_key ?? ""); if (!a.pdf_field) { setPosition({ page: a.page, x: a.x, y: a.y, width: a.width, height: a.height, font_size: a.font_size }); setAlign(a.align); } toast({ title: "Match released", description: "Choose the corrected fields and save the match again." }); })}><Pencil className="h-4 w-4" /></Button><Button variant="ghost" size="icon" aria-label="Remove association" title="Remove match" disabled={busy} onClick={() => remove("report_field_associations", a.id)}><Unlink className="h-4 w-4" /></Button></div>}</TableCell></TableRow>)}</TableBody></Table>{!templateAssociations.length && <p className="text-sm text-muted-foreground">No matched fields yet.</p>}
           <div className="grid gap-4 sm:grid-cols-3"><Choice label="Preview learner" value={learnerId} onChange={setLearnerId} options={learners} /><Choice label="Preview term" value={termId} onChange={setTermId} options={terms} /><Button className="self-end" variant="outline" disabled={!learnerId || termId === "all"} onClick={() => setPreview({ name: `${template.name} · ${learners.find(l => l.id === learnerId)?.name}`, generate: () => generateCustomOutput(template, [learnerId], termId) })}><Eye className="mr-2 h-4 w-4" />Preview saved values</Button></div>
-        </>}{!templates.length && <p className="text-sm text-muted-foreground">No uploaded {level} templates.</p>}
+        </>; })()}{!templates.length && <p className="text-sm text-muted-foreground">No uploaded {level} templates.</p>}
       </TabsContent>
     </Tabs>
     <Dialog open={fieldOpen} onOpenChange={setFieldOpen}><DialogContent><DialogHeader><DialogTitle>{editing ? "Edit field" : "Add custom field"}</DialogTitle></DialogHeader><form className="space-y-4" onSubmit={e => { e.preventDefault(); saveField(); }}><div className="space-y-2"><Label htmlFor="custom-label">Exact template label</Label><Input id="custom-label" value={label} onChange={e => setLabel(e.target.value)} maxLength={120} required /></div><Choice label="Data type" value={type} onChange={setType} options={TYPES} disabled={!!editing && values.some(v => v.definition_id === editing.id)} /><Choice label="Scope" value={scope} onChange={setScope} options={SCOPES} disabled={!!editing && values.some(v => v.definition_id === editing.id)} /><Button type="submit" disabled={busy}>Save field</Button></form></DialogContent></Dialog>

@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
-import { normalizeField, type TemplateValues } from "@/lib/pdf/template/forms";
+import { fieldValue, normalizeField, type TemplateValues } from "@/lib/pdf/template/forms";
 
 export type ReportField = Tables<"report_field_definitions">;
 export type ReportValue = Tables<"report_field_values">;
@@ -45,7 +45,7 @@ export async function loadReportCustomFields(schoolId: string, level: string, te
 export function associationValues(data: Awaited<ReturnType<typeof loadReportCustomFields>>, builtIn: TemplateValues, learnerId: string, termId: string) {
   return data.associations.map(association => {
     const field = data.fields.find(f => f.id === association.definition_id);
-    const value = field ? resolveSavedValue(field, data.values, learnerId, termId, Number(builtIn["academic.year"])) : association.source_key ? String(builtIn[normalizeField(association.source_key)] ?? "") : "";
+    const value = field ? resolveSavedValue(field, data.values, learnerId, termId, Number(builtIn["academic.year"])) : association.source_key ? fieldValue(association.source_key, builtIn) : "";
     return { ...association, value, multiline: field?.field_type === "multiline" };
   });
 }
