@@ -11,6 +11,8 @@ import { toast } from "@/hooks/use-toast";
 import { Loader2, Save, ClipboardList } from "lucide-react";
 import { computeTotal, gradeFor, type GradeBand } from "@/lib/grading";
 import { Link } from "react-router-dom";
+import { useTemplateExams } from "@/hooks/useTemplateExams";
+import { EXAM_NAMES } from "@/lib/templateExams";
 
 type Term = { id: string; name: string; year: number; is_current: boolean };
 type Cls = { id: string; name: string };
@@ -121,6 +123,8 @@ export default function MarksPage() {
     }));
   };
 
+  const examAccess = useTemplateExams();
+  const examOn = (f: "bot" | "mid" | "eot") => examAccess.available.includes(f);
   const saveAll = async () => {
     if (!termId || !subjectId) return;
     if (bands.length === 0) {
@@ -177,15 +181,16 @@ export default function MarksPage() {
             Open a notebook-style form to enter marks for an entire class at once. Saved marks appear automatically on each learner&rsquo;s report card.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <Button asChild variant="outline" className="justify-start h-auto py-3">
-              <Link to="/marks/bot"><ClipboardList className="mr-2 h-4 w-4" /> Beginning of Term Form</Link>
-            </Button>
-            <Button asChild variant="outline" className="justify-start h-auto py-3">
-              <Link to="/marks/mid"><ClipboardList className="mr-2 h-4 w-4" /> Mid-Term Form</Link>
-            </Button>
-            <Button asChild variant="outline" className="justify-start h-auto py-3">
-              <Link to="/marks/eot"><ClipboardList className="mr-2 h-4 w-4" /> End of Term Form</Link>
-            </Button>
+            {(["bot", "mid", "eot"] as const).map(f => examOn(f) ? (
+              <Button key={f} asChild variant="outline" className="justify-start h-auto py-3">
+                <Link to={`/marks/${f}`}><ClipboardList className="mr-2 h-4 w-4" /> {f === "mid" ? "Mid-Term" : EXAM_NAMES[f]} Form</Link>
+              </Button>
+            ) : (
+              <div key={f} className="rounded-md border border-dashed p-3 text-sm text-muted-foreground" aria-disabled="true">
+                <p className="font-medium">{f === "mid" ? "Mid-Term" : EXAM_NAMES[f]} Form — unavailable</p>
+                <p className="text-xs">Your uploaded report card template does not include this examination section.</p>
+              </div>
+            ))}
           </div>
         </CardContent>
       </Card>
@@ -236,6 +241,8 @@ export default function MarksPage() {
                             max={subject?.max_marks ?? 100}
                             value={m?.[f] ?? ""}
                             onChange={(e) => setMarkField(l.id, f, e.target.value)}
+                            disabled={!examOn(f)}
+                            title={examOn(f) ? undefined : "Not part of your uploaded report card template"}
                             className="h-9"
                           />
                         </TableCell>
