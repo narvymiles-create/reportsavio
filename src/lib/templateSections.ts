@@ -49,9 +49,9 @@ export const tableSections = (level: Level) => SECTIONS[level].filter(s => s.tab
 export function words(text: string) {
   return ` ${text.toLowerCase().replace(/['’`]s\b/g, "").replace(/['’`]/g, "").replace(/&/g, " and ")
     .replace(/([a-z])(\d)/g, "$1 $2").replace(/(\d)([a-z])/g, "$1 $2").replace(/[^a-z0-9]+/g, " ").trim()} `
-    .replace(/ b o t | beginning of term | beginning term | begin of term | start of term | beginning /g, " bot ")
+    .replace(/ b o t | beginning of term | beginning term | begin of term | start of term | beginning | begin /g, " bot ")
     .replace(/ m o t | mid of term | mid term | midterm | middle of term | mid /g, " mid ")
-    .replace(/ e o t | end of term | end term | final term | final /g, " eot ")
+    .replace(/ e o t | end of term | end term | final term | final | end /g, " eot ")
     .replace(/ head teacher | head master | head mistress | headmaster | headmistress | principal /g, " headteacher ")
     .replace(/ class teacher /g, " classteacher ").replace(/ teacher /g, " classteacher ")
     .replace(/\s+/g, " ");
@@ -89,7 +89,7 @@ const GENERAL_ALIASES: Record<string, string> = {
   "admission number": "learner.reg.no", "admission no": "learner.reg.no", "adm no": "learner.reg.no", "registration number": "learner.reg.no", "reg no": "learner.reg.no", "reg number": "learner.reg.no",
   "lin": "learner.lin.no", "lin no": "learner.lin.no", "lin number": "learner.lin.no", "index no": "learner.index.no", "index number": "learner.index.no", "pay code": "learner.pay.code", "paycode": "learner.pay.code",
   "school year": "academic.year", "academic year": "academic.year", "year": "academic.year", "year of study": "academic.year",
-  "term": "term.name", "term of study": "term.name", "current term": "term.name",
+  "term": "term.name", "term of study": "term.name", "academic term": "term.name", "term name": "term.name", "current term": "term.name",
   "class": "class.name", "grade level": "class.name", "class name": "class.name", "stream": "stream.name", "age": "learner.age", "sex": "learner.sex", "gender": "learner.sex", "house": "learner.house", "section": "learner.section",
   "date of birth": "learner.dob", "dob": "learner.dob",
   "school name": "school.name", "school": "school.name", "motto": "school.motto", "school motto": "school.motto", "location": "school.location", "address": "school.location", "tel": "school.tel", "telephone": "school.tel", "phone": "school.tel", "email": "school.email", "website": "school.website", "p o box": "school.po.box", "po box": "school.po.box", "box": "school.po.box",
