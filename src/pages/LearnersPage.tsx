@@ -516,6 +516,7 @@ export default function LearnersPage() {
                   <TableHead>Reg.</TableHead>
                   {flags.pay_code && <TableHead>Pay code</TableHead>}
                   {flags.house && <TableHead>House</TableHead>}
+                  {custom.fields.map((f) => <TableHead key={f.id}>{f.label}</TableHead>)}
                   <TableHead className="w-32" />
                 </TableRow>
               </TableHeader>
@@ -538,6 +539,7 @@ export default function LearnersPage() {
                       <TableCell className="text-sm">{regLabel}</TableCell>
                       {flags.pay_code && <TableCell className="text-sm">{l.pay_code ?? "—"}</TableCell>}
                       {flags.house && <TableCell className="text-sm">{l.house ?? "—"}</TableCell>}
+                      {custom.fields.map((f) => <TableCell key={f.id} className="text-sm">{custom.values.find((v) => v.definition_id === f.id && v.learner_id === l.id)?.value || "—"}</TableCell>)}
                       <TableCell>
                         <div className="flex gap-1">
                           <Button size="icon" variant="ghost" onClick={() => { setEditing(l); setOpen(true); }}>
