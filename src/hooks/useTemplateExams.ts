@@ -15,7 +15,8 @@ export function useTemplateExams() {
         if (!t) { if (alive) setState({ loading: false, available: EXAM_IDS, templateName: null }); return; }
         const lines = await templateTextLines(t).catch(() => [] as string[]);
         const found = templateExamSections(templateFieldNames(t), sectionMapOf(t), lines);
-        if (alive) setState({ loading: false, available: found, templateName: t.name });
+        // A template with no recognisable exam table (e.g. unreadable scan) keeps every form open rather than blocking all marks entry.
+        if (alive) setState({ loading: false, available: found.length ? found : EXAM_IDS, templateName: t.name });
       } catch { if (alive) setState({ loading: false, available: EXAM_IDS, templateName: null }); }
     };
     load();
