@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Checkbox } from "@/components/ui/checkbox";
+import { CustomFieldInputs, saveCustomValues, useCustomFields, valuesFor } from "@/components/CustomFieldInputs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -36,6 +37,7 @@ type Learner = {
   lin_no: string | null;
   reg_no: string | null;
   active_reg_type: RegType | null;
+  active_reg_types: string[] | null;
   pay_code: string | null;
   photo_path: string | null;
   conduct: string | null;
@@ -86,7 +88,9 @@ export default function LearnersPage() {
   // form state
   const [classIdInForm, setClassIdInForm] = useState<string>("");
   const [dob, setDob] = useState<string>("");
-  const [regType, setRegType] = useState<RegType>("INDEX");
+  const [regTypes, setRegTypes] = useState<RegType[]>(["INDEX"]);
+  const custom = useCustomFields(schoolId, "primary", "learner");
+  const [customDraft, setCustomDraft] = useState<Record<string, string>>({});
   const [indexNo, setIndexNo] = useState("");
   const [linNo, setLinNo] = useState("");
   const [regNo, setRegNo] = useState("");
@@ -100,7 +104,7 @@ export default function LearnersPage() {
   const p7Lock = isP7Class(selectedClass?.name) && isTerm2or3(currentTerm?.name);
 
   useEffect(() => {
-    if (p7Lock && regType !== "INDEX") setRegType("INDEX");
+    if (p7Lock && !regTypes.includes("INDEX")) setRegTypes(t => ["INDEX", ...t]);
   }, [p7Lock]); // eslint-disable-line
 
   const load = async () => {
@@ -154,11 +158,13 @@ export default function LearnersPage() {
       setIndexNo(editing?.index_no ?? "");
       setLinNo(editing?.lin_no ?? "");
       setRegNo(editing?.reg_no ?? "");
-      setRegType(((editing?.active_reg_type as RegType) ?? "INDEX"));
+      const saved = (editing?.active_reg_types?.length ? editing.active_reg_types : editing?.active_reg_type ? [editing.active_reg_type] : ["INDEX"]) as RegType[];
+      setRegTypes(saved);
+      setCustomDraft(valuesFor(custom.fields, custom.values, editing?.id ?? "__new__"));
       setPhotoFile(null);
       setPhotoPreview(null);
     }
-  }, [editing, open]);
+  }, [editing, open, custom.fields, custom.values]);
 
   const onPhotoPick = (file: File | null) => {
     setPhotoFile(file);
@@ -175,23 +181,19 @@ export default function LearnersPage() {
       return;
     }
 
-    // Validate reg fields: exactly one based on selected regType, others must be empty
-    const indexVal = regType === "INDEX" ? indexNo.trim() : "";
-    const linVal = regType === "LIN" ? linNo.trim() : "";
-    const regVal = regType === "REG" ? regNo.trim() : "";
-    const filledCount = [indexVal, linVal, regVal].filter((v) => v !== "").length;
-    if (filledCount === 0) {
-      toast({ title: "Registration required", description: `Enter a value for ${regType}.`, variant: "destructive" });
+    // Each selected registration type needs its own value; unselected types keep their saved numbers.
+    const regValues: Record<RegType, string> = { INDEX: indexNo.trim(), LIN: linNo.trim(), REG: regNo.trim() };
+    const missing = regTypes.filter((t) => !regValues[t]);
+    if (regTypes.length === 0 || missing.length) {
+      toast({ title: "Registration required", description: regTypes.length ? `Enter a value for ${missing.join(", ")}.` : "Select at least one registration type.", variant: "destructive" });
       return;
     }
-    if (filledCount > 1) {
-      toast({ title: "Only one allowed", description: "Only the selected registration type can have a value.", variant: "destructive" });
-      return;
-    }
-    if (p7Lock && regType !== "INDEX") {
+    if (p7Lock && !regTypes.includes("INDEX")) {
       toast({ title: "Index Number required", description: "P7 candidates in Term 2/3 must use Index Number.", variant: "destructive" });
       return;
     }
+    const indexVal = regValues.INDEX, linVal = regValues.LIN, regVal = regValues.REG;
+    const ordered = (["INDEX", "LIN", "REG"] as RegType[]).filter((t) => regTypes.includes(t));
 
     const cid = String(fd.get("class_id") ?? "");
     const sid = String(fd.get("stream_id") ?? "");
@@ -214,7 +216,8 @@ export default function LearnersPage() {
       index_no: indexVal || null,
       lin_no: linVal || null,
       reg_no: regVal || null,
-      active_reg_type: regType,
+      active_reg_type: ordered[0],
+      active_reg_types: ordered,
       pay_code: payCodeVal || null,
       conduct: conductVal || null,
       co_curricular: coCurricularVal || null,
@@ -240,6 +243,11 @@ export default function LearnersPage() {
       } else {
         await supabase.from("learners").update({ photo_path: path }).eq("id", savedId);
       }
+    }
+
+    if (!error && savedId && custom.fields.length) {
+      try { await saveCustomValues(schoolId!, "primary", custom.fields, custom.values, customDraft, savedId); await custom.reload(); }
+      catch (e) { toast({ title: "Custom field not saved", description: e instanceof Error ? e.message : String(e), variant: "destructive" }); }
     }
 
     setSubmitting(false);
@@ -393,36 +401,28 @@ export default function LearnersPage() {
                     </span>
                   )}
                 </div>
-                <RadioGroup
-                  value={regType}
-                  onValueChange={(v) => !p7Lock && setRegType(v as RegType)}
-                  className="flex gap-4"
-                >
-                  <div className="flex items-center gap-2">
-                    <RadioGroupItem value="INDEX" id="rt-index" disabled={false} />
-                    <Label htmlFor="rt-index" className="cursor-pointer">INDEX NO</Label>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <RadioGroupItem value="LIN" id="rt-lin" disabled={p7Lock} />
-                    <Label htmlFor="rt-lin" className="cursor-pointer">LIN</Label>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <RadioGroupItem value="REG" id="rt-reg" disabled={p7Lock} />
-                    <Label htmlFor="rt-reg" className="cursor-pointer">REG</Label>
-                  </div>
-                </RadioGroup>
+<p className="text-xs text-muted-foreground">Select one or more types. Each selected type has its own number.</p>
+                <div className="flex gap-4 flex-wrap">
+                  {([["INDEX", "INDEX NO"], ["LIN", "LIN"], ["REG", "REG / Admission No"]] as [RegType, string][]).map(([t, name]) => (
+                    <div key={t} className="flex items-center gap-2">
+                      <Checkbox id={`rt-${t}`} checked={regTypes.includes(t)} disabled={p7Lock && t === "INDEX"}
+                        onCheckedChange={(c) => setRegTypes((cur) => c ? [...cur.filter((x) => x !== t), t] : cur.filter((x) => x !== t))} />
+                      <Label htmlFor={`rt-${t}`} className="cursor-pointer">{name}</Label>
+                    </div>
+                  ))}
+                </div>
                 <div className="grid grid-cols-3 gap-3">
                   <div className="space-y-1.5">
                     <Label htmlFor="index_no">Index Number</Label>
-                    <Input id="index_no" value={indexNo} onChange={(e) => setIndexNo(e.target.value)} disabled={regType !== "INDEX"} maxLength={50} />
+                    <Input id="index_no" value={indexNo} onChange={(e) => setIndexNo(e.target.value)} disabled={!regTypes.includes("INDEX")} maxLength={50} />
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="lin_no">LIN</Label>
-                    <Input id="lin_no" value={linNo} onChange={(e) => setLinNo(e.target.value)} disabled={regType !== "LIN"} maxLength={50} />
+                    <Input id="lin_no" value={linNo} onChange={(e) => setLinNo(e.target.value)} disabled={!regTypes.includes("LIN")} maxLength={50} />
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="reg_no">REG</Label>
-                    <Input id="reg_no" value={regNo} onChange={(e) => setRegNo(e.target.value)} disabled={regType !== "REG"} maxLength={50} />
+                    <Label htmlFor="reg_no">REG / Admission No</Label>
+                    <Input id="reg_no" value={regNo} onChange={(e) => setRegNo(e.target.value)} disabled={!regTypes.includes("REG")} maxLength={50} />
                   </div>
                 </div>
               </div>
@@ -451,6 +451,13 @@ export default function LearnersPage() {
                   />
                 </div>
               </div>
+
+              {custom.fields.length > 0 && (
+                <div className="border rounded-md p-3 space-y-3">
+                  <Label className="text-sm font-semibold">Additional learner details</Label>
+                  <CustomFieldInputs idPrefix="learner-custom" fields={custom.fields} draft={customDraft} onChange={(id, v) => setCustomDraft((d) => ({ ...d, [id]: v }))} />
+                </div>
+              )}
 
               <DialogFooter>
                 <Button type="submit" disabled={submitting}>
@@ -514,10 +521,8 @@ export default function LearnersPage() {
               </TableHeader>
               <TableBody>
                 {filtered.map((l) => {
-                  const regLabel =
-                    l.active_reg_type === "INDEX" ? `INDEX: ${l.index_no ?? ""}` :
-                    l.active_reg_type === "LIN" ? `LIN: ${l.lin_no ?? ""}` :
-                    l.active_reg_type === "REG" ? `REG: ${l.reg_no ?? ""}` : "—";
+                  const types = (l.active_reg_types?.length ? l.active_reg_types : l.active_reg_type ? [l.active_reg_type] : []);
+                  const regLabel = types.map((t) => t === "INDEX" ? `INDEX: ${l.index_no ?? ""}` : t === "LIN" ? `LIN: ${l.lin_no ?? ""}` : `REG: ${l.reg_no ?? ""}`).join(" · ") || "—";
                   return (
                     <TableRow key={l.id}>
                       <TableCell>
