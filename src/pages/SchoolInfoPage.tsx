@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { SchoolCustomFieldsSection } from "@/components/CustomFieldInputs";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -404,6 +405,21 @@ export default function SchoolInfoPage() {
           </form>
         </CardContent>
       </Card>
+
+      {schoolId && (
+        <Card>
+          <CardHeader><CardTitle>Additional information</CardTitle></CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">School-wide custom fields created in Settings appear here for your school only.</p>
+            {(["primary", "nursery"] as const).map((lvl) => (
+              <SchoolCustomFieldsSection key={lvl} schoolId={schoolId} level={lvl} onSave={async (run) => {
+                try { await run(); toast({ title: "Additional information saved" }); }
+                catch (e) { toast({ title: "Save failed", description: e instanceof Error ? e.message : String(e), variant: "destructive" }); }
+              }} />
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       {info && (
         <StampPositionDialog

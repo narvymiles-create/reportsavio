@@ -57,3 +57,19 @@ export function CustomFieldInputs({ fields, draft, onChange, idPrefix }: { field
     })}
   </div>;
 }
+
+/** School-wide custom fields of one level, editable on the School Information page. */
+export function SchoolCustomFieldsSection({ schoolId, level, onSave }: { schoolId: string; level: Level; onSave: (run: () => Promise<void>) => void }) {
+  const custom = useCustomFields(schoolId, level, "school");
+  const [draft, setDraft] = useState<Record<string, string>>({});
+  useEffect(() => { setDraft(valuesFor(custom.fields, custom.values, null)); }, [custom.fields, custom.values]);
+  if (!custom.fields.length) return null;
+  return <div className="space-y-3 border-t pt-4 first:border-t-0 first:pt-0">
+    <p className="text-sm font-semibold">{level === "primary" ? "Primary" : "Nursery"} report fields</p>
+    <CustomFieldInputs idPrefix={`school-${level}`} fields={custom.fields} draft={draft} onChange={(id, v) => setDraft(d => ({ ...d, [id]: v }))} />
+    <button type="button" className="inline-flex h-9 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+      onClick={() => onSave(async () => { await saveCustomValues(schoolId, level, custom.fields, custom.values, draft, null); await custom.reload(); })}>
+      Save {level} fields
+    </button>
+  </div>;
+}
