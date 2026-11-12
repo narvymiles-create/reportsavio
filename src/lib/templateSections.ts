@@ -116,7 +116,7 @@ const COLUMN_WORDS: [ColumnId, string[]][] = [
 const SUMMARY: ColumnId[] = ["total", "average", "aggregate", "division", "position", "class.size"];
 
 export type SectionMap = { groups?: Record<string, string>; headings?: Record<string, string>; tables?: StaticTable[] };
-export type StaticTable = { id: string; section: string; page: number; x: number; y: number; width: number; height: number; rows: number; columns: ColumnId[]; header: boolean };
+export type StaticTable = { id: string; section: string; page: number; x: number; y: number; width: number; height: number; rows: number; columns: ColumnId[] };
 export type Recognised =
   | { kind: "general"; section: string; source: string }
   | { kind: "image"; section: string; source: string }

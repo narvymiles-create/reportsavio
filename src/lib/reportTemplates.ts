@@ -3,7 +3,7 @@ import type { Level } from "@/lib/pdf/template/registry";
 
 export type SchoolTemplate = {
   id: string; school_id: string; level: string; name: string; file_path: string;
-  is_active: boolean; page_count: number; field_names: unknown; created_at: string;
+  is_active: boolean; page_count: number; field_names: unknown; created_at: string; section_map?: unknown;
 };
 export async function getActiveTemplate(level: Level): Promise<SchoolTemplate | null> {
   const { data: schoolId, error: contextError } = await supabase.rpc("current_user_school_id");
