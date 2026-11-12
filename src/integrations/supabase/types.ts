@@ -315,6 +315,7 @@ export type Database = {
       learners: {
         Row: {
           active_reg_type: string | null
+          active_reg_types: string[]
           age: number | null
           class_id: string | null
           co_curricular: string | null
@@ -337,6 +338,7 @@ export type Database = {
         }
         Insert: {
           active_reg_type?: string | null
+          active_reg_types?: string[]
           age?: number | null
           class_id?: string | null
           co_curricular?: string | null
@@ -359,6 +361,7 @@ export type Database = {
         }
         Update: {
           active_reg_type?: string | null
+          active_reg_types?: string[]
           age?: number | null
           class_id?: string | null
           co_curricular?: string | null

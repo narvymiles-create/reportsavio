@@ -17,6 +17,8 @@ import { jsPDF } from "jspdf";
 import { createMarksheetOutput } from "@/lib/marksheetOutput";
 import skavioLogoUrl from "@/assets/skavio-logo-transparent.png";
 import "./MarksFormPage.css";
+import { useTemplateExams } from "@/hooks/useTemplateExams";
+import { EXAM_NAMES } from "@/lib/templateExams";
 
 
 export type ExamColumn = "bot" | "mid" | "eot";
@@ -60,6 +62,7 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
   // Each marks-entry form starts with its own unchecked hide options.
   useEffect(() => { setHidePosition(false); setHideEmptyOptional(false); setHideRemarks(false); }, [exam]);
   const [exporting, setExporting] = useState(false);
+  const examAccess = useTemplateExams();
 
   // marks keyed by learner|subject
   const [marks, setMarks] = useState<Record<string, MarkRow>>({});
@@ -475,6 +478,18 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
   const term = terms.find(t => t.id === termId);
   const cls = classes.find(c => c.id === classId);
   const stream = streams.find(s => s.id === streamId);
+
+  if (!examAccess.loading && !examAccess.available.includes(exam)) return (
+    <div className="space-y-4">
+      <Button variant="outline" size="sm" asChild>
+        <Link to="/marks"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Marks Entry</Link>
+      </Button>
+      <div className="rounded-md border bg-card p-6 space-y-2" role="alert">
+        <h1 className="text-2xl font-bold">{EXAM_NAMES[exam]} marks entry is unavailable</h1>
+        <p className="text-muted-foreground">Your school's uploaded report card template{examAccess.templateName ? ` "${examAccess.templateName}"` : ""} does not include a {EXAM_NAMES[exam]} examination section, so marks and subjects for this examination cannot be entered. Marks saved earlier are kept safely. To use this form again, activate a template with this section or switch back to the default report card.</p>
+      </div>
+    </div>
+  );
 
   return (
     <div className="space-y-4">
