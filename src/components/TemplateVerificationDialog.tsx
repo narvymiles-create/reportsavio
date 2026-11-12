@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { FlaskConical, Loader2, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "./ui/button";
@@ -29,6 +29,7 @@ export function TemplateVerificationDialog({ template, close, activate }: { temp
   const [fields, setFields] = useState<VerificationField[] | null>(null);
   const [blob, setBlob] = useState<Blob | null>(null); const [revision, setRevision] = useState(0);
   const [verified, setVerified] = useState(false); const [fix, setFix] = useState<{ label: string; tab: string } | null>(null);
+  const previewOutput = useCallback(async () => { if (!blob) throw new Error("Run template verification first."); return blob; }, [blob]);
   useEffect(() => { let alive = true; Promise.all([
     supabase.from(template.level === "primary" ? "learners" : "nursery_learners").select("id,full_name").eq("school_id", template.school_id).order("full_name"),
     supabase.from("terms").select("id,name").eq("school_id", template.school_id).order("name"),
@@ -63,7 +64,7 @@ export function TemplateVerificationDialog({ template, close, activate }: { temp
       {fields.some(f => f.required && f.status === "Unmatched Field") && <p className="text-sm text-destructive">Required unmatched fields must be corrected before activation.</p>}
       {!fields.length && <p className="text-sm text-muted-foreground">No identifiable fields or configured associations. Unrecognized labels in scanned artwork have not been checked.</p>}
       <Table><TableHeader><TableRow><TableHead>Field</TableHead><TableHead>Status</TableHead><TableHead>Required</TableHead><TableHead>Correction</TableHead></TableRow></TableHeader><TableBody>{fields.map(f => <TableRow key={f.key}><TableCell className="max-w-52 break-words">{f.label}<span className="block text-xs text-muted-foreground">{f.source}</span></TableCell><TableCell>{f.status}</TableCell><TableCell><Checkbox aria-label={`Required ${f.label}`} checked={f.required} disabled={busy} onCheckedChange={c => required(f, c === true)} /></TableCell><TableCell>{f.status === "Unmatched Field" ? <Button size="sm" variant="outline" onClick={() => { setVerified(false); setFix({ label: f.key.startsWith("placement:") ? "" : f.label, tab: "associations" }); }}>Fix Field</Button> : f.status === "Missing Data" ? <Button size="sm" variant="ghost" onClick={() => { if (f.source?.startsWith("custom:")) { setVerified(false); setFix({ label: "", tab: "values" }); } else { const s = f.source ?? ""; navigate(s.startsWith("school.") || s.startsWith("head.teacher.") ? "/school" : s.startsWith("learner.") ? template.level === "primary" ? "/learners" : "/nursery/learners" : s.startsWith("term.") || s === "academic.year" ? "/terms" : s.startsWith("class.") ? "/teachers" : s.startsWith("report.") ? template.level === "primary" ? "/report-cards" : "/nursery/reports" : template.level === "primary" ? "/marks" : "/nursery/assessment"); } }}>Edit data</Button> : null}</TableCell></TableRow>)}</TableBody></Table>
-    </section><section className="min-w-0">{blob && <PrimaryPdfViewer key={revision} learnerIds={[learner]} termId={term} filename={`${template.name}-test`} generate={async () => blob} />}</section></div>}
+    </section><section className="min-w-0">{blob && <PrimaryPdfViewer key={revision} learnerIds={[learner]} termId={term} filename={`${template.name}-test`} generate={previewOutput} />}</section></div>}
     {fix && <Dialog open onOpenChange={open => { if (!open) setFix(null); }}><DialogContent className="max-h-[90vh] max-w-6xl overflow-auto"><DialogHeader><DialogTitle>Correct template fields · {template.name}</DialogTitle></DialogHeader><ReportFieldsManagement schoolId={template.school_id} level={template.level === "nursery" ? "nursery" : "primary"} verificationTemplateId={template.id} initialTarget={fix.label} initialTab={fix.tab} initialLearnerId={learner} initialTermId={term} initialYear={year} /></DialogContent></Dialog>}
   </DialogContent></Dialog>;
 }
