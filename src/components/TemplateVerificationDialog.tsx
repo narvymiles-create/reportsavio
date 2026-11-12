@@ -10,6 +10,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from ".
 import { PrimaryPdfViewer } from "./PrimaryPdfViewer";
 import { customReportData, generateCustomOutput, recognisedValues, sectionMapOf, templateFieldNames } from "@/lib/pdf/customReport";
 import { TemplateSectionsPanel } from "./TemplateSectionsPanel";
+import { checkNurseryAreas, type AreaCheck } from "@/lib/nurseryVerification";
+import { pdfText } from "@/lib/pdfText";
 import { loadReportCustomFields } from "@/lib/reportCustomFields";
 import { canActivateVerification, verifyTemplate, type VerificationField } from "@/lib/templateVerification";
 import { type SchoolTemplate } from "@/lib/reportTemplates";
@@ -29,7 +31,7 @@ export function TemplateVerificationDialog({ template: initialTemplate, close, a
   const [busy, setBusy] = useState(false); const [error, setError] = useState("");
   const [fields, setFields] = useState<VerificationField[] | null>(null);
   const [blob, setBlob] = useState<Blob | null>(null); const [revision, setRevision] = useState(0);
-  const [verified, setVerified] = useState(false);
+  const [verified, setVerified] = useState(false); const [areas, setAreas] = useState<AreaCheck[] | null>(null);
   const previewOutput = useCallback(async () => { if (!blob) throw new Error("Run template verification first."); return blob; }, [blob]);
   useEffect(() => { let alive = true; Promise.all([
     supabase.from(template.level === "primary" ? "learners" : "nursery_learners").select("id,full_name").eq("school_id", template.school_id).order("full_name"),
@@ -47,6 +49,7 @@ export function TemplateVerificationDialog({ template: initialTemplate, close, a
       if (rules.error) throw rules.error;
       const lvl = template.level === "nursery" ? "nursery" : "primary";
       const results = verifyTemplate(lvl, templateFieldNames(template), sectionMapOf(template), data.values, data.decorations.assets, rules.data ?? [], custom.fields, recognisedValues(template, data.values, custom.fields, custom.values, learner, term));
+      setAreas(lvl === "nursery" ? checkNurseryAreas(data.values, templateFieldNames(template), sectionMapOf(template), await pdfText(output)) : null);
       setFields(results); setBlob(output); setRevision(r => r + 1);
       if (canActivateVerification(results)) { const { error } = await supabase.rpc("record_template_verification", { _template_id: template.id, _learner_id: learner, _term_id: term, _academic_year: Number(year), _results: results.map(({ key, section, status, required }) => ({ key, section, status, required })) }); if (error) throw error; setVerified(true); }
     } catch (e) { setError(templateErrorMessage(e)); } finally { setBusy(false); }
@@ -62,6 +65,10 @@ export function TemplateVerificationDialog({ template: initialTemplate, close, a
     <div className="flex flex-wrap gap-2"><Button disabled={busy || !learner || !year || !term} onClick={test}>{busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : fields ? <RefreshCw className="mr-2 h-4 w-4" /> : <FlaskConical className="mr-2 h-4 w-4" />}{fields ? "Rerun verification" : "Test Template"}</Button>{!template.is_active && <Button variant="outline" disabled={busy || !verified} onClick={async () => { setBusy(true); try { await activate(); close(); } catch (e) { setError(templateErrorMessage(e)); } finally { setBusy(false); } }}>Activate template</Button>}</div>
     {error && <p role="alert" className="text-destructive">{error}</p>}
     {fields && <div className="grid min-w-0 gap-6 xl:grid-cols-2"><section className="min-w-0 space-y-3"><h3 className="font-semibold">Recognition summary</h3>
+      {areas && <div className="space-y-2"><h4 className="text-sm font-medium">Nursery learning areas check</h4><p className="text-sm text-muted-foreground">Checked in the generated report. Preview, PDF download and print all use this same file.</p>
+        <Table><TableHeader><TableRow><TableHead>Learning area</TableHead><TableHead>Grade</TableHead><TableHead>Comment</TableHead><TableHead>Result</TableHead></TableRow></TableHeader><TableBody>{areas.map(a => <TableRow key={a.row}><TableCell>{a.area}</TableCell><TableCell>{a.grade || "—"}</TableCell><TableCell className="max-w-48 truncate">{a.comment || "—"}</TableCell><TableCell className={a.status === "Missing from output" ? "text-destructive" : a.status === "Correct" ? "" : "text-muted-foreground"}>{a.status}</TableCell></TableRow>)}</TableBody></Table>
+        {!areas.length && <p className="text-sm text-muted-foreground">This school has no learning areas set up yet.</p>}
+        {areas.some(a => a.status === "Not on template") && <p className="text-sm text-muted-foreground">Some learning areas have no row on this design. Add rows to the design or position its table below.</p>}</div>}
       {(() => { const sections = [...new Set(fields.filter(f => f.section).map(f => f.section))]; const unrecognised = fields.filter(f => f.status === "Unrecognised"); return <>
         <Table><TableHeader><TableRow><TableHead>Report section</TableHead><TableHead>Filled</TableHead><TableHead>Missing learner data</TableHead></TableRow></TableHeader><TableBody>{sections.map(sec => { const fs = fields.filter(f => f.section === sec); const miss = fs.filter(f => f.status === "Missing Data").length; return <TableRow key={sec}><TableCell>{sec}</TableCell><TableCell>{fs.length - miss}</TableCell><TableCell>{miss ? <Button size="sm" variant="ghost" onClick={() => navigate(/Examination|Assessment/.test(sec) ? template.level === "primary" ? "/marks" : "/nursery/assessment" : /Comment/.test(sec) ? template.level === "primary" ? "/report-cards" : "/nursery/reports" : /School/.test(sec) || /Signatures/.test(sec) ? "/school" : /Term|Next/.test(sec) ? "/terms" : template.level === "primary" ? "/learners" : "/nursery/learners")}>{miss} · Edit data</Button> : 0}</TableCell></TableRow>; })}</TableBody></Table>
         {!sections.length && <p className="text-sm text-muted-foreground">No sections are filled automatically yet. Confirm tables or position them below.</p>}
