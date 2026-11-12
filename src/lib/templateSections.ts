@@ -107,11 +107,12 @@ const SOURCE_SECTION = (source: string): string => source.startsWith("school.") 
 
 const COLUMN_WORDS: [ColumnId, string[]][] = [
   ["full", ["full marks", "full mark", "out of", "max marks", "maximum", "max", "fm"]], ["class.size", ["class size", "out of class"]],
-  ["initials", ["initials", "initial", "init", "sign", "signature", "classteacher"]], ["subject", ["subject", "subjects", "learning area", "learning areas", "area", "areas", "competence", "subject name"]],
+  ["initials", ["initials", "initial", "init", "sign", "signature", "classteacher"]],
   ["code", ["code"]], ["remark", ["remark", "remarks", "comment", "comments", "descriptor"]], ["points", ["points", "point", "pts"]],
   ["rating", ["rating", "performance", "level", "label"]], ["grade", ["grade", "grades", "gr"]], ["range", ["range", "marks range", "mark range"]],
   ["marks", ["marks", "mark", "score", "scores", "result", "results", "mks"]], ["total", ["total", "totals", "total marks"]], ["average", ["average", "avg", "mean"]],
   ["aggregate", ["aggregate", "aggregates", "agg"]], ["division", ["division", "div"]], ["position", ["position", "pos"]],
+  ["subject", ["subject", "subjects", "learning area", "learning areas", "area", "areas", "competence", "subject name"]],
 ];
 const SUMMARY: ColumnId[] = ["total", "average", "aggregate", "division", "position", "class.size"];
 
