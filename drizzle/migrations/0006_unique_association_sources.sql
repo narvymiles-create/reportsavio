@@ -1,0 +1,2 @@
+CREATE UNIQUE INDEX IF NOT EXISTS association_source_key_once ON public.report_field_associations (template_id, source_key) WHERE source_key IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS association_definition_once ON public.report_field_associations (template_id, definition_id) WHERE definition_id IS NOT NULL;
