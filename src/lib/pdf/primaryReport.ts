@@ -96,7 +96,7 @@ export async function loadPrimaryData(learnerId: string, termId: string) {
   const [logo, headSig, classSig, photo, stamp, watermark] = await Promise.all([
     signed("school-assets", school?.logo_path),
     signed("signatures", school?.head_teacher_signature_path),
-    signed("signatures", klass?.class_signature_path),
+    signed("signatures", klass?.class_signature_path ?? classTeacher?.signature_path),
     signed("learner-photos", learner.photo_path),
     signed("school-assets", school?.stamp_path),
     signed("school-assets", school?.watermark_path),

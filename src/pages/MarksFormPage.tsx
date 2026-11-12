@@ -7,7 +7,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { toast } from "@/hooks/use-toast";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Download, FileSpreadsheet, FileText, Loader2, Save, Printer, Upload } from "lucide-react";
+import { Link } from "react-router-dom";
+import { ArrowLeft, Download, FileSpreadsheet, FileText, Loader2, Save, Printer, Upload } from "lucide-react";
 import { calculateDivision, computeTotal, gradeFor, applyF9Override, isCriticalCoreSubject, type GradeBand } from "@/lib/grading";
 import { safeFilename, triggerBlobDownload } from "@/lib/pdf/core";
 import Papa from "papaparse";
@@ -56,6 +57,8 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
   const [hidePosition, setHidePosition] = useState(false);
   const [hideEmptyOptional, setHideEmptyOptional] = useState(false);
   const [hideRemarks, setHideRemarks] = useState(false);
+  // Each marks-entry form starts with its own unchecked hide options.
+  useEffect(() => { setHidePosition(false); setHideEmptyOptional(false); setHideRemarks(false); }, [exam]);
   const [exporting, setExporting] = useState(false);
 
   // marks keyed by learner|subject
@@ -477,11 +480,14 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
     <div className="space-y-4">
       {/* Controls (hidden in print) */}
       <div className="no-print space-y-4">
+        <Button variant="outline" size="sm" asChild>
+          <Link to="/marks"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Marks Entry</Link>
+        </Button>
         <div>
           <h1 className="text-3xl font-bold">{TITLES[exam]}</h1>
           <p className="text-muted-foreground">Enter marks; grade, totals, position and division compute live.</p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 p-4 border rounded-md bg-card">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-4 border rounded-md bg-card">
           <div>
             <Label>Term</Label>
             <Select value={termId} onValueChange={setTermId}>
@@ -512,17 +518,6 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
                 ))}
               </SelectContent>
             </Select>
-          </div>
-          <div className="flex items-end">
-            <Button
-              onClick={saveAll}
-              disabled={saving || !termId || !classId || filteredLearners.length === 0 || !isDirty}
-              className="w-full"
-              title={!isDirty ? "No new changes made" : "Save changes"}
-            >
-              {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-              Save{isDirty ? " *" : ""}
-            </Button>
           </div>
         </div>
 
@@ -797,6 +792,17 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
             </div>
           </>
         )}
+      </div>
+      <div className="no-print flex justify-end">
+        <Button
+          onClick={saveAll}
+          disabled={saving || !termId || !classId || filteredLearners.length === 0 || !isDirty}
+          className="min-w-40"
+          title={!isDirty ? "No new changes made" : "Save changes"}
+        >
+          {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+          Save{isDirty ? " *" : ""}
+        </Button>
       </div>
     </div>
   );

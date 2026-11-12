@@ -1,4 +1,4 @@
-import { PDFDocument, PDFName, PDFRef, PDFTextField, popGraphicsState, pushGraphicsState, concatTransformationMatrix, type PDFImage, type PDFPage } from "pdf-lib";
+import { PDFDocument, PDFName, PDFRef, popGraphicsState, pushGraphicsState, concatTransformationMatrix, type PDFImage, type PDFPage } from "pdf-lib";
 import { A4_H, A4_W, Painter, embedImage, loadFonts, mm, type Fonts } from "../core";
 import { drawBorder } from "../borders";
 import { normalizeField } from "./forms";
@@ -50,15 +50,15 @@ export async function applyTemplateDecorations(bytes: Uint8Array, o: TemplateDec
   const form = doc.getForm();
   for (const field of form.getFields()) {
     const asset = IMAGE_FIELDS[normalizeField(field.getName())];
-    if (!asset || !(field instanceof PDFTextField)) continue;
+    if (!asset) continue;
     const img = await image(asset);
     for (const widget of field.acroField.getWidgets()) {
       const ref = widget.dict.get(PDFName.of("P"));
       const page = (ref instanceof PDFRef && pages.find(pg => pg.ref === ref)) || pages[0];
       if (img) containIn(page, img, widget.getRectangle());
     }
-    field.setText("");
-    field.enableReadOnly();
+    // Remove the widget so its stale appearance (filled text or background) can't cover the image.
+    form.removeField(field);
   }
 
   const watermark = s.watermark_enabled !== false && s.watermark_path ? await image("watermark") : null;

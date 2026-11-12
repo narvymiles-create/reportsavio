@@ -32,6 +32,6 @@ describe("uploaded template data and decorations", () => {
   it("clears image fields so no placeholder text prints", async () => {
     const out = await applyTemplateDecorations(await blankPdf("Learner Photo"), { level: "nursery", school: {}, assets: {}, border: null });
     const doc = await PDFDocument.load(out);
-    expect(doc.getForm().getTextField("Learner Photo").getText() ?? "").toBe("");
+    expect(doc.getForm().getFields().map(f => f.getName())).not.toContain("Learner Photo");
   });
 });
