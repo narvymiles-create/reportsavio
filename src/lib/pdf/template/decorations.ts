@@ -13,7 +13,7 @@ export const IMAGE_FIELDS: Record<string, keyof TemplateAssets> = {
   "photo": "photo", "learner.photo": "photo", "student.photo": "photo", "pupil.photo": "photo",
   "stamp": "stamp", "school.stamp": "stamp",
   "head.teacher.signature": "headSig", "head.signature": "headSig", "headteacher.signature": "headSig",
-  "class.teacher.signature": "classSig", "class.signature": "classSig", "classteacher.signature": "classSig",
+  "class.teacher.signature": "classSig", "class.signature": "classSig", "classteacher.signature": "classSig", "teacher.signature": "classSig", "class.teacher.sign": "classSig", "head.teacher.sign": "headSig", "headteacher.sign": "headSig",
 };
 
 /** Draw A4 millimetre artwork scaled onto any page size, so settings map proportionally. */

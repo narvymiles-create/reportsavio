@@ -129,8 +129,6 @@ export type Recognised =
 /** Recognise one template label/field name. Never guesses an uncertain table section. */
 export function recogniseField(name: string, level: Level, map: SectionMap = {}): Recognised {
   const dotted = name.trim().toLowerCase().replace(/[\s_-]+/g, ".").replace(/[^a-z0-9.]+/g, "").replace(/\.+/g, ".").replace(/^\.|\.$/g, "");
-  const image = IMAGE_FIELDS[dotted] ?? ({ "teacher.signature": "classSig", "class.teacher.sign": "classSig", "head.teacher.sign": "headSig", "headteacher.sign": "headSig" } as Record<string, string>)[dotted];
-  if (image) return { kind: "image", section: image === "logo" || image === "stamp" ? "school" : image === "photo" ? "learner" : "signatures", source: image };
   if (IMAGE_FIELDS[dotted]) return { kind: "image", section: IMAGE_FIELDS[dotted] === "logo" || IMAGE_FIELDS[dotted] === "stamp" ? "school" : IMAGE_FIELDS[dotted] === "photo" ? "learner" : "signatures", source: IMAGE_FIELDS[dotted] };
   const w = words(name);
   const plain = w.trim();

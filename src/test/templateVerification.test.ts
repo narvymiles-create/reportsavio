@@ -57,3 +57,11 @@ describe("Section verification", () => {
     expect(verifyTemplate("primary", ["mid_marks_2"], {}, primaryValues, {}, [])[0].status).toBe("Filled");
   });
 });
+describe("Real school template labels", () => {
+  it("recognises the school's uploaded design labels", () => {
+    const names = ["school_name", "school_motto", "school_address", "school_phone", "learner_name", "learner_class", "learner_stream", "learner_gender", "learner_lin", "academic_year", "academic_term", "admission_number", "end_subject_1", "end_marks_1", "end_initials_1", "total_marks", "average", "division", "position", "attendance", "conduct", "next_term_begins", "class_teacher_remarks", "headteacher_remarks", "class_teacher_name", "headteacher_name", "teacher_signature", "headteacher_signature"];
+    expect(names.filter(n => ["unrecognised", "unassigned"].includes(recogniseField(n, "primary").kind))).toEqual([]);
+    expect(recogniseField("school_name", "primary")).toMatchObject({ source: "school.name" });
+    expect(recogniseField("end_subject_1", "primary")).toMatchObject({ kind: "cell", section: "eot", column: "subject" });
+  });
+});
