@@ -8,10 +8,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
 import { PrimaryPdfViewer } from "./PrimaryPdfViewer";
-import { ReportFieldsManagement } from "./ReportFieldsManagement";
-import { customReportData, generateCustomOutput } from "@/lib/pdf/customReport";
+import { customReportData, generateCustomOutput, recognisedValues, sectionMapOf, templateFieldNames } from "@/lib/pdf/customReport";
+import { TemplateSectionsPanel } from "./TemplateSectionsPanel";
 import { loadReportCustomFields } from "@/lib/reportCustomFields";
-import { canActivateVerification, verifyTemplateFields, type VerificationField } from "@/lib/templateVerification";
+import { canActivateVerification, verifyTemplate, type VerificationField } from "@/lib/templateVerification";
 import { type SchoolTemplate } from "@/lib/reportTemplates";
 import { templateErrorMessage } from "@/lib/templateErrors";
 import { useNavigate } from "react-router-dom";
@@ -19,8 +19,9 @@ import { useNavigate } from "react-router-dom";
 function Choice({ label, value, set, options }: { label: string; value: string; set: (s: string) => void; options: { id: string; name: string }[] }) {
   return <div className="min-w-0 space-y-2"><Label>{label}</Label><Select value={value} onValueChange={set}><SelectTrigger aria-label={label}><SelectValue placeholder={`Select ${label.toLowerCase()}`} /></SelectTrigger><SelectContent>{options.map(o => <SelectItem key={o.id} value={o.id}>{o.name}</SelectItem>)}</SelectContent></Select></div>;
 }
-export function TemplateVerificationDialog({ template, close, activate }: { template: SchoolTemplate; close: () => void; activate: () => Promise<void> }) {
+export function TemplateVerificationDialog({ template: initialTemplate, close, activate }: { template: SchoolTemplate; close: () => void; activate: () => Promise<void> }) {
   const navigate = useNavigate();
+  const [template, setTemplate] = useState(initialTemplate);
   const [learners, setLearners] = useState<{ id: string; name: string }[]>([]);
   const [terms, setTerms] = useState<{ id: string; name: string }[]>([]);
   const [years, setYears] = useState<{ id: string; name: string }[]>([]);
@@ -28,7 +29,7 @@ export function TemplateVerificationDialog({ template, close, activate }: { temp
   const [busy, setBusy] = useState(false); const [error, setError] = useState("");
   const [fields, setFields] = useState<VerificationField[] | null>(null);
   const [blob, setBlob] = useState<Blob | null>(null); const [revision, setRevision] = useState(0);
-  const [verified, setVerified] = useState(false); const [fix, setFix] = useState<{ label: string; tab: string } | null>(null);
+  const [verified, setVerified] = useState(false);
   const previewOutput = useCallback(async () => { if (!blob) throw new Error("Run template verification first."); return blob; }, [blob]);
   useEffect(() => { let alive = true; Promise.all([
     supabase.from(template.level === "primary" ? "learners" : "nursery_learners").select("id,full_name").eq("school_id", template.school_id).order("full_name"),
@@ -44,9 +45,10 @@ export function TemplateVerificationDialog({ template, close, activate }: { temp
     try {
       const [data, custom, rules, output] = await Promise.all([customReportData(template.level, learner, term, template.school_id, Number(year)), loadReportCustomFields(template.school_id, template.level, template.id), supabase.from("template_field_rules").select("field_key,required").eq("template_id", template.id), generateCustomOutput(template, [learner], term, undefined, Number(year))]);
       if (rules.error) throw rules.error;
-      const results = verifyTemplateFields(template.level, Array.isArray(template.field_names) ? template.field_names.filter((n): n is string => typeof n === "string") : [], custom, data.values, data.decorations.assets, learner, term, rules.data ?? []);
+      const lvl = template.level === "nursery" ? "nursery" : "primary";
+      const results = verifyTemplate(lvl, templateFieldNames(template), sectionMapOf(template), data.values, data.decorations.assets, rules.data ?? [], custom.fields, recognisedValues(template, data.values, custom.fields, custom.values, learner, term));
       setFields(results); setBlob(output); setRevision(r => r + 1);
-      if (canActivateVerification(results)) { const { error } = await supabase.rpc("record_template_verification", { _template_id: template.id, _learner_id: learner, _term_id: term, _academic_year: Number(year), _results: results.map(({ key, source, status, required }) => ({ key, source, status, required })) }); if (error) throw error; setVerified(true); }
+      if (canActivateVerification(results)) { const { error } = await supabase.rpc("record_template_verification", { _template_id: template.id, _learner_id: learner, _term_id: term, _academic_year: Number(year), _results: results.map(({ key, section, status, required }) => ({ key, section, status, required })) }); if (error) throw error; setVerified(true); }
     } catch (e) { setError(templateErrorMessage(e)); } finally { setBusy(false); }
   };
   const required = async (field: VerificationField, checked: boolean) => {
@@ -59,12 +61,14 @@ export function TemplateVerificationDialog({ template, close, activate }: { temp
     <div className="grid gap-4 sm:grid-cols-3"><Choice label="Learner" value={learner} set={change(setLearner)} options={learners} /><Choice label="Academic year" value={year} set={change(setYear)} options={years} /><Choice label="Term" value={term} set={change(setTerm)} options={terms} /></div>
     <div className="flex flex-wrap gap-2"><Button disabled={busy || !learner || !year || !term} onClick={test}>{busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : fields ? <RefreshCw className="mr-2 h-4 w-4" /> : <FlaskConical className="mr-2 h-4 w-4" />}{fields ? "Rerun verification" : "Test Template"}</Button>{!template.is_active && <Button variant="outline" disabled={busy || !verified} onClick={async () => { setBusy(true); try { await activate(); close(); } catch (e) { setError(templateErrorMessage(e)); } finally { setBusy(false); } }}>Activate template</Button>}</div>
     {error && <p role="alert" className="text-destructive">{error}</p>}
-    {fields && <div className="grid min-w-0 gap-6 xl:grid-cols-2"><section className="min-w-0 space-y-3"><h3 className="font-semibold">Field verification</h3><div className="flex flex-wrap gap-4 text-sm">{["Matched", "Missing Data", "Unmatched Field"].map(s => <span key={s}>{s}: {fields.filter(f => f.status === s).length}</span>)}</div>
-      {missing > 0 && <p role="status" className="text-sm text-muted-foreground">Missing data is a warning only. These fields remain blank and do not prevent activation.</p>}
-      {fields.some(f => f.required && f.status === "Unmatched Field") && <p className="text-sm text-destructive">Required unmatched fields must be corrected before activation.</p>}
-      {!fields.length && <p className="text-sm text-muted-foreground">No identifiable fields or configured associations. Unrecognized labels in scanned artwork have not been checked.</p>}
-      <Table><TableHeader><TableRow><TableHead>Field</TableHead><TableHead>Status</TableHead><TableHead>Required</TableHead><TableHead>Correction</TableHead></TableRow></TableHeader><TableBody>{fields.map(f => <TableRow key={f.key}><TableCell className="max-w-52 break-words">{f.label}<span className="block text-xs text-muted-foreground">{f.source}</span></TableCell><TableCell>{f.status}</TableCell><TableCell><Checkbox aria-label={`Required ${f.label}`} checked={f.required} disabled={busy} onCheckedChange={c => required(f, c === true)} /></TableCell><TableCell>{f.status === "Unmatched Field" ? <Button size="sm" variant="outline" onClick={() => { setVerified(false); setFix({ label: f.key.startsWith("placement:") ? "" : f.label, tab: "associations" }); }}>Fix Field</Button> : f.status === "Missing Data" ? <Button size="sm" variant="ghost" onClick={() => { if (f.source?.startsWith("custom:")) { setVerified(false); setFix({ label: "", tab: "values" }); } else { const s = f.source ?? ""; navigate(s.startsWith("school.") || s.startsWith("head.teacher.") ? "/school" : s.startsWith("learner.") ? template.level === "primary" ? "/learners" : "/nursery/learners" : s.startsWith("term.") || s === "academic.year" ? "/terms" : s.startsWith("class.") ? "/teachers" : s.startsWith("report.") ? template.level === "primary" ? "/report-cards" : "/nursery/reports" : template.level === "primary" ? "/marks" : "/nursery/assessment"); } }}>Edit data</Button> : null}</TableCell></TableRow>)}</TableBody></Table>
+    {fields && <div className="grid min-w-0 gap-6 xl:grid-cols-2"><section className="min-w-0 space-y-3"><h3 className="font-semibold">Recognition summary</h3>
+      {(() => { const sections = [...new Set(fields.filter(f => f.section).map(f => f.section))]; const unrecognised = fields.filter(f => f.status === "Unrecognised"); return <>
+        <Table><TableHeader><TableRow><TableHead>Report section</TableHead><TableHead>Filled</TableHead><TableHead>Missing learner data</TableHead></TableRow></TableHeader><TableBody>{sections.map(sec => { const fs = fields.filter(f => f.section === sec); const miss = fs.filter(f => f.status === "Missing Data").length; return <TableRow key={sec}><TableCell>{sec}</TableCell><TableCell>{fs.length - miss}</TableCell><TableCell>{miss ? <Button size="sm" variant="ghost" onClick={() => navigate(/Examination|Assessment/.test(sec) ? template.level === "primary" ? "/marks" : "/nursery/assessment" : /Comment/.test(sec) ? template.level === "primary" ? "/report-cards" : "/nursery/reports" : /School/.test(sec) || /Signatures/.test(sec) ? "/school" : /Term|Next/.test(sec) ? "/terms" : template.level === "primary" ? "/learners" : "/nursery/learners")}>{miss} · Edit data</Button> : 0}</TableCell></TableRow>; })}</TableBody></Table>
+        {!sections.length && <p className="text-sm text-muted-foreground">No sections are filled automatically yet. Confirm tables or position them below.</p>}
+        {missing > 0 && <p role="status" className="text-sm text-muted-foreground">Missing learner data is a warning only. Those places stay blank and do not prevent activation.</p>}
+        {unrecognised.length > 0 && <div className="space-y-2"><h4 className="text-sm font-medium">Template labels not recognised</h4><p className="text-sm text-muted-foreground">Confirm the table below, or tick “Leave blank” to allow activation.</p><ul className="space-y-1">{unrecognised.map(f => <li key={f.key} className="flex items-center gap-2 text-sm"><Checkbox aria-label={`Leave ${f.label} blank`} checked={!f.required} disabled={busy} onCheckedChange={c => required(f, c !== true)} />Leave “{f.label}” blank</li>)}</ul></div>}
+      </>; })()}
+      <div className="border-t pt-3"><TemplateSectionsPanel template={template} canManage onChanged={t => { setTemplate(t); setVerified(false); setFields(null); setBlob(null); }} /></div>
     </section><section className="min-w-0">{blob && <PrimaryPdfViewer key={revision} learnerIds={[learner]} termId={term} filename={`${template.name}-test`} generate={previewOutput} />}</section></div>}
-    {fix && <Dialog open onOpenChange={open => { if (!open) setFix(null); }}><DialogContent className="max-h-[90vh] max-w-6xl overflow-auto"><DialogHeader><DialogTitle>Correct template fields · {template.name}</DialogTitle></DialogHeader><ReportFieldsManagement schoolId={template.school_id} level={template.level === "nursery" ? "nursery" : "primary"} verificationTemplateId={template.id} initialTarget={fix.label} initialTab={fix.tab} initialLearnerId={learner} initialTermId={term} initialYear={year} /></DialogContent></Dialog>}
   </DialogContent></Dialog>;
 }
