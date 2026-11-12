@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
@@ -87,11 +87,11 @@ export default function ResetPassword() {
               <form onSubmit={handleSubmit} className="space-y-3">
                 <div className="space-y-1.5">
                   <Label htmlFor="rp-password">New password</Label>
-                  <Input id="rp-password" name="password" type="password" required minLength={6} autoComplete="new-password" />
+                  <PasswordInput id="rp-password" name="password" required minLength={6} autoComplete="new-password" />
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="rp-confirm">Confirm password</Label>
-                  <Input id="rp-confirm" name="confirm" type="password" required minLength={6} autoComplete="new-password" />
+                  <PasswordInput id="rp-confirm" name="confirm" required minLength={6} autoComplete="new-password" />
                 </div>
                 <Button type="submit" className="w-full" disabled={submitting}>
                   {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
