@@ -57,6 +57,13 @@
       "when": 1794509886208,
       "tag": "0007_template_section_recognition",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1794522111084,
+      "tag": "0008_multiple_registration_types",
+      "breakpoints": true
     }
   ]
 }
