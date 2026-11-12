@@ -57,19 +57,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let initialised = false;
 
     const { data: sub } = supabase.auth.onAuthStateChange((event, newSession) => {
+      const uid = newSession?.user?.id ?? null;
+      // Ignore events that don't change who is signed in (token refreshes fire
+      // when the tab regains focus). Pushing a new session/user object or
+      // flipping loading here would re-render or remount every page and wipe
+      // in-memory UI state like selected filters.
+      if (!initialised || uid === lastUserIdRef.current) return;
+      lastUserIdRef.current = uid;
       setSession(newSession);
       setUser(newSession?.user ?? null);
-      if (!initialised) return;
-      // Token refreshes (fired when the tab regains focus) must not flip the
-      // app back into a loading state — that would remount every page and
-      // wipe in-memory UI state like selected filters.
-      if (event === "TOKEN_REFRESHED") return;
-      const uid = newSession?.user?.id;
-      if (event === "SIGNED_IN" && uid === lastUserIdRef.current) return;
-      lastUserIdRef.current = uid ?? null;
-      // After initial load, show loading while we refresh roles/school
+      // The signed-in user actually changed: show loading while we refresh roles/school
       setLoading(true);
-      refreshFor(uid).finally(() => setLoading(false));
+      refreshFor(uid ?? undefined).finally(() => setLoading(false));
     });
 
     supabase.auth.getSession().then(({ data: { session: existing } }) => {
