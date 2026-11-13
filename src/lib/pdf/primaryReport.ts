@@ -7,7 +7,8 @@
  * Settings → Report Card Border Style.
  */
 import { PDFDocument } from "pdf-lib";
-import { supabase } from "@/integrations/supabase/client";
+import type { ReportDataSource } from "@/lib/reportDataSource";
+import { currentReportDataSource } from "@/lib/onlineReportDataSource";
 import {
   calculateDivision, gradeFor, applyF9Override, isCriticalCoreSubject, type GradeBand,
 } from "@/lib/grading";
@@ -36,81 +37,52 @@ const codeFor = (name: string): string => {
   return (name ?? "").slice(0, 4).toUpperCase();
 };
 
-async function signed(bucket: string, path: string | null | undefined) {
-  if (!path) return null;
-  const { data } = await supabase.storage.from(bucket).createSignedUrl(path, 3600);
-  return data?.signedUrl ?? null;
-}
-
 /* ------------------------------------------------------------------ data */
 
 export type PrimaryData = Awaited<ReturnType<typeof loadPrimaryData>>;
 
-export async function loadPrimaryData(learnerId: string, termId: string) {
-  const { data: learner } = await supabase.from("learners").select("*").eq("id", learnerId).maybeSingle();
-  if (!learner) throw new Error("Learner not found");
-
-  const [{ data: term }, { data: report }, { data: school }, { data: gs }, { data: settings }] = await Promise.all([
-    supabase.from("terms").select("*").eq("id", termId).maybeSingle(),
-    supabase.from("report_cards").select("*").eq("learner_id", learnerId).eq("term_id", termId).maybeSingle(),
-    supabase.from("school_info").select("*").eq("is_active", true).order("created_at", { ascending: false }).limit(1).maybeSingle(),
-    supabase.from("grading_scales").select("grade,points,min_mark,max_mark,remark").order("sort_order"),
-    supabase.from("system_settings").select("key,value").in("key", ["learner_fields", "learner_info_order", "border_style", "report_template_primary"]),
+export async function loadPrimaryData(learnerId: string, termId: string, provider?: ReportDataSource) {
+  const source = provider ?? await currentReportDataSource();
+  const [learner] = await source.read("learners", { eq: { id: learnerId } });
+  if (!learner) throw new Error("Learner not found in this school.");
+  const [terms, reports, schools, gs, settings] = await Promise.all([
+    source.read("terms", { eq: { id: termId } }),
+    source.read("report_cards", { eq: { learner_id: learnerId, term_id: termId } }),
+    source.read("school_info", { eq: { is_active: true }, order: "created_at", ascending: false, limit: 1 }),
+    source.read("grading_scales", { order: "sort_order" }),
+    source.read("system_settings", { in: { key: ["learner_fields", "learner_info_order", "border_style", "report_template_primary"] } }),
   ]);
-  if (!term) throw new Error("Term not found");
-
+  const term = terms[0], report = reports[0], school = schools[0];
+  if (!term) throw new Error("Term not found in this school.");
   const sMap: Any = {};
-  ((settings as Any[]) ?? []).forEach((r) => { sMap[r.key] = r.value; });
+  settings.forEach(r => { sMap[r.key] = r.value; });
   const flags = { stream: true, house: true, section: true, pay_code: true, show_position: true, ...(sMap.learner_fields ?? {}) };
-  const order: string[] = Array.isArray(sMap.learner_info_order) && sMap.learner_info_order.length
-    ? sMap.learner_info_order
-    : [...FIELD_ORDER_DEFAULT];
+  const order: string[] = Array.isArray(sMap.learner_info_order) && sMap.learner_info_order.length ? sMap.learner_info_order : [...FIELD_ORDER_DEFAULT];
   const borderStyle: string = typeof sMap.border_style === "string" ? sMap.border_style : "double";
   const templateSetting = sMap.report_template_primary ?? null;
-
   let klass: Any | null = null, stream: Any | null = null, classTeacher: Any | null = null;
   let subjects: Any[] = [], classSubjects: Any[] = [], classMarks: Any[] = [], classSize = 0;
   const teachersById: Record<string, Any> = {};
-
   if (learner.class_id) {
-    klass = (await supabase.from("classes").select("*").eq("id", learner.class_id).maybeSingle()).data;
-    subjects = (await supabase.from("subjects").select("*").eq("class_id", learner.class_id).order("sort_order")).data ?? [];
-    const teacherIds = Array.from(new Set(subjects.map((s) => s.subject_teacher_id).filter(Boolean)));
-    if (teacherIds.length) {
-      const { data: ts } = await supabase.from("teachers").select("id,initials,full_name").in("id", teacherIds as string[]);
-      (ts ?? []).forEach((t: Any) => { teachersById[t.id] = t; });
-    }
-    classSubjects = (await supabase.from("subjects").select("id,is_core,class_id").eq("class_id", learner.class_id)).data ?? [];
-    const { data: classLearners } = await supabase.from("learners").select("id").eq("class_id", learner.class_id);
-    const ids = (classLearners ?? []).map((l: Any) => l.id);
+    klass = (await source.read("classes", { eq: { id: learner.class_id } }))[0] ?? null;
+    subjects = await source.read("subjects", { eq: { class_id: learner.class_id }, order: "sort_order" });
+    const teacherIds = Array.from(new Set(subjects.map(s => s.subject_teacher_id).filter(Boolean)));
+    if (teacherIds.length) (await source.read("teachers", { in: { id: teacherIds } })).forEach(t => { teachersById[t.id] = t; });
+    classSubjects = subjects;
+    const ids = (await source.read("learners", { eq: { class_id: learner.class_id } })).map(l => l.id);
     classSize = ids.length;
-    if (ids.length) {
-      classMarks = (await supabase.from("marks").select("learner_id,subject_id,bot,mid,eot").eq("term_id", termId).in("learner_id", ids)).data ?? [];
-    }
+    if (ids.length) classMarks = await source.read("marks", { eq: { term_id: termId }, in: { learner_id: ids } });
   }
-  if (learner.stream_id) stream = (await supabase.from("streams").select("*").eq("id", learner.stream_id).maybeSingle()).data;
-  if (klass?.class_teacher_id) classTeacher = (await supabase.from("teachers").select("*").eq("id", klass.class_teacher_id).maybeSingle()).data;
-
-  const { data: marks } = await supabase.from("marks").select("*").eq("term_id", termId).eq("learner_id", learnerId);
-
+  if (learner.stream_id) stream = (await source.read("streams", { eq: { id: learner.stream_id } }))[0] ?? null;
+  if (klass?.class_teacher_id) classTeacher = (await source.read("teachers", { eq: { id: klass.class_teacher_id } }))[0] ?? null;
+  const marks = await source.read("marks", { eq: { term_id: termId, learner_id: learnerId } });
   const [logo, headSig, classSig, photo, stamp, watermark] = await Promise.all([
-    signed("school-assets", school?.logo_path),
-    signed("signatures", school?.head_teacher_signature_path),
-    signed("signatures", klass?.class_signature_path ?? classTeacher?.signature_path),
-    signed("learner-photos", learner.photo_path),
-    signed("school-assets", school?.stamp_path),
-    signed("school-assets", school?.watermark_path),
+    source.assetUrl("school-assets", school?.logo_path), source.assetUrl("signatures", school?.head_teacher_signature_path),
+    source.assetUrl("signatures", klass?.class_signature_path ?? classTeacher?.signature_path), source.assetUrl("learner-photos", learner.photo_path),
+    source.assetUrl("school-assets", school?.stamp_path), source.assetUrl("school-assets", school?.watermark_path),
   ]);
-
-  return {
-    learner, term, report, school, klass, stream, classTeacher,
-    bands: ((gs ?? []) as GradeBand[]),
-    subjects: subjects.slice(0, 7),
-    marks: marks ?? [],
-    classSubjects, classMarks, classSize, teachersById,
-    flags, order, borderStyle, templateSetting,
-    assets: { logo, headSig, classSig, photo, stamp, watermark },
-  };
+  return { learner, term, report, school, klass, stream, classTeacher, bands: gs as GradeBand[], subjects: subjects.slice(0, 7), marks,
+    classSubjects, classMarks, classSize, teachersById, flags, order, borderStyle, templateSetting, assets: { logo, headSig, classSig, photo, stamp, watermark } };
 }
 
 /* --------------------------------------------------------------- compute */
