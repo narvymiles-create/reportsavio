@@ -357,10 +357,12 @@ export async function renderPrimaryBytes(d: PrimaryData): Promise<Uint8Array> {
   const multiPage = slack < 0;
   if (multiPage) { eotRowH = 7.5; slack = 0; setUnit(6.2); }
   // Share leftover space: header/title gap, gaps after each table, then a little more room for comments.
-  const headerGap = Math.min(3, slack * 0.12); slack -= headerGap;
+  const headerGap = Math.min(4, slack * 0.1); slack -= headerGap;
   const contactBoost = slack > 8 ? Math.min(1, slack / 40) : 0;
-  const blockGap = blocks.length ? Math.min(7, (slack * 0.7) / blocks.length) : 0; slack -= blockGap * blocks.length;
-  BOTTOM_H += Math.max(0, Math.min(8, slack * 0.6));
+  const commentGrow = Math.min(14, slack * 0.25); slack -= commentGrow;
+  BOTTOM_H += commentGrow;
+  // Remaining space is spread evenly: below learner info, after each table, and before the grading table.
+  const blockGap = Math.min(16, slack / (blocks.length + 2));
 
   /* ---------------------------------------------------------- header (3 cols) */
   let y = 13;
@@ -433,7 +435,7 @@ export async function renderPrimaryBytes(d: PrimaryData): Promise<Uint8Array> {
       labelValue(p, f.label, f.value, { x: boxes[i].x + 1, y: y + ri * INFO_ROW_H, w: boxes[i].w - 1, h: INFO_ROW_H }, 8);
     });
   });
-  y += INFO_ROW_H * 2 + 2.5;
+  y += INFO_ROW_H * 2 + 2.5 + blockGap;
 
   const room = (h: number) => { if (multiPage && y + h > PAGE_BOTTOM) newPage(); };
 
