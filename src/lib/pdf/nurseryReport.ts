@@ -3,8 +3,8 @@
  * Mirrors NurseryReportSheet / NurseryReportSheet.css geometry.
  */
 import { PDFDocument } from "pdf-lib";
-import { supabase } from "@/integrations/supabase/client";
-import { nurserySignedUrl } from "@/lib/nurseryStorage";
+import type { ReportDataSource } from "@/lib/reportDataSource";
+import { currentReportDataSource } from "@/lib/onlineReportDataSource";
 import { A4_H, A4_W, Painter, embedImage, loadFonts, mm, bytesToPdfBlob } from "./core";
 import { drawBorder } from "./borders";
 
@@ -22,71 +22,40 @@ const fmtDate = (d?: string | null) => {
   catch { return d; }
 };
 
-async function signed(bucket: string, path: string | null | undefined) {
-  if (!path) return null;
-  const { data } = await supabase.storage.from(bucket).createSignedUrl(path, 3600);
-  return data?.signedUrl ?? null;
-}
-
-export async function loadNurseryData(learnerId: string, termId: string) {
-  const { data: settingsRows } = await supabase
-    .from("system_settings" as any).select("key,value")
-    .in("key", ["border_style", "learner_fields"]);
+export async function loadNurseryData(learnerId: string, termId: string, provider?: ReportDataSource) {
+  const source = provider ?? await currentReportDataSource();
+  const [l] = await source.read("nursery_learners", { eq: { id: learnerId } });
+  if (!l) throw new Error("Learner not found in this school.");
+  const [settingsRows, schools, terms, areas, colors, ams, reports] = await Promise.all([
+    source.read("system_settings", { in: { key: ["border_style", "learner_fields"] } }),
+    source.read("school_info", { eq: { is_active: true }, order: "created_at", ascending: false, limit: 1 }),
+    source.read("terms", { eq: { id: termId } }), source.read("nursery_learning_areas", { order: "sort_order" }),
+    source.read("nursery_grade_colors", { order: "sort_order" }),
+    source.read("nursery_assessments", { eq: { learner_id: learnerId, term_id: termId } }),
+    source.read("nursery_report_cards", { eq: { learner_id: learnerId, term_id: termId } }),
+  ]);
+  const term = terms[0];
+  if (!term) throw new Error("Term not found in this school.");
+  const s = schools[0]; const rc = reports[0];
   const sMap: Any = {};
-  ((settingsRows as Any[]) ?? []).forEach((r) => { sMap[r.key] = r.value; });
+  settingsRows.forEach(r => { sMap[r.key] = r.value; });
   const borderStyle: string = typeof sMap.border_style === "string" ? sMap.border_style : "double";
   const showPayCode = !!sMap.learner_fields?.pay_code;
-
-  const { data: school } = await supabase.from("school_info" as any).select("*")
-    .eq("is_active", true).order("created_at", { ascending: false }).limit(1).maybeSingle();
-  const s = school as Any;
-
-  const { data: learner } = await supabase.from("nursery_learners" as any).select("*").eq("id", learnerId).maybeSingle();
-  if (!learner) throw new Error("Learner not found");
-  const l = learner as Any;
-
   let cls: Any | null = null, stream: Any | null = null, classTeacher: Any | null = null;
-  let classSigPath: string | null = null;
-  if (l.class_id) {
-    cls = (await supabase.from("nursery_classes" as any).select("*").eq("id", l.class_id).maybeSingle()).data as Any;
-    classSigPath = cls?.class_signature_path ?? null;
-    if (cls?.class_teacher_id) {
-      classTeacher = (await supabase.from("teachers" as any).select("*").eq("id", cls.class_teacher_id).maybeSingle()).data as Any;
-      if (!classSigPath) classSigPath = classTeacher?.signature_path ?? null;
-    }
-  }
-  if (l.stream_id) stream = (await supabase.from("nursery_streams" as any).select("*").eq("id", l.stream_id).maybeSingle()).data as Any;
-
-  const { data: term } = await supabase.from("terms" as any).select("*").eq("id", termId).maybeSingle();
-  const { data: areasRaw } = await supabase.from("nursery_learning_areas" as any).select("*").order("sort_order");
-  const areas = ((areasRaw as Any[]) ?? []);
-  const areaImageUrls = await Promise.all(areas.map((a) => nurserySignedUrl(a.image_path)));
-  const { data: colors } = await supabase.from("nursery_grade_colors" as any).select("grade,label,color").order("sort_order");
-  const { data: ams } = await supabase.from("nursery_assessments" as any).select("*").eq("learner_id", learnerId).eq("term_id", termId);
+  if (l.class_id) cls = (await source.read("nursery_classes", { eq: { id: l.class_id } }))[0] ?? null;
+  if (cls?.class_teacher_id) classTeacher = (await source.read("teachers", { eq: { id: cls.class_teacher_id } }))[0] ?? null;
+  if (l.stream_id) stream = (await source.read("nursery_streams", { eq: { id: l.stream_id } }))[0] ?? null;
   const assessments: Record<string, { grade: string | null; comment: string | null }> = {};
-  ((ams as Any[]) ?? []).forEach((r) => { assessments[r.learning_area_id] = { grade: r.grade, comment: r.comment }; });
-  const { data: rc } = await supabase.from("nursery_report_cards" as any).select("*").eq("learner_id", learnerId).eq("term_id", termId).maybeSingle();
-
-  const headSigPath = s?.nursery_head_teacher_signature_path ?? s?.head_teacher_signature_path;
+  ams.forEach(r => { assessments[r.learning_area_id] = { grade: r.grade, comment: r.comment }; });
+  const areaImageUrls = await Promise.all(areas.map(a => source.assetUrl("nursery-assets", a.image_path)));
   const [logo, stamp, watermark, headSig, classSig, photo] = await Promise.all([
-    signed("school-assets", s?.logo_path),
-    signed("school-assets", s?.stamp_path),
-    signed("school-assets", s?.watermark_path),
-    signed("signatures", headSigPath),
-    signed("signatures", classSigPath),
-    nurserySignedUrl(l.photo_path),
+    source.assetUrl("school-assets", s?.logo_path), source.assetUrl("school-assets", s?.stamp_path), source.assetUrl("school-assets", s?.watermark_path),
+    source.assetUrl("signatures", s?.nursery_head_teacher_signature_path ?? s?.head_teacher_signature_path),
+    source.assetUrl("signatures", cls?.class_signature_path ?? classTeacher?.signature_path), source.assetUrl("nursery-assets", l.photo_path),
   ]);
-
-  return {
-    school: s ?? {}, learner: l, cls, stream, classTeacher, term: term as Any,
-    areas, areaImageUrls, colors: ((colors as Any[]) ?? []), assessments,
-    report: {
-      class_teacher_comment: (rc as Any)?.class_teacher_comment ?? "",
-      head_teacher_comment: (rc as Any)?.head_teacher_comment ?? "",
-    },
-    borderStyle, showPayCode,
-    assets: { logo, stamp, watermark, headSig, classSig, photo },
-  };
+  return { school: (s ?? {}) as Any, learner: l as Any, cls, stream, classTeacher, term: term as Any, areas, areaImageUrls, colors, assessments,
+    report: { class_teacher_comment: rc?.class_teacher_comment ?? "", head_teacher_comment: rc?.head_teacher_comment ?? "" },
+    borderStyle, showPayCode, assets: { logo, stamp, watermark, headSig, classSig, photo } };
 }
 
 export type NurseryData = Awaited<ReturnType<typeof loadNurseryData>>;

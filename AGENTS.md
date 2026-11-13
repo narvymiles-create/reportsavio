@@ -1,5 +1,8 @@
 # Architecture rules
 
+- Report reads and original asset files use a school-bound read-only ReportDataSource; online and device adapters feed the same default loaders, custom values and PDF renderer so offline providers never duplicate grading or artwork.
+- One-click template tests select real learner/term candidates against recognised exam sections; test previews do not write verification records or configuration, while explicit activation retains server-side verification gating.
+
 - Pre-activation tests use the shared custom PDF pipeline and explicit year context without mutating terms; database-validated association checks and configuration fingerprints gate activation, while missing values only warn. Inactive template corrections reuse Fields Management in an explicitly scoped test dialog to keep defaults read-only.
 
 - Optional school templates use private report-templates storage and atomic school/level selection; active alternatives share PDF bytes across preview/print/download while defaults retain their existing renderers. Custom fields use independent level-scoped definitions and contextual values with validated associations; archive definitions and cascade only associations on template removal to retain historical values. Supported AcroForm fields preserve their standard fonts (Helvetica only as fallback so matched fields never render blank); each template field and each system field may be matched once per template (DB unique indexes); static placements use top-left PDF-point rectangles and fit text without erasing or reflowing artwork.

@@ -8,7 +8,8 @@ import { bytesToPdfBlob } from "./core";
 import { loadReportCustomFields, associationValues, resolveSavedValue, type ReportField, type ReportValue } from "@/lib/reportCustomFields";
 import { applyCustomPlacements } from "./template/customPlacements";
 import { applyTemplateDecorations, type TemplateDecorations } from "./template/decorations";
-import { supabase } from "@/integrations/supabase/client";
+import type { ReportDataSource } from "@/lib/reportDataSource";
+import { currentReportDataSource } from "@/lib/onlineReportDataSource";
 import { recogniseField, valueKey, type Level, type SectionMap } from "@/lib/templateSections";
 import { applySectionTables } from "./template/sectionTables";
 
@@ -16,9 +17,8 @@ const fmtDate = (value?: string | null) => value ? new Date(value).toLocaleDateS
 
 /** School setting: whether uploaded templates of this level draw the Settings border. Off keeps the template's own border. */
 export const templateBorderKey = (level: string) => `template_border_${level}`;
-async function usesSettingsBorder(schoolId: string, level: string) {
-  const { data, error } = await supabase.from("system_settings").select("value").eq("school_id", schoolId).eq("key", templateBorderKey(level)).maybeSingle();
-  if (error) throw error;
+async function usesSettingsBorder(source: ReportDataSource, level: string) {
+  const [data] = await source.read("system_settings", { eq: { key: templateBorderKey(level) } });
   return data?.value === true;
 }
 
@@ -27,8 +27,10 @@ export async function customReportValues(level: string, learnerId: string, termI
 }
 
 /** Same loaders and calculations as the default report cards, flattened into template keys. */
-export async function customReportData(level: string, learnerId: string, termId: string, schoolId?: string, academicYear?: number): Promise<{ values: TemplateValues; decorations: Omit<TemplateDecorations, "border"> & { borderStyle: string } }> {
-  const d = level === "primary" ? await loadPrimaryData(learnerId, termId) : await loadNurseryData(learnerId, termId);
+export async function customReportData(level: string, learnerId: string, termId: string, schoolId?: string, academicYear?: number, provider?: ReportDataSource): Promise<{ values: TemplateValues; decorations: Omit<TemplateDecorations, "border"> & { borderStyle: string } }> {
+  const source = provider ?? await currentReportDataSource();
+  if (schoolId && source.schoolId !== schoolId) throw new Error("The template must belong to the current school.");
+  const d = level === "primary" ? await loadPrimaryData(learnerId, termId, source) : await loadNurseryData(learnerId, termId, source);
   if (schoolId && (d.learner.school_id !== schoolId || d.term?.school_id !== schoolId)) throw new Error("The learner and term must belong to the template's school.");
   const primary = "klass" in d ? d : null;
   const values: TemplateValues = {};
@@ -135,23 +137,25 @@ export function recognisedValues(template: Pick<SchoolTemplate, "level" | "field
   return out;
 }
 
-export async function generateCustomOutput(template: SchoolTemplate, learnerIds: string[], termId: string, onProgress?: (done: number, total: number) => void, academicYear?: number): Promise<Blob> {
+export async function generateCustomOutput(template: SchoolTemplate, learnerIds: string[], termId: string, onProgress?: (done: number, total: number) => void, academicYear?: number, provider?: ReportDataSource): Promise<Blob> {
   if (!learnerIds.length) throw new Error("No learners selected");
-  const bytes = await templateBytes(template);
-  const custom = await loadReportCustomFields(template.school_id, template.level, template.id);
-  const settingsBorder = await usesSettingsBorder(template.school_id, template.level);
+  const source = provider ?? await currentReportDataSource();
+  if (source.schoolId !== template.school_id) throw new Error("The template must belong to the current school.");
+  const bytes = await templateBytes(template, source);
+  const custom = await loadReportCustomFields(template.school_id, template.level, template.id, source);
+  const settingsBorder = await usesSettingsBorder(source, template.level);
   const merged = await PDFDocument.create();
   for (const [index, learnerId] of learnerIds.entries()) {
-    const { values, decorations } = await customReportData(template.level, learnerId, termId, template.school_id, academicYear);
+    const { values, decorations } = await customReportData(template.level, learnerId, termId, template.school_id, academicYear, source);
     const associations = associationValues(custom, values, learnerId, termId);
     const overrides = { ...Object.fromEntries(associations.filter(a => a.pdf_field).map(a => [normalizeField(a.pdf_field ?? ""), a.value])), ...recognisedValues(template, values, custom.fields, custom.values, learnerId, termId) };
     const placed = await applySectionTables(await applyCustomPlacements(await fillTemplate(bytes, values, overrides), associations), sectionMapOf(template).tables ?? [], values);
     const filled = await applyTemplateDecorations(placed, { ...decorations, border: settingsBorder ? decorations.borderStyle : null });
     onProgress?.(index + 1, learnerIds.length);
     if (learnerIds.length === 1) return bytesToPdfBlob(filled);
-    const source = await PDFDocument.load(filled);
-    source.getForm().flatten({ updateFieldAppearances: false });
-    const pages = await merged.copyPages(source, source.getPageIndices());
+    const document = await PDFDocument.load(filled);
+    document.getForm().flatten({ updateFieldAppearances: false });
+    const pages = await merged.copyPages(document, document.getPageIndices());
     pages.forEach(page => merged.addPage(page));
   }
   return bytesToPdfBlob(await merged.save());
