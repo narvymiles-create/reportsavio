@@ -149,7 +149,7 @@ export async function generateCustomOutput(template: SchoolTemplate, learnerIds:
     const { values, decorations } = await customReportData(template.level, learnerId, termId, template.school_id, academicYear, source);
     const associations = associationValues(custom, values, learnerId, termId);
     const overrides = { ...Object.fromEntries(associations.filter(a => a.pdf_field).map(a => [normalizeField(a.pdf_field ?? ""), a.value])), ...recognisedValues(template, values, custom.fields, custom.values, learnerId, termId) };
-    const placed = await applySectionTables(await applyCustomPlacements(await fillTemplate(bytes, values, overrides), associations), sectionMapOf(template).tables ?? [], values);
+    const placed = await applySectionTables(await applyCustomPlacements(await fillTemplate(bytes, values, overrides), associations), usableStaticTables(template.level as Level, templateFieldNames(template), sectionMapOf(template)), values);
     const filled = await applyTemplateDecorations(placed, { ...decorations, border: settingsBorder ? decorations.borderStyle : null });
     onProgress?.(index + 1, learnerIds.length);
     if (learnerIds.length === 1) return bytesToPdfBlob(filled);
