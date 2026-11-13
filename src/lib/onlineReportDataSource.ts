@@ -1,7 +1,13 @@
 import { supabase } from "@/integrations/supabase/client";
 import { assertReportScope, type ReportDataSource, type ReportQuery } from "./reportDataSource";
 import type { Tables, TableName } from "./reportDataTypes";
-import type { PostgrestFilterBuilder } from "@supabase/postgrest-js";
+
+type ReadQuery = PromiseLike<{ data: Record<string, unknown>[] | null; error: { message: string } | null }> & {
+  eq(column: string, value: unknown): ReadQuery;
+  in(column: string, values: unknown[]): ReadQuery;
+  order(column: string, options: { ascending: boolean }): ReadQuery;
+  limit(count: number): ReadQuery;
+};
 
 export class OnlineReportDataSource implements ReportDataSource {
   readonly warnings: string[] = [];
@@ -11,7 +17,7 @@ export class OnlineReportDataSource implements ReportDataSource {
   async read<T extends TableName>(table: T, options: ReportQuery = {}): Promise<Tables<T>[]> {
     assertReportScope(this.schoolId, options);
     // Query column names are validated by PostgREST; row results retain the public table type.
-    let query = (supabase.from(table).select("*") as unknown as PostgrestFilterBuilder<any, Record<string, unknown>, Record<string, unknown>[]>).eq("school_id", this.schoolId);
+    let query = (supabase.from(table).select("*") as unknown as ReadQuery).eq("school_id", this.schoolId);
     for (const [key, value] of Object.entries(options.eq ?? {})) query = query.eq(key, value as string);
     for (const [key, values] of Object.entries(options.in ?? {})) query = query.in(key, values as string[]);
     if (options.order) query = query.order(options.order, { ascending: options.ascending ?? true });
