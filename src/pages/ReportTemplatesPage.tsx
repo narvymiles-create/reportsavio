@@ -16,6 +16,7 @@ import { PrimaryPdfViewer } from "@/components/PrimaryPdfViewer";
 import { useReportModule, ensureReportModuleSaved } from "@/hooks/useReportModule";
 import { defaultTemplatePreview } from "@/lib/pdf/defaultTemplatePreview";
 import { TemplateVerificationDialog } from "@/components/TemplateVerificationDialog";
+import { AutomaticTemplateTestDialog } from "@/components/AutomaticTemplateTestDialog";
 
 export default function ReportTemplatesPage() {
   const { module, loading: levelLoading } = useReportModule();
@@ -33,6 +34,7 @@ function LevelTemplates({ level, levelLoading, schoolId, canManage }: { level: "
   const [preview, setPreview] = useState<{ name: string; generate: () => Promise<Blob> } | null>(null);
   const [deleting, setDeleting] = useState<SchoolTemplate | null>(null);
   const [testing, setTesting] = useState<SchoolTemplate | null>(null);
+  const [verifying, setVerifying] = useState<SchoolTemplate | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const mounted = useRef(true);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
@@ -101,7 +103,8 @@ function LevelTemplates({ level, levelLoading, schoolId, canManage }: { level: "
     </TableBody></Table>}
     <details className="border-t pt-4 text-sm"><summary className="cursor-pointer text-muted-foreground">Supported PDF text field names</summary><div className="mt-3 space-y-2 text-muted-foreground"><p>school.name, school.location, school.tel, school.email, school.motto; learner.full_name, learner.age, learner.sex, learner.lin_no, learner.reg_no, learner.pay_code; class.name, stream.name, term.name, academic.year, term.next_begins_on, term.ends_on; report.class_teacher_comment, report.head_teacher_comment.</p><p>Primary: bot.total, bot.average, bot.aggregate, bot.division, bot.position (also mid/eot); subject.1.name, subject.1.bot, subject.1.bot.grade (also mid/eot and each configured subject).</p><p>Nursery: learning_area.1.name, learning_area.1.grade, learning_area.1.comment (each configured learning area).</p><p>Missing or unrecognised text values are blank. Only standard-font AcroForm text fields are supported; other fields retain their original appearance. Non-fillable PDFs remain unchanged. No images are inserted into text fields.</p></div></details>
     <Dialog open={!!preview} onOpenChange={open => { if (!open) setPreview(null); }}><DialogContent className="max-h-[90vh] max-w-5xl overflow-auto"><DialogHeader><DialogTitle>{preview?.name}</DialogTitle></DialogHeader>{preview && <PrimaryPdfViewer learnerIds={["template"]} termId="template" generate={preview.generate} filename={preview.name} />}</DialogContent></Dialog>
-    {testing && <TemplateVerificationDialog key={testing.id} template={testing} close={() => setTesting(null)} activate={() => activate(testing.level, testing.id)} />}
+    {testing && <AutomaticTemplateTestDialog key={testing.id} template={testing} close={() => setTesting(null)} />}
+    {verifying && <TemplateVerificationDialog key={verifying.id} template={verifying} close={() => setVerifying(null)} activate={() => activate(verifying.level, verifying.id)} />}
     <Dialog open={!!deleting} onOpenChange={open => { if (!open && !busy) setDeleting(null); }}><DialogContent><DialogHeader><DialogTitle>Delete {deleting?.name}?</DialogTitle></DialogHeader><p className="text-sm text-muted-foreground">This removes the uploaded PDF. The existing default remains available.</p><div className="flex justify-end gap-2"><Button variant="outline" disabled={busy} onClick={() => setDeleting(null)}>Cancel</Button><Button variant="destructive" disabled={busy} onClick={remove}>Delete template</Button></div></DialogContent></Dialog>
   </div>;
 }
