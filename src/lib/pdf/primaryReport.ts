@@ -1,5 +1,5 @@
-/**
 import { DEFAULT_ASSESSMENT_CONFIG, PRIMARY_ASSESSMENT_KEY, finalMark, isLegacy, normaliseConfig, reportAssessments, reportTables } from "@/lib/assessmentConfig";
+/**
  * Primary report card — drawn natively with pdf-lib so the PDF is a pixel
  * faithful copy of the on-screen preview / print sheet.
  *
@@ -414,7 +414,7 @@ export async function renderPrimaryBytes(d: PrimaryData): Promise<Uint8Array> {
   const eotFixed = 5 + 6.5 + 6.5 + 2.5;         // label + header + summary + gap
   const blocks = primaryBlocks(d);
   const mergedH = (rows: number) => 5 + 6.2 * (rows + 1) + 2.5;
-  const fixedOf = (b: Block) => b.kind === "phase" ? phaseFixed : b.kind === "detail" ? eotFixed : mergedH(b.ids.length);
+  const fixedOf = (b: Block) => b.kind === "merged" ? mergedH(b.ids.length) : b.kind === "phase" ? phaseFixed : eotFixed;
   const fixed = blocks.reduce((t, b) => t + fixedOf(b), 0);
   const detailCount = blocks.filter(b => b.kind === "detail").length;
   const avail = PAGE_BOTTOM - tailH - y;
@@ -554,9 +554,9 @@ export async function renderPrimaryBytes(d: PrimaryData): Promise<Uint8Array> {
   };
 
   for (const b of blocks) {
-    if (b.kind === "phase") drawPhase(b.label, b.key, c.phase(b.key));
+    if (b.kind === "merged") drawMerged(b.label, b.ids);
+    else if (b.kind === "phase") drawPhase(b.label, b.key, c.phase(b.key));
     else if (b.kind === "detail") drawDetail(b.label, b.key);
-    else drawMerged(b.label, b.ids);
   }
   if (multiPage && y + tailH - 6 > PAGE_BOTTOM) newPage();
 
