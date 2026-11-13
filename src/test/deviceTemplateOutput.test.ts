@@ -23,7 +23,7 @@ describe("Device-backed production template rendering", () => {
     const store = { rows: async (_school: string, table: string) => data[table] ?? [], file } as unknown as DeviceReportStore;
     const source = new DeviceReportDataSource("school", store);
     const blob = await generateCustomOutput({ id: "template", school_id: "school", level, name: "Saved template", file_path: "saved.pdf", is_active: false, page_count: 1, field_names: ["learner.full_name"], created_at: "" }, ["learner"], "term", undefined, 2026, source);
-    const output = await PDFDocument.load(await blob.arrayBuffer());
+    const output = await PDFDocument.load(new Uint8Array(await blob.arrayBuffer()));
     expect(output.getPageCount()).toBe(1);
     expect(output.getForm().getTextField("learner.full_name").getText()).toBe(level === "primary" ? "Saved Primary Learner" : "Saved Nursery Learner");
     expect(file).toHaveBeenCalledWith("school", "report-templates", "saved.pdf");
