@@ -18,11 +18,12 @@ import { createMarksheetOutput } from "@/lib/marksheetOutput";
 import skavioLogoUrl from "@/assets/skavio-logo-transparent.png";
 import "./MarksFormPage.css";
 import { useTemplateExams } from "@/hooks/useTemplateExams";
-import { EXAM_NAMES } from "@/lib/templateExams";
+import { useAssessmentConfig } from "@/hooks/useAssessmentConfig";
+import { finalMark, isLegacy } from "@/lib/assessmentConfig";
 import { useAuth } from "@/contexts/AuthContext";
 
 
-export type ExamColumn = "bot" | "mid" | "eot";
+export type ExamColumn = string;
 
 type Term = { id: string; name: string; year: number; is_current: boolean };
 type Cls = { id: string; name: string };
@@ -32,9 +33,9 @@ type Learner = { id: string; full_name: string; class_id: string | null; stream_
 type Teacher = { id: string; initials: string | null };
 
 // marks indexed by `${learner_id}|${subject_id}` -> row
-type MarkRow = { id?: string; learner_id: string; subject_id: string; bot: number | null; mid: number | null; eot: number | null };
+type MarkRow = { id?: string; learner_id: string; subject_id: string; bot: number | null; mid: number | null; eot: number | null; [assessment: string]: any };
 
-const TITLES: Record<ExamColumn, string> = {
+const LEGACY_TITLES: Record<string, string> = {
   bot: "BEGINNING OF TERM EXAMS FORM",
   mid: "MID OF TERM EXAMS FORM",
   eot: "END OF TERM EXAMS FORM",
@@ -75,6 +76,12 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
   const setHideRemarks = (v: boolean) => updateOpt("hideRemarks", v);
   const [exporting, setExporting] = useState(false);
   const examAccess = useTemplateExams();
+  const { loading: cfgLoading, config: assessCfg } = useAssessmentConfig();
+  const assessment = assessCfg.assessments.find(a => a.id === exam);
+  const examName = assessment?.name ?? exam;
+  const defaultNames: Record<string, string> = { bot: "Beginning of Term", mid: "Mid-Term", eot: "End of Term" };
+  const formTitle = LEGACY_TITLES[exam] && assessment?.name === defaultNames[exam] ? LEGACY_TITLES[exam] : `${examName.toUpperCase()} FORM`;
+  const extraIds = assessCfg.assessments.filter(a => !isLegacy(a.id)).map(a => a.id);
 
   // marks keyed by learner|subject
   const [marks, setMarks] = useState<Record<string, MarkRow>>({});
@@ -152,6 +159,12 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
         .in("subject_id", ids);
       const map: Record<string, MarkRow> = {};
       (data ?? []).forEach((m: any) => { map[`${m.learner_id}|${m.subject_id}`] = m; });
+      // Marks for school-configured extra assessments live in assessment_marks.
+      const { data: extra } = await supabase.from("assessment_marks").select("learner_id,subject_id,assessment_key,mark").eq("term_id", termId).in("subject_id", ids);
+      (extra ?? []).forEach((e) => {
+        const k = `${e.learner_id}|${e.subject_id}`;
+        map[k] = { ...(map[k] ?? { learner_id: e.learner_id, subject_id: e.subject_id, bot: null, mid: null, eot: null }), [e.assessment_key]: e.mark == null ? null : Number(e.mark) };
+      });
       setMarks(map);
       setBaseline(JSON.parse(JSON.stringify(map)));
     })();
@@ -345,12 +358,14 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
     }
     setSaving(true);
     const payload: any[] = [];
+    const extraPayload: any[] = [];
     for (const l of filteredLearners) {
       for (const s of subjects) {
         const m = marks[`${l.id}|${s.id}`];
         if (!m) continue;
-        if (m.bot == null && m.mid == null && m.eot == null) continue;
-        const total = computeTotal(m.bot, m.mid, m.eot);
+        if (m.bot == null && m.mid == null && m.eot == null && !extraIds.some(id => m[id] != null)) continue;
+        if (!isLegacy(exam) && (m[exam] ?? null) !== (baseline[`${l.id}|${s.id}`]?.[exam] ?? null)) extraPayload.push({ term_id: termId, learner_id: l.id, subject_id: s.id, assessment_key: exam, mark: m[exam] ?? null });
+        const total = finalMark(assessCfg, m);
         const band = gradeFor(total, bands);
         const ti = teachers.find(t => t.id === s.subject_teacher_id)?.initials ?? null;
         payload.push({
@@ -367,7 +382,8 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
       }
     }
     if (payload.length === 0) { setSaving(false); return toast({ title: "Nothing to save" }); }
-    const { error } = await supabase.from("marks").upsert(payload as any, { onConflict: "term_id,learner_id,subject_id" });
+    let { error } = await supabase.from("marks").upsert(payload as any, { onConflict: "term_id,learner_id,subject_id" });
+    if (!error && extraPayload.length) ({ error } = await supabase.from("assessment_marks").upsert(extraPayload, { onConflict: "term_id,learner_id,subject_id,assessment_key" }));
     setSaving(false);
     if (error) return toast({ title: "Save failed", description: error.message, variant: "destructive" });
     setBaseline(JSON.parse(JSON.stringify(marks)));
@@ -491,14 +507,14 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
   const cls = classes.find(c => c.id === classId);
   const stream = streams.find(s => s.id === streamId);
 
-  if (!examAccess.loading && !examAccess.available.includes(exam)) return (
+  if (!cfgLoading && !examAccess.loading && (!assessment?.active || (isLegacy(exam) && !examAccess.available.includes(exam)))) return (
     <div className="space-y-4">
       <Button variant="outline" size="sm" asChild>
         <Link to="/marks"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Marks Entry</Link>
       </Button>
       <div className="rounded-md border bg-card p-6 space-y-2" role="alert">
-        <h1 className="text-2xl font-bold">{EXAM_NAMES[exam]} marks entry is unavailable</h1>
-        <p className="text-muted-foreground">{exam === "mid" ? "Mid-Term" : EXAM_NAMES[exam]} Marks Entry is unavailable because this examination section is not included in your uploaded report-card template{examAccess.templateName ? ` ("${examAccess.templateName}")` : ""}. Marks saved earlier are kept safely.</p>
+        <h1 className="text-2xl font-bold">{examName} marks entry is unavailable</h1>
+        <p className="text-muted-foreground">{examName} Marks Entry is unavailable because {!assessment?.active ? "this assessment is turned off in Settings" : <>this examination section is not included in your uploaded report-card template{examAccess.templateName ? ` ("${examAccess.templateName}")` : ""}</>}. Marks saved earlier are kept safely.</p>
       </div>
     </div>
   );
@@ -511,7 +527,7 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
           <Link to="/marks"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Marks Entry</Link>
         </Button>
         <div>
-          <h1 className="text-3xl font-bold">{TITLES[exam]}</h1>
+          <h1 className="text-3xl font-bold">{formTitle}</h1>
           <p className="text-muted-foreground">Enter marks; grade, totals, position and division compute live.</p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-4 border rounded-md bg-card">
@@ -651,7 +667,7 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
         <style media="print">{"@page { size: A4 landscape; margin: 8mm; }"}</style>
         <div className="marks-form__header">
           <div className="marks-form__school">{school?.name ?? ""}</div>
-          <h2 className="marks-form__title">{TITLES[exam]}</h2>
+          <h2 className="marks-form__title">{formTitle}</h2>
           <div className="marks-form__meta">
             <span><strong>CLASS:</strong> {cls?.name ?? "—"}</span>
             <span><strong>STREAM:</strong> {streamId === "all" ? "All" : streamId === "none" ? "—" : (stream?.name ?? "—")}</span>
