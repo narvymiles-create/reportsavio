@@ -64,6 +64,13 @@
       "when": 1794522111084,
       "tag": "0008_multiple_registration_types",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1794583723780,
+      "tag": "0009_assessment_marks",
+      "breakpoints": true
     }
   ]
 }

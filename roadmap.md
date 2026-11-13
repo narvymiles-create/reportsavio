@@ -50,3 +50,8 @@
 - [x] Uploaded templates: reuse default report data (marks, totals, divisions, comments, dates, teachers), image fields, stamp, watermark and an optional Settings border per level.
 - [x] Settings previews show the active uploaded template; Fields Management follows the active template and is hidden for defaults.
 - [x] Verify filled uploaded templates with real Primary and Nursery learners through pre-activation testing, including saved associations and Settings stamp/watermark; temporary uploads removed and defaults restored.
+
+## Flexible Primary assessments (staged)
+- [x] Stage 1: per-school assessment settings (add/rename/reorder/activate, max marks, weights, report inclusion), final-result methods with validation, table arrangement choice, storage for extra assessments. Default keeps today's calculation.
+- [ ] Stage 2: Marks Entry forms generated from active assessments (extra assessments save to new storage); calculations use the school's method.
+- [ ] Stage 3: Primary report card renders separate/merged/merged+final tables with automatic fitting and extra pages; same output in preview/print/download/bulk; uploaded templates keep their own tables.

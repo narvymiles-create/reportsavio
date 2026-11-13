@@ -46,6 +46,71 @@ export type Database = {
           },
         ]
       }
+      assessment_marks: {
+        Row: {
+          assessment_key: string
+          created_at: string
+          id: string
+          learner_id: string
+          mark: number | null
+          school_id: string
+          subject_id: string
+          term_id: string
+          updated_at: string
+        }
+        Insert: {
+          assessment_key: string
+          created_at?: string
+          id?: string
+          learner_id: string
+          mark?: number | null
+          school_id: string
+          subject_id: string
+          term_id: string
+          updated_at?: string
+        }
+        Update: {
+          assessment_key?: string
+          created_at?: string
+          id?: string
+          learner_id?: string
+          mark?: number | null
+          school_id?: string
+          subject_id?: string
+          term_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assessment_marks_learner_id_fkey"
+            columns: ["learner_id"]
+            isOneToOne: false
+            referencedRelation: "learners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assessment_marks_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assessment_marks_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assessment_marks_term_id_fkey"
+            columns: ["term_id"]
+            isOneToOne: false
+            referencedRelation: "terms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       classes: {
         Row: {
           class_signature_path: string | null

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { AssessmentSettings } from "@/components/AssessmentSettings";
 import { ReportFieldsManagement } from "@/components/ReportFieldsManagement";
 import { useReportModule } from "@/hooks/useReportModule";
 import { useBorderStyle, BORDER_STYLES, type BorderStyleKey } from "@/hooks/useBorderStyle";
@@ -147,6 +148,7 @@ export default function SettingsPage() {
         <p className="text-muted-foreground">Manage school houses and configure learner / report card fields.</p>
       </div>
 
+      {schoolId && !moduleLoading && module === "primary" && <AssessmentSettings key={schoolId} schoolId={schoolId} />}
       {/* SECTION A: HOUSES */}
       {schoolId && !moduleLoading && <ReportFieldsManagement key={`${schoolId}:${module}`} schoolId={schoolId} level={module} />}
       <Card>
