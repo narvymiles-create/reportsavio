@@ -410,21 +410,28 @@ export async function renderPrimaryBytes(d: PrimaryData): Promise<Uint8Array> {
   const PAGE_BOTTOM = 283;
   const tailH = BOTTOM_H + DATES_H + GRADE_BLOCK_H + MOTTO_H + 6;
 
-  const phaseFixed = 5 + 3 * 6.2 + 6.5 + 2.5;   // label + 3 rows + summary + gap
+  let rowUnit = 6.2;                             // phase / merged row height
+  let phaseFixed = 5 + 3 * rowUnit + 6.5 + 2.5;   // label + 3 rows + summary + gap
   const eotFixed = 5 + 6.5 + 6.5 + 2.5;         // label + header + summary + gap
   const blocks = primaryBlocks(d);
-  const mergedH = (rows: number) => 5 + 6.2 * (rows + 1) + 2.5;
+  let mergedH = (rows: number) => 5 + rowUnit * (rows + 1) + 2.5;
   const fixedOf = (b: Block) => b.kind === "merged" ? mergedH(b.ids.length) : b.kind === "phase" ? phaseFixed : eotFixed;
-  const fixed = blocks.reduce((t, b) => t + fixedOf(b), 0);
+  let fixed = blocks.reduce((t, b) => t + fixedOf(b), 0);
   const detailCount = blocks.filter(b => b.kind === "detail").length;
   const avail = PAGE_BOTTOM - tailH - y;
+  const smallRows = blocks.reduce((t, b) => t + (b.kind === "phase" ? 3 : b.kind === "merged" ? b.ids.length + 1 : 0), 0);
+  const setUnit = (u: number) => { rowUnit = u; phaseFixed = 5 + 3 * u + 6.5 + 2.5; mergedH = (rows: number) => 5 + u * (rows + 1) + 2.5; fixed = blocks.reduce((t, b) => t + fixedOf(b), 0); };
+  // Slightly tighter (still readable) rows before resorting to a second page.
+  if (avail - fixed - 6 * n * detailCount < 0) setUnit(5.4);
   let eotRowH = detailCount ? Math.min(11, Math.max(6, (avail - fixed) / (n * detailCount))) : 0;
   /* Any leftover height is absorbed by the comments block so the card never
      leaves a large blank gap above the grading table. */
   let slack = avail - fixed - eotRowH * n * detailCount;
   // Content that genuinely needs more room flows onto extra A4 pages at readable sizes.
   const multiPage = slack < 0;
-  if (multiPage) { eotRowH = 7.5; slack = 0; }
+  if (multiPage) { eotRowH = 7.5; slack = 0; setUnit(6.2); }
+  // Short layouts (few or merged tables) grow their rows instead of leaving a gap above the grading table.
+  if (slack > 14 && smallRows && (detailCount === 0 || eotRowH >= 11)) { const grow = Math.min(2.8, (slack - 14) / smallRows); setUnit(rowUnit + grow); slack -= grow * smallRows; }
   BOTTOM_H += Math.max(0, Math.min(14, slack));
   const room = (h: number) => { if (multiPage && y + h > PAGE_BOTTOM) newPage(); };
 
@@ -437,7 +444,7 @@ export async function renderPrimaryBytes(d: PrimaryData): Promise<Uint8Array> {
     room(phaseFixed);
     p.text(label, { x: LEFT, y, width: CONTENT_W, size: 9, bold: true, align: "center" });
     y += 5;
-    const rowH = 6.2;
+    const rowH = rowUnit;
     const w = cols(LEFT, CONTENT_W, [1.5, ...subjects.map(() => 1)]);
     const rows: { text: (i: number) => string; bold?: boolean; fill?: string; label: string }[] = [
       { label: "SUBJECTS", bold: true, fill: HEAD_FILL, text: (i) => codeFor(subjects[i].name) },
@@ -532,7 +539,7 @@ export async function renderPrimaryBytes(d: PrimaryData): Promise<Uint8Array> {
     room(mergedH(ids.length));
     p.text(heading.toUpperCase(), { x: LEFT, y, width: CONTENT_W, size: 9, bold: true, align: "center" });
     y += 5;
-    const rowH = 6.2;
+    const rowH = rowUnit;
     const extras = ["TOTAL", "AVERAGE", ...(d.flags.show_position ? ["POSITION"] : []), "AGG", "DIV"];
     const w = cols(LEFT, CONTENT_W, [2, ...subjects.map(() => 1), ...extras.map(() => 1.05)]);
     const head = ["ASSESSMENT", ...subjects.map(s0 => codeFor(s0.name)), ...extras];
