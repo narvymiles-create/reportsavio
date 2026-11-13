@@ -328,6 +328,42 @@ export async function renderPrimaryBytes(d: PrimaryData): Promise<Uint8Array> {
   const subjects = d.subjects;
   const n = Math.max(subjects.length, 1);
 
+  /* ------------------------------------------------------- vertical budget
+     Header, title and learner info have a fixed height, so the space left for
+     the assessment tables is known before drawing. Unused space is shared out
+     as gaps between sections (rows keep their natural height). */
+  const INFO_TOP = 13 + 30 + 1 + 1.5 + 6.5;
+  let BOTTOM_H = 34;
+  const DATES_H = 8;
+  const GRADE_BLOCK_H = 5.5 + 13;
+  const MOTTO_H = 7;
+  const PAGE_BOTTOM = 283;
+  const tailH = BOTTOM_H + DATES_H + GRADE_BLOCK_H + MOTTO_H + 6;
+
+  let rowUnit = 6.2;
+  let phaseFixed = 5 + 3 * rowUnit + 6.5 + 2.5;
+  const eotFixed = 5 + 6.5 + 6.5 + 2.5;
+  const blocks = primaryBlocks(d);
+  let mergedH = (rows: number) => 5 + rowUnit * (rows + 1) + 2.5;
+  const fixedOf = (b: Block) => b.kind === "merged" ? mergedH(b.ids.length) : b.kind === "phase" ? phaseFixed : eotFixed;
+  let fixed = blocks.reduce((t, b) => t + fixedOf(b), 0);
+  const detailCount = blocks.filter(b => b.kind === "detail").length;
+  const avail = PAGE_BOTTOM - tailH - (INFO_TOP + 8.5 * 2 + 2.5);
+  const setUnit = (u: number) => { rowUnit = u; phaseFixed = 5 + 3 * u + 6.5 + 2.5; mergedH = (rows: number) => 5 + u * (rows + 1) + 2.5; fixed = blocks.reduce((t, b) => t + fixedOf(b), 0); };
+  if (avail - fixed - 6 * n * detailCount < 0) setUnit(5.4);
+  const EOT_NATURAL = 8.5;
+  let eotRowH = detailCount ? Math.min(EOT_NATURAL, Math.max(6, (avail - fixed) / (n * detailCount))) : 0;
+  let slack = avail - fixed - eotRowH * n * detailCount;
+  const multiPage = slack < 0;
+  if (multiPage) { eotRowH = 7.5; slack = 0; setUnit(6.2); }
+  // Share leftover space: header/title gap, gaps after each table, then a little more room for comments.
+  const headerGap = Math.min(4, slack * 0.1); slack -= headerGap;
+  const contactBoost = slack > 8 ? Math.min(1, slack / 40) : 0;
+  const commentGrow = Math.min(14, slack * 0.25); slack -= commentGrow;
+  BOTTOM_H += commentGrow;
+  // Remaining space is spread evenly: below learner info, after each table, and before the grading table.
+  const blockGap = Math.min(16, slack / (blocks.length + 2));
+
   /* ---------------------------------------------------------- header (3 cols) */
   let y = 13;
   const HEAD_H = 30;
@@ -350,7 +386,7 @@ export async function renderPrimaryBytes(d: PrimaryData): Promise<Uint8Array> {
     x: midX, y: y + 1, width: midW, size: nameSize, bold: true, align: "center",
   });
   let ly = y + 1 + (nameSize * 1.35) / MM;
-  const lineSize = Math.min(8.5, Math.max(6, (HEAD_H - (ly - y) - 1) / Math.max(lines.length, 1) * MM / 1.35));
+  const lineSize = Math.min(8.5 + contactBoost * 1.2, Math.max(6, (HEAD_H - (ly - y) - 1) / Math.max(lines.length, 1) * MM / 1.35));
   lines.forEach((l) => {
     const sz = fitSize(p, l, lineSize, midW);
     p.text(l, { x: midX, y: ly, width: midW, size: sz, align: "center" });
@@ -359,7 +395,7 @@ export async function renderPrimaryBytes(d: PrimaryData): Promise<Uint8Array> {
 
   y += HEAD_H + 1;
   p.line(LEFT, y, RIGHT, y, { color: GRID, width: 0.5 });
-  y += 1.5;
+  y += 1.5 + headerGap;
 
   /* ------------------------------------------------------------------ title */
   const title = `LEARNER'S ASSESSMENT REPORT CARD    TERM: ${d.term.name ?? ""}    YEAR: ${d.term.year ?? ""}`;
@@ -389,8 +425,7 @@ export async function renderPrimaryBytes(d: PrimaryData): Promise<Uint8Array> {
   ].filter((f) => f.on);
 
   const INFO_ROW_H = 8.5;
-  p.rect({ x: LEFT, y, w: CONTENT_W, h: INFO_ROW_H * 2, border: GRID, lineWidth: 0.4 });
-  p.line(LEFT, y + INFO_ROW_H, RIGHT, y + INFO_ROW_H, { color: GRID, width: 0.22 });
+  p.roundRect({ x: LEFT, y, w: CONTENT_W, h: INFO_ROW_H * 2, r: 2.5, border: GRID, lineWidth: 0.4 });
   [row1, row2].forEach((row, ri) => {
     /* Weight each field by the space its label + value actually needs so long
        values shrink neighbours instead of falling to a third row. */
@@ -400,39 +435,8 @@ export async function renderPrimaryBytes(d: PrimaryData): Promise<Uint8Array> {
       labelValue(p, f.label, f.value, { x: boxes[i].x + 1, y: y + ri * INFO_ROW_H, w: boxes[i].w - 1, h: INFO_ROW_H }, 8);
     });
   });
-  y += INFO_ROW_H * 2 + 2.5;
+  y += INFO_ROW_H * 2 + 2.5 + blockGap;
 
-  /* ------------------------------------------------------- vertical budget */
-  let BOTTOM_H = 34;        // conduct + comments + signatures (grows with slack)
-  const DATES_H = 8;
-  const GRADE_BLOCK_H = 5.5 + 13;
-  const MOTTO_H = 7;
-  const PAGE_BOTTOM = 283;
-  const tailH = BOTTOM_H + DATES_H + GRADE_BLOCK_H + MOTTO_H + 6;
-
-  let rowUnit = 6.2;                             // phase / merged row height
-  let phaseFixed = 5 + 3 * rowUnit + 6.5 + 2.5;   // label + 3 rows + summary + gap
-  const eotFixed = 5 + 6.5 + 6.5 + 2.5;         // label + header + summary + gap
-  const blocks = primaryBlocks(d);
-  let mergedH = (rows: number) => 5 + rowUnit * (rows + 1) + 2.5;
-  const fixedOf = (b: Block) => b.kind === "merged" ? mergedH(b.ids.length) : b.kind === "phase" ? phaseFixed : eotFixed;
-  let fixed = blocks.reduce((t, b) => t + fixedOf(b), 0);
-  const detailCount = blocks.filter(b => b.kind === "detail").length;
-  const avail = PAGE_BOTTOM - tailH - y;
-  const smallRows = blocks.reduce((t, b) => t + (b.kind === "phase" ? 3 : b.kind === "merged" ? b.ids.length + 1 : 0), 0);
-  const setUnit = (u: number) => { rowUnit = u; phaseFixed = 5 + 3 * u + 6.5 + 2.5; mergedH = (rows: number) => 5 + u * (rows + 1) + 2.5; fixed = blocks.reduce((t, b) => t + fixedOf(b), 0); };
-  // Slightly tighter (still readable) rows before resorting to a second page.
-  if (avail - fixed - 6 * n * detailCount < 0) setUnit(5.4);
-  let eotRowH = detailCount ? Math.min(11, Math.max(6, (avail - fixed) / (n * detailCount))) : 0;
-  /* Any leftover height is absorbed by the comments block so the card never
-     leaves a large blank gap above the grading table. */
-  let slack = avail - fixed - eotRowH * n * detailCount;
-  // Content that genuinely needs more room flows onto extra A4 pages at readable sizes.
-  const multiPage = slack < 0;
-  if (multiPage) { eotRowH = 7.5; slack = 0; setUnit(6.2); }
-  // Short layouts (few or merged tables) grow their rows instead of leaving a gap above the grading table.
-  if (slack > 14 && smallRows && (detailCount === 0 || eotRowH >= 11)) { const grow = Math.min(4.5, (slack - 14) / smallRows); setUnit(rowUnit + grow); slack -= grow * smallRows; }
-  BOTTOM_H += Math.max(0, Math.min(14, slack));
   const room = (h: number) => { if (multiPage && y + h > PAGE_BOTTOM) newPage(); };
 
   /* ------------------------------------------------------------ BOT / MID */
@@ -564,6 +568,7 @@ export async function renderPrimaryBytes(d: PrimaryData): Promise<Uint8Array> {
     if (b.kind === "merged") drawMerged(b.label, b.ids);
     else if (b.kind === "phase") drawPhase(b.label, b.key, c.phase(b.key));
     else if (b.kind === "detail") drawDetail(b.label, b.key);
+    y += blockGap;
   }
   if (multiPage && y + tailH - 6 > PAGE_BOTTOM) newPage();
 
@@ -580,7 +585,6 @@ export async function renderPrimaryBytes(d: PrimaryData): Promise<Uint8Array> {
     { l: "Co-curricular Activities:", v: d.learner.co_curricular ?? "" },
   ].forEach((it, i) => {
     const b = { x: conductCols[i].x, y: bottomTop, w: conductCols[i].w, h: conductH };
-    cellBox(p, b);
     labelValue(p, it.l, it.v, b, 8);
   });
 
@@ -591,21 +595,27 @@ export async function renderPrimaryBytes(d: PrimaryData): Promise<Uint8Array> {
   comments.forEach((cm, i) => {
     const cy = bottomTop + conductH + i * commentH;
     const lb = { x: LEFT, y: cy, w: leftW, h: commentH };
-    cellBox(p, lb);
-    const labelW = Math.min(36, leftW * 0.4);
-    p.paragraph(cm.l, { x: lb.x + 1.2, y: cy + 1.4, width: labelW, size: 7.6, bold: true, maxLines: 2, lineHeight: 1.15 });
-    const textW = leftW - labelW - 4;
+    // Label centred at the top; the comment starts at the table's left margin below it.
+    p.text(cm.l, { x: lb.x, y: cy + 1.3, width: leftW, size: 7.6, bold: true, align: "center" });
+    const textTop = cy + 1.3 + 7.6 * 1.25 / MM;
+    const textW = leftW - 3;
     let cs = 8;
-    while (cs > 5.5 && p.wrap(cm.v, cs, textW).length > 3) cs -= 0.2;
-    const cl = p.wrap(cm.v, cs, textW).slice(0, 3);
-    let ty = cy + (commentH - cl.length * (cs * 1.2) / MM) / 2;
-    cl.forEach((line) => { ty += p.text(line, { x: lb.x + labelW + 3, y: ty, size: cs, lineHeight: 1.2 }); });
+    const maxLines = Math.max(1, Math.floor((cy + commentH - textTop - 0.8) / ((8 * 1.2) / MM)));
+    while (cs > 5.5 && p.wrap(cm.v, cs, textW).length > maxLines) cs -= 0.2;
+    const cl = p.wrap(cm.v, cs, textW).slice(0, Math.max(maxLines, 1));
+    let ty = textTop + Math.max(0, (cy + commentH - textTop - cl.length * (cs * 1.2) / MM) / 2 - 0.4);
+    cl.forEach((line) => { ty += p.text(line, { x: lb.x + 1.5, y: ty, size: cs, lineHeight: 1.2 }); });
 
     const rb = { x: LEFT + leftW, y: cy, w: rightW, h: commentH };
-    cellBox(p, rb);
     if (cm.sig) p.image(cm.sig, { x: rb.x + 6, y: rb.y + 1, w: rb.w - 12, h: commentH * 0.5 });
     cellText(p, cm.name, { x: rb.x, y: rb.y + commentH * 0.55, w: rb.w, h: commentH * 0.45 }, { size: 8 });
   });
+  // One rounded frame with inner dividers, matching the learner details box.
+  p.line(LEFT + CONTENT_W / 2, bottomTop, LEFT + CONTENT_W / 2, bottomTop + conductH, { color: GRID, width: 0.22 });
+  p.line(LEFT, bottomTop + conductH, RIGHT, bottomTop + conductH, { color: GRID, width: 0.22 });
+  p.line(LEFT, bottomTop + conductH + commentH, RIGHT, bottomTop + conductH + commentH, { color: GRID, width: 0.22 });
+  p.line(LEFT + leftW, bottomTop + conductH, LEFT + leftW, bottomTop + BOTTOM_H, { color: GRID, width: 0.22 });
+  p.roundRect({ x: LEFT, y: bottomTop, w: CONTENT_W, h: BOTTOM_H, r: 2.5, border: GRID, lineWidth: 0.4 });
   y = bottomTop + BOTTOM_H;
 
   /* ----------------------------------------------------------- term dates */

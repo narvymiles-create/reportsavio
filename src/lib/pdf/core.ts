@@ -170,6 +170,13 @@ export class Painter {
     });
   }
 
+  /** Stroked rectangle with rounded corners (radius in mm). */
+  roundRect(o: { x: number; y: number; w: number; h: number; r: number; border?: string | RGB; lineWidth?: number }) {
+    const w = mm(o.w), h = mm(o.h), r = Math.min(mm(o.r), w / 2, h / 2);
+    const path = `M ${r} 0 L ${w - r} 0 Q ${w} 0 ${w} ${r} L ${w} ${h - r} Q ${w} ${h} ${w - r} ${h} L ${r} ${h} Q 0 ${h} 0 ${h - r} L 0 ${r} Q 0 0 ${r} 0 Z`;
+    this.page.drawSvgPath(path, { x: mm(o.x), y: mm(A4_H - o.y), borderColor: col(o.border ?? INK), borderWidth: mm(o.lineWidth ?? 0.25) });
+  }
+
   line(x1: number, y1: number, x2: number, y2: number, o: { color?: string | RGB; width?: number; dashArray?: number[] } = {}) {
     this.page.drawLine({
       start: { x: mm(x1), y: mm(A4_H - y1) },
