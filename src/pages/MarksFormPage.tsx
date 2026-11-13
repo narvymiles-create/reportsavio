@@ -498,7 +498,7 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
       </Button>
       <div className="rounded-md border bg-card p-6 space-y-2" role="alert">
         <h1 className="text-2xl font-bold">{EXAM_NAMES[exam]} marks entry is unavailable</h1>
-        <p className="text-muted-foreground">Your school's uploaded report card template{examAccess.templateName ? ` "${examAccess.templateName}"` : ""} does not include a {EXAM_NAMES[exam]} examination section, so marks and subjects for this examination cannot be entered. Marks saved earlier are kept safely. To use this form again, activate a template with this section or switch back to the default report card.</p>
+        <p className="text-muted-foreground">{exam === "mid" ? "Mid-Term" : EXAM_NAMES[exam]} Marks Entry is unavailable because this examination section is not included in your uploaded report-card template{examAccess.templateName ? ` ("${examAccess.templateName}")` : ""}. Marks saved earlier are kept safely.</p>
       </div>
     </div>
   );

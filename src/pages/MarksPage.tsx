@@ -188,7 +188,7 @@ export default function MarksPage() {
             ) : (
               <div key={f} className="rounded-md border border-dashed p-3 text-sm text-muted-foreground" aria-disabled="true">
                 <p className="font-medium">{f === "mid" ? "Mid-Term" : EXAM_NAMES[f]} Form — unavailable</p>
-                <p className="text-xs">Your uploaded report card template does not include this examination section.</p>
+                <p className="text-xs">{f === "mid" ? "Mid-Term" : EXAM_NAMES[f]} Marks Entry is unavailable because this examination section is not included in your uploaded report-card template.</p>
               </div>
             ))}
           </div>

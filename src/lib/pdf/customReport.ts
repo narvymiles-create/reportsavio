@@ -10,7 +10,7 @@ import { applyCustomPlacements } from "./template/customPlacements";
 import { applyTemplateDecorations, type TemplateDecorations } from "./template/decorations";
 import type { ReportDataSource } from "@/lib/reportDataSource";
 import { currentReportDataSource } from "@/lib/onlineReportDataSource";
-import { recogniseField, valueKey, type Level, type SectionMap } from "@/lib/templateSections";
+import { recogniseField, usableStaticTables, valueKey, type Level, type SectionMap } from "@/lib/templateSections";
 import { applySectionTables } from "./template/sectionTables";
 
 const fmtDate = (value?: string | null) => value ? new Date(value).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" }) : "";
@@ -149,7 +149,7 @@ export async function generateCustomOutput(template: SchoolTemplate, learnerIds:
     const { values, decorations } = await customReportData(template.level, learnerId, termId, template.school_id, academicYear, source);
     const associations = associationValues(custom, values, learnerId, termId);
     const overrides = { ...Object.fromEntries(associations.filter(a => a.pdf_field).map(a => [normalizeField(a.pdf_field ?? ""), a.value])), ...recognisedValues(template, values, custom.fields, custom.values, learnerId, termId) };
-    const placed = await applySectionTables(await applyCustomPlacements(await fillTemplate(bytes, values, overrides), associations), sectionMapOf(template).tables ?? [], values);
+    const placed = await applySectionTables(await applyCustomPlacements(await fillTemplate(bytes, values, overrides), associations), usableStaticTables(template.level as Level, templateFieldNames(template), sectionMapOf(template)), values);
     const filled = await applyTemplateDecorations(placed, { ...decorations, border: settingsBorder ? decorations.borderStyle : null });
     onProgress?.(index + 1, learnerIds.length);
     if (learnerIds.length === 1) return bytesToPdfBlob(filled);

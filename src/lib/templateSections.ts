@@ -163,6 +163,12 @@ export function recogniseField(name: string, level: Level, map: SectionMap = {})
 /** Key in the flattened report data for a recognised field. */
 export const valueKey = (r: Recognised) => r.kind === "general" ? r.source : r.kind === "cell" ? `table.${r.section}.${r.row}.${r.column}` : r.kind === "summary" ? `table.${r.section}.${r.column}` : null;
 
+/** Positioned (scanned) tables apply only to fixed PDFs: a template with fillable table cells defines its own exam tables, so stray positioned tables never add sections or draw over its artwork. */
+export function usableStaticTables(level: Level, names: string[], map: SectionMap = {}): StaticTable[] {
+  const fillable = names.some(n => recogniseField(n, level, map).kind === "cell");
+  return fillable ? [] : map.tables ?? [];
+}
+
 export type RecognitionSummary = { sections: { id: string; label: string; fields: number }[]; unassigned: { group: string; fields: string[] }[]; unrecognised: string[] };
 export function summariseRecognition(level: Level, names: string[], map: SectionMap = {}, headings: string[] = []): RecognitionSummary {
   const counts = new Map<string, number>(); const groups = new Map<string, string[]>(); const unrecognised: string[] = [];
@@ -172,7 +178,7 @@ export function summariseRecognition(level: Level, names: string[], map: Section
     else if (r.kind === "unassigned") groups.set(r.group, [...(groups.get(r.group) ?? []), name]);
     else counts.set(r.section, (counts.get(r.section) ?? 0) + 1);
   }
-  for (const t of map.tables ?? []) counts.set(t.section, (counts.get(t.section) ?? 0) + t.rows * t.columns.length);
+  for (const t of usableStaticTables(level, names, map)) counts.set(t.section, (counts.get(t.section) ?? 0) + t.rows * t.columns.length);
   for (const h of headings) { const s = map.headings?.[h] ?? recogniseHeading(h, level); if (s && s !== "none" && !counts.has(s)) counts.set(s, 0); }
   return {
     sections: SECTIONS[level].filter(s => counts.has(s.id)).map(s => ({ id: s.id, label: s.label, fields: counts.get(s.id) ?? 0 })),
