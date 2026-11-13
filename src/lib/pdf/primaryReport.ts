@@ -431,7 +431,7 @@ export async function renderPrimaryBytes(d: PrimaryData): Promise<Uint8Array> {
   const multiPage = slack < 0;
   if (multiPage) { eotRowH = 7.5; slack = 0; setUnit(6.2); }
   // Short layouts (few or merged tables) grow their rows instead of leaving a gap above the grading table.
-  if (slack > 14 && smallRows && (detailCount === 0 || eotRowH >= 11)) { const grow = Math.min(2.8, (slack - 14) / smallRows); setUnit(rowUnit + grow); slack -= grow * smallRows; }
+  if (slack > 14 && smallRows && (detailCount === 0 || eotRowH >= 11)) { const grow = Math.min(4.5, (slack - 14) / smallRows); setUnit(rowUnit + grow); slack -= grow * smallRows; }
   BOTTOM_H += Math.max(0, Math.min(14, slack));
   const room = (h: number) => { if (multiPage && y + h > PAGE_BOTTOM) newPage(); };
 
