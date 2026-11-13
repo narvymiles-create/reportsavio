@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ASSESSMENT_CONFIG_CHANGED } from "@/hooks/useAssessmentConfig";
 import { toast } from "@/hooks/use-toast";
 import { ArrowDown, ArrowUp, Loader2, Plus, Trash2 } from "lucide-react";
 import {
@@ -36,6 +37,7 @@ export function AssessmentSettings({ schoolId }: { schoolId: string }) {
     setSaving(true);
     const { error } = await supabase.from("system_settings").upsert({ key: PRIMARY_ASSESSMENT_KEY, value: cfg as any, school_id: schoolId }, { onConflict: "school_id,key" });
     setSaving(false);
+    if (!error) window.dispatchEvent(new Event(ASSESSMENT_CONFIG_CHANGED));
     toast(error ? { title: "Save failed", description: error.message, variant: "destructive" } : { title: "Assessment settings saved" });
   };
 

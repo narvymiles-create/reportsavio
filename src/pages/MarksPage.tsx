@@ -12,7 +12,8 @@ import { Loader2, Save, ClipboardList } from "lucide-react";
 import { computeTotal, gradeFor, type GradeBand } from "@/lib/grading";
 import { Link } from "react-router-dom";
 import { useTemplateExams } from "@/hooks/useTemplateExams";
-import { EXAM_NAMES } from "@/lib/templateExams";
+import { useAssessmentConfig } from "@/hooks/useAssessmentConfig";
+import { activeAssessments, finalMark, isLegacy } from "@/lib/assessmentConfig";
 
 type Term = { id: string; name: string; year: number; is_current: boolean };
 type Cls = { id: string; name: string };
@@ -124,18 +125,23 @@ export default function MarksPage() {
   };
 
   const examAccess = useTemplateExams();
-  const examOn = (f: "bot" | "mid" | "eot") => examAccess.available.includes(f);
+  const { config: assessCfg } = useAssessmentConfig();
+  const examOn = (f: "bot" | "mid" | "eot") => examAccess.available.includes(f) && !!assessCfg.assessments.find(a => a.id === f)?.active;
+  const formList = activeAssessments(assessCfg);
+  const nameOf = (f: string) => assessCfg.assessments.find(a => a.id === f)?.name ?? f;
   const saveAll = async () => {
     if (!termId || !subjectId) return;
     if (bands.length === 0) {
       return toast({ title: "Set up grading first", description: "Add grade bands in Grading System.", variant: "destructive" });
     }
     setSaving(true);
+    const { data: extra } = await supabase.from("assessment_marks").select("learner_id,assessment_key,mark").eq("term_id", termId).eq("subject_id", subjectId);
+    const extraOf = (id: string) => Object.fromEntries((extra ?? []).filter(e => e.learner_id === id).map(e => [e.assessment_key, e.mark == null ? null : Number(e.mark)]));
     const payload = filteredLearners
       .map(l => marks[l.id])
       .filter((m): m is MarkRow => !!m && (m.bot != null || m.mid != null || m.eot != null))
       .map(m => {
-        const total = computeTotal(m.bot, m.mid, m.eot);
+        const total = finalMark(assessCfg, { ...extraOf(m.learner_id), bot: m.bot, mid: m.mid, eot: m.eot });
         const band = gradeFor(total, bands);
         return {
           term_id: termId,
@@ -181,14 +187,14 @@ export default function MarksPage() {
             Open a notebook-style form to enter marks for an entire class at once. Saved marks appear automatically on each learner&rsquo;s report card.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            {(["bot", "mid", "eot"] as const).map(f => examOn(f) ? (
+            {formList.map(a => a.id).map(f => !isLegacy(f) || examOn(f) ? (
               <Button key={f} asChild variant="outline" className="justify-start h-auto py-3">
-                <Link to={`/marks/${f}`}><ClipboardList className="mr-2 h-4 w-4" /> {f === "mid" ? "Mid-Term" : EXAM_NAMES[f]} Form</Link>
+                <Link to={isLegacy(f) ? `/marks/${f}` : `/marks/a/${f}`}><ClipboardList className="mr-2 h-4 w-4" /> {nameOf(f)} Form</Link>
               </Button>
             ) : (
               <div key={f} className="rounded-md border border-dashed p-3 text-sm text-muted-foreground" aria-disabled="true">
-                <p className="font-medium">{f === "mid" ? "Mid-Term" : EXAM_NAMES[f]} Form — unavailable</p>
-                <p className="text-xs">{f === "mid" ? "Mid-Term" : EXAM_NAMES[f]} Marks Entry is unavailable because this examination section is not included in your uploaded report-card template.</p>
+                <p className="font-medium">{nameOf(f)} Form — unavailable</p>
+                <p className="text-xs">{nameOf(f)} Marks Entry is unavailable because this examination section is not included in your uploaded report-card template.</p>
               </div>
             ))}
           </div>
@@ -225,7 +231,7 @@ export default function MarksPage() {
               <TableBody>
                 {filteredLearners.map((l, idx) => {
                   const m = marks[l.id];
-                  const total = computeTotal(m?.bot ?? null, m?.mid ?? null, m?.eot ?? null);
+                  const total = finalMark(assessCfg, { bot: m?.bot ?? null, mid: m?.mid ?? null, eot: m?.eot ?? null });
                   const band = gradeFor(total, bands);
                   return (
                     <TableRow key={l.id}>
