@@ -10,7 +10,7 @@ import { applyCustomPlacements } from "./template/customPlacements";
 import { applyTemplateDecorations, type TemplateDecorations } from "./template/decorations";
 import type { ReportDataSource } from "@/lib/reportDataSource";
 import { currentReportDataSource } from "@/lib/onlineReportDataSource";
-import { recogniseField, valueKey, type Level, type SectionMap } from "@/lib/templateSections";
+import { recogniseField, usableStaticTables, valueKey, type Level, type SectionMap } from "@/lib/templateSections";
 import { applySectionTables } from "./template/sectionTables";
 
 const fmtDate = (value?: string | null) => value ? new Date(value).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" }) : "";
