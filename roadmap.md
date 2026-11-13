@@ -1,5 +1,9 @@
 # Roadmap
 
+- [ ] Make Test Template automatically preview a suitable real learner in the current school/level, with read-only testing and clear missing-data messages.
+- [ ] Introduce interchangeable online/device report-data and file access, reusing the existing report loaders and PDF engine.
+- [ ] Verify selection/isolation rules and one-click previews with saved school records.
+
 - [x] Add real-learner pre-activation testing for both levels with matched/missing/unmatched checks, field corrections and saved required/optional choices.
 - [x] Enforce current successful required-association verification before activation in the database; signed-in Primary/Nursery previews, missing-data warnings, optional blanks, required-field corrections, successful activation and stale-check rejection verified; 31 focused tests pass. Temporary uploads removed and original selection restored.
 
