@@ -4,6 +4,7 @@ export type ReportQuery = { eq?: Record<string, unknown>; in?: Record<string, un
 /** Read-only boundary shared by reports, template tests and future device storage. */
 export interface ReportDataSource {
   readonly schoolId: string;
+  readonly warnings?: string[];
   read<T extends TableName>(table: T, query?: ReportQuery): Promise<Tables<T>[]>;
   assetUrl(bucket: string, path: string | null | undefined): Promise<string | null>;
   fileBytes(bucket: string, path: string): Promise<Uint8Array>;

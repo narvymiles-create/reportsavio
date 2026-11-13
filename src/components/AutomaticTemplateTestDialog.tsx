@@ -32,6 +32,7 @@ export function AutomaticTemplateTestDialog({ template, close }: { template: Sch
     {error ? <p role="alert" className="text-destructive">{error}</p> : !result ? <div role="status" className="flex items-center gap-2 py-6 text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin" />Preparing report card…</div> : <>
       <p className="text-sm text-muted-foreground">{result.learner.full_name} · {result.term.name} · {result.academicYear}</p>
       <PrimaryPdfViewer learnerIds={[result.learner.id]} termId={result.term.id} filename={`${template.name}-test`} generate={output} />
+      {result.warnings.map(warning => <p role="status" key={warning} className="text-sm text-destructive">{warning}</p>)}
       {result.fields.some(f => f.status === "Missing Data") && <p role="status" className="text-sm text-muted-foreground">Not saved: {result.fields.filter(f => f.status === "Missing Data").map(f => f.label).join(", ")}.</p>}
     </>}
   </DialogContent></Dialog>;

@@ -4,6 +4,7 @@ import type { Tables, TableName } from "./reportDataTypes";
 import type { PostgrestFilterBuilder } from "@supabase/postgrest-js";
 
 export class OnlineReportDataSource implements ReportDataSource {
+  readonly warnings: string[] = [];
   constructor(readonly schoolId: string) {
     if (!schoolId) throw new Error("Select a school before loading report data.");
   }
@@ -16,13 +17,17 @@ export class OnlineReportDataSource implements ReportDataSource {
     if (options.order) query = query.order(options.order, { ascending: options.ascending ?? true });
     if (options.limit !== undefined) query = query.limit(options.limit);
     const { data, error } = await query;
-    if (error) throw new Error(`Could not load ${bucket} image. The saved file is missing or unavailable; check the school's uploaded image.`);
+    if (error) throw error;
     return (data ?? []) as unknown as Tables<T>[];
   }
   async assetUrl(bucket: string, path: string | null | undefined) {
     if (!path) return null;
     const { data, error } = await supabase.storage.from(bucket).createSignedUrl(path, 3600);
-    if (error) throw error;
+    if (error) {
+      const warning = `A saved ${bucket} image is missing or unavailable. Upload the school's image again.`;
+      if (!this.warnings.includes(warning)) this.warnings.push(warning);
+      return null;
+    }
     return data.signedUrl;
   }
   async fileBytes(bucket: string, path: string) {

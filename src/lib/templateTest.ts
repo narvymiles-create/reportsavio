@@ -23,5 +23,5 @@ export async function testSchoolTemplate(template: SchoolTemplate, level: "prima
   ]);
   const fields = verifyTemplate(level, names, map, data.values, data.decorations.assets, [], custom.fields, recognisedValues(template, data.values, custom.fields, custom.values, learner.id, term.id));
   const areas = level === "nursery" ? checkNurseryAreas(data.values, names, map, await pdfText(blob)) : null;
-  return { ...candidate, fields, areas, blob };
+  return { ...candidate, fields, areas, blob, warnings: source.warnings ?? [] };
 }
