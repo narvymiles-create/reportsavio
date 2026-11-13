@@ -1,8 +1,9 @@
 import { templateBytes, type SchoolTemplate } from "./reportTemplates";
+import type { ReportDataSource } from "./reportDataSource";
 
 /** Printed text lines of a template (headings of tables and sections). Scanned images yield none. */
-export async function templateTextLines(template: SchoolTemplate): Promise<string[]> {
-  const [pdfjs, worker, bytes] = await Promise.all([import("pdfjs-dist"), import("pdfjs-dist/build/pdf.worker.min.mjs?url"), templateBytes(template)]);
+export async function templateTextLines(template: SchoolTemplate, source?: ReportDataSource): Promise<string[]> {
+  const [pdfjs, worker, bytes] = await Promise.all([import("pdfjs-dist"), import("pdfjs-dist/build/pdf.worker.min.mjs?url"), templateBytes(template, source)]);
   pdfjs.GlobalWorkerOptions.workerSrc = worker.default;
   const doc = await pdfjs.getDocument({ data: bytes, isEvalSupported: false }).promise;
   const lines = new Map<string, string[]>();

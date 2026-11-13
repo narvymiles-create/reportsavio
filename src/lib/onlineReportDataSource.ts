@@ -8,7 +8,8 @@ export class OnlineReportDataSource implements ReportDataSource {
   }
   async read<T extends TableName>(table: T, options: ReportQuery = {}): Promise<Tables<T>[]> {
     assertReportScope(this.schoolId, options);
-    let query = supabase.from(table).select("*").eq("school_id", this.schoolId);
+    // Query column names are validated by PostgREST; row results retain the public table type.
+    let query = supabase.from(table as TableName).select("*").eq("school_id", this.schoolId);
     for (const [key, value] of Object.entries(options.eq ?? {})) query = query.eq(key, value as string);
     for (const [key, values] of Object.entries(options.in ?? {})) query = query.in(key, values as string[]);
     if (options.order) query = query.order(options.order, { ascending: options.ascending ?? true });

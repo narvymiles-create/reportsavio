@@ -53,7 +53,7 @@ export async function loadNurseryData(learnerId: string, termId: string, provide
     source.assetUrl("signatures", s?.nursery_head_teacher_signature_path ?? s?.head_teacher_signature_path),
     source.assetUrl("signatures", cls?.class_signature_path ?? classTeacher?.signature_path), source.assetUrl("nursery-assets", l.photo_path),
   ]);
-  return { school: s ?? {}, learner: l, cls, stream, classTeacher, term: term as Any, areas, areaImageUrls, colors, assessments,
+  return { school: (s ?? {}) as Any, learner: l as Any, cls, stream, classTeacher, term: term as Any, areas, areaImageUrls, colors, assessments,
     report: { class_teacher_comment: rc?.class_teacher_comment ?? "", head_teacher_comment: rc?.head_teacher_comment ?? "" },
     borderStyle, showPayCode, assets: { logo, stamp, watermark, headSig, classSig, photo } };
 }

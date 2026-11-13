@@ -153,9 +153,9 @@ export async function generateCustomOutput(template: SchoolTemplate, learnerIds:
     const filled = await applyTemplateDecorations(placed, { ...decorations, border: settingsBorder ? decorations.borderStyle : null });
     onProgress?.(index + 1, learnerIds.length);
     if (learnerIds.length === 1) return bytesToPdfBlob(filled);
-    const source = await PDFDocument.load(filled);
-    source.getForm().flatten({ updateFieldAppearances: false });
-    const pages = await merged.copyPages(source, source.getPageIndices());
+    const document = await PDFDocument.load(filled);
+    document.getForm().flatten({ updateFieldAppearances: false });
+    const pages = await merged.copyPages(document, document.getPageIndices());
     pages.forEach(page => merged.addPage(page));
   }
   return bytesToPdfBlob(await merged.save());
