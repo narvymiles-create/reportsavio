@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { fieldValue, normalizeField, type TemplateValues } from "@/lib/pdf/template/forms";
+import type { ReportDataSource } from "./reportDataSource";
 
 export type ReportField = Tables<"report_field_definitions">;
 export type ReportValue = Tables<"report_field_values">;
@@ -32,7 +33,16 @@ export function resolveSavedValue(field: ReportField, values: ReportValue[], lea
   return value && field.field_type === "percentage" ? `${value}%` : value;
 }
 
-export async function loadReportCustomFields(schoolId: string, level: string, templateId: string) {
+export async function loadReportCustomFields(schoolId: string, level: string, templateId: string, source?: ReportDataSource) {
+  if (source) {
+    if (source.schoolId !== schoolId) throw new Error("Custom fields must belong to the current school.");
+    const [fields, values, associations] = await Promise.all([
+      source.read("report_field_definitions", { eq: { level, archived: false } }),
+      source.read("report_field_values", { eq: { level } }),
+      source.read("report_field_associations", { eq: { level, template_id: templateId } }),
+    ]);
+    return { fields, values, associations };
+  }
   const [fields, values, associations] = await Promise.all([
     supabase.from("report_field_definitions").select("*").eq("school_id", schoolId).eq("level", level).eq("archived", false),
     supabase.from("report_field_values").select("*").eq("school_id", schoolId).eq("level", level),
