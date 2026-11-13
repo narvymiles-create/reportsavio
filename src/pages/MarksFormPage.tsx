@@ -19,6 +19,7 @@ import skavioLogoUrl from "@/assets/skavio-logo-transparent.png";
 import "./MarksFormPage.css";
 import { useTemplateExams } from "@/hooks/useTemplateExams";
 import { EXAM_NAMES } from "@/lib/templateExams";
+import { useAuth } from "@/contexts/AuthContext";
 
 
 export type ExamColumn = "bot" | "mid" | "eot";
@@ -56,11 +57,22 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
   const [classId, setClassId] = useState("");
   const [streamId, setStreamId] = useState<string>("all");
   const [sortBy, setSortBy] = useState<"name" | "position">("name");
-  const [hidePosition, setHidePosition] = useState(false);
-  const [hideEmptyOptional, setHideEmptyOptional] = useState(false);
-  const [hideRemarks, setHideRemarks] = useState(false);
-  // Each marks-entry form starts with its own unchecked hide options.
-  useEffect(() => { setHidePosition(false); setHideEmptyOptional(false); setHideRemarks(false); }, [exam]);
+  // Print/download options are shared by every marks-entry form and persisted per admin + school.
+  const { user, schoolId } = useAuth();
+  const optsKey = `marks-print-options:${user?.id ?? "anon"}:${schoolId ?? "none"}`;
+  const readOpts = (key: string) => {
+    try { const o = JSON.parse(localStorage.getItem(key) || "{}"); return { hidePosition: o.hidePosition === true, hideEmptyOptional: o.hideEmptyOptional === true, hideRemarks: o.hideRemarks === true }; }
+    catch { return { hidePosition: false, hideEmptyOptional: false, hideRemarks: false }; }
+  };
+  const [opts, setOpts] = useState(() => readOpts(optsKey));
+  useEffect(() => { setOpts(readOpts(optsKey)); }, [optsKey]);
+  const updateOpt = (k: "hidePosition" | "hideEmptyOptional" | "hideRemarks", v: boolean) => {
+    setOpts((prev) => { const next = { ...prev, [k]: v }; try { localStorage.setItem(optsKey, JSON.stringify(next)); } catch { /* ignore */ } return next; });
+  };
+  const { hidePosition, hideEmptyOptional, hideRemarks } = opts;
+  const setHidePosition = (v: boolean) => updateOpt("hidePosition", v);
+  const setHideEmptyOptional = (v: boolean) => updateOpt("hideEmptyOptional", v);
+  const setHideRemarks = (v: boolean) => updateOpt("hideRemarks", v);
   const [exporting, setExporting] = useState(false);
   const examAccess = useTemplateExams();
 
