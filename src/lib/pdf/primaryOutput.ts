@@ -16,7 +16,8 @@ export async function validatePrimaryPdf(blob: Blob, expectedPages: number): Pro
   let document: PDFDocument;
   try { document = await PDFDocument.load(bytes); }
   catch { throw new Error("The report PDF could not be read. Retry preparing the report."); }
-  if (expectedPages < 1 || document.getPageCount() !== expectedPages) {
+  // expectedPages 0 = any whole number of pages (reports that genuinely need more than one A4 page).
+  if (expectedPages < 0 || document.getPageCount() < 1 || (expectedPages > 0 && document.getPageCount() !== expectedPages)) {
     throw new Error(`Expected ${expectedPages} report page(s), received ${document.getPageCount()}`);
   }
   for (const page of document.getPages()) {
@@ -39,16 +40,16 @@ export async function generatePrimaryOutput(
   if (template) return generateCustomOutput(template, learnerIds, termId, onProgress);
   if (learnerIds.length === 1) {
     const blob = await generateReportCardBlob(learnerIds[0], termId);
-    await validatePrimaryPdf(blob, 1);
+    await validatePrimaryPdf(blob, 0);
     onProgress?.(1, 1);
     return blob;
   }
   const merged = await PDFDocument.create();
+  let pageTotal = 0;
   for (const [index, learnerId] of learnerIds.entries()) {
-    const source = await validatePrimaryPdf(await generateReportCardBlob(learnerId, termId), 1);
-    const [page] = await merged.copyPages(source, [0]);
-    if (!page) throw new Error("Missing report page");
-    merged.addPage(page);
+    const source = await validatePrimaryPdf(await generateReportCardBlob(learnerId, termId), 0);
+    for (const page of await merged.copyPages(source, source.getPageIndices())) merged.addPage(page);
+    pageTotal += source.getPageCount();
     onProgress?.(index + 1, learnerIds.length);
   }
   // Ask PDF viewers not to stretch the A4 artwork. These are viewer preferences,
@@ -58,6 +59,6 @@ export async function generatePrimaryOutput(
   preferences.setPickTrayByPDFSize(true);
   const bytes = await merged.save();
   const blob = new Blob([new Uint8Array(bytes).buffer], { type: "application/pdf" });
-  await validatePrimaryPdf(blob, learnerIds.length);
+  await validatePrimaryPdf(blob, pageTotal);
   return blob;
 }
