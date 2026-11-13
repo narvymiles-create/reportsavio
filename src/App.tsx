@@ -25,6 +25,7 @@ import MarksPage from "./pages/MarksPage";
 import MarksBOTPage from "./pages/MarksBOTPage";
 import MarksMIDPage from "./pages/MarksMIDPage";
 import MarksEOTPage from "./pages/MarksEOTPage";
+import MarksAssessmentPage from "./pages/MarksAssessmentPage";
 import SignaturesPage from "./pages/SignaturesPage";
 import ReportCardsPage from "./pages/ReportCardsPage";
 import SettingsPage from "./pages/SettingsPage";
@@ -77,6 +78,7 @@ const App = () => (
             <Route path="/marks/bot" element={<Protected><MarksBOTPage /></Protected>} />
             <Route path="/marks/mid" element={<Protected><MarksMIDPage /></Protected>} />
             <Route path="/marks/eot" element={<Protected><MarksEOTPage /></Protected>} />
+            <Route path="/marks/a/:assessment" element={<Protected><MarksAssessmentPage /></Protected>} />
             <Route path="/grading" element={<Protected><GradingPage /></Protected>} />
             <Route path="/comments" element={<Protected><CommentsPage /></Protected>} />
             <Route path="/signatures" element={<Protected><SignaturesPage /></Protected>} />
