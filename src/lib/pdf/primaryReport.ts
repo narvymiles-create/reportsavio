@@ -1,3 +1,4 @@
+import { DEFAULT_ASSESSMENT_CONFIG, PRIMARY_ASSESSMENT_KEY, finalMark, isLegacy, normaliseConfig, reportAssessments, reportTables } from "@/lib/assessmentConfig";
 /**
  * Primary report card — drawn natively with pdf-lib so the PDF is a pixel
  * faithful copy of the on-screen preview / print sheet.
@@ -18,6 +19,9 @@ import {
 import { drawBorder } from "./borders";
 
 type Any = Record<string, any>;
+
+/** Pseudo assessment key holding each subject's calculated final mark. */
+export const FINAL_KEY = "__final";
 
 const FIELD_ORDER_DEFAULT = [
   "name", "stream", "house", "section", "age", "sex", "reg", "class", "pay_code",
@@ -50,7 +54,7 @@ export async function loadPrimaryData(learnerId: string, termId: string, provide
     source.read("report_cards", { eq: { learner_id: learnerId, term_id: termId } }),
     source.read("school_info", { eq: { is_active: true }, order: "created_at", ascending: false, limit: 1 }),
     source.read("grading_scales", { order: "sort_order" }),
-    source.read("system_settings", { in: { key: ["learner_fields", "learner_info_order", "border_style", "report_template_primary"] } }),
+    source.read("system_settings", { in: { key: ["learner_fields", "learner_info_order", "border_style", "report_template_primary", PRIMARY_ASSESSMENT_KEY] } }),
   ]);
   const term = terms[0], report = reports[0], school = schools[0];
   if (!term) throw new Error("Term not found in this school.");
@@ -75,26 +79,41 @@ export async function loadPrimaryData(learnerId: string, termId: string, provide
   }
   if (learner.stream_id) stream = (await source.read("streams", { eq: { id: learner.stream_id } }))[0] ?? null;
   if (klass?.class_teacher_id) classTeacher = (await source.read("teachers", { eq: { id: klass.class_teacher_id } }))[0] ?? null;
-  const marks = await source.read("marks", { eq: { term_id: termId, learner_id: learnerId } });
+  const marks: Any[] = await source.read("marks", { eq: { term_id: termId, learner_id: learnerId } });
+  const assessmentConfig = normaliseConfig(sMap[PRIMARY_ASSESSMENT_KEY]);
+  // School-configured extra assessments are stored separately; merge them into the same per-subject rows.
+  const extraIds = assessmentConfig.assessments.filter(a => !isLegacy(a.id)).map(a => a.id);
+  if (extraIds.length) {
+    const learnerIds = learner.class_id ? Array.from(new Set([learnerId, ...classMarks.map((m: Any) => m.learner_id)])) : [learnerId];
+    const extra = await source.read("assessment_marks", { eq: { term_id: termId }, in: { learner_id: learnerIds } }).catch(() => [] as Any[]);
+    const mergeInto = (rows: Any[], e: Any) => {
+      let row = rows.find(m => m.learner_id === e.learner_id && m.subject_id === e.subject_id);
+      if (!row) { row = { learner_id: e.learner_id, subject_id: e.subject_id, bot: null, mid: null, eot: null }; rows.push(row); }
+      row[e.assessment_key] = e.mark == null ? null : Number(e.mark);
+    };
+    extra.forEach((e: Any) => { if (e.learner_id === learnerId) mergeInto(marks, e); if (learner.class_id) mergeInto(classMarks, e); });
+  }
   const [logo, headSig, classSig, photo, stamp, watermark] = await Promise.all([
     source.assetUrl("school-assets", school?.logo_path), source.assetUrl("signatures", school?.head_teacher_signature_path),
     source.assetUrl("signatures", klass?.class_signature_path ?? classTeacher?.signature_path), source.assetUrl("learner-photos", learner.photo_path),
     source.assetUrl("school-assets", school?.stamp_path), source.assetUrl("school-assets", school?.watermark_path),
   ]);
   return { learner, term, report, school, klass, stream, classTeacher, bands: gs as GradeBand[], subjects: subjects.slice(0, 7), marks,
-    classSubjects, classMarks, classSize, teachersById, flags, order, borderStyle, templateSetting, assets: { logo, headSig, classSig, photo, stamp, watermark } };
+    classSubjects, classMarks, classSize, teachersById, flags, assessmentConfig, order, borderStyle, templateSetting, assets: { logo, headSig, classSig, photo, stamp, watermark } };
 }
 
 /* --------------------------------------------------------------- compute */
 
 export function computeAll(d: PrimaryData) {
   const { subjects, marks, bands } = d;
+  const cfg = d.assessmentConfig ?? DEFAULT_ASSESSMENT_CONFIG;
+  [...marks, ...d.classMarks].forEach((m: Any) => { m[FINAL_KEY] = finalMark(cfg, m); });
   const bySubject = new Map<string, Any>();
   marks.forEach((m: Any) => bySubject.set(m.subject_id, m));
   const coreIds = new Set(subjects.filter((s) => s.is_core).map((s) => s.id));
   const coreOk = coreIds.size === 4;
 
-  const summary = (phase: "bot" | "mid" | "eot") => {
+  const summary = (phase: string) => {
     const vals = subjects.map((s) => {
       const raw = bySubject.get(s.id)?.[phase];
       const v = raw != null && raw !== "" ? Number(raw) : null;
@@ -110,7 +129,7 @@ export function computeAll(d: PrimaryData) {
   };
 
   const classSubjIds = new Set(d.classSubjects.map((s) => s.id));
-  const positionFor = (phase: "bot" | "mid" | "eot") => {
+  const positionFor = (phase: string) => {
     const byLearner = new Map<string, { total: number; count: number }>();
     d.classMarks.forEach((m: Any) => {
       if (!classSubjIds.has(m.subject_id)) return;
@@ -131,10 +150,10 @@ export function computeAll(d: PrimaryData) {
     return map.get(d.learner.id) ?? null;
   };
 
-  const hasPhase = (phase: "bot" | "mid" | "eot") =>
+  const hasPhase = (phase: string) =>
     marks.some((m: Any) => m?.[phase] != null && m?.[phase] !== "");
 
-  const missingCore = (phase: "bot" | "mid" | "eot") => {
+  const missingCore = (phase: string) => {
     let missing = 0;
     coreIds.forEach((id) => {
       const raw = bySubject.get(id as string)?.[phase];
@@ -143,14 +162,14 @@ export function computeAll(d: PrimaryData) {
     return missing;
   };
 
-  const hasF9 = (phase: "bot" | "mid" | "eot") => subjects.some((s) => {
+  const hasF9 = (phase: string) => subjects.some((s) => {
     if (!isCriticalCoreSubject(s.name)) return false;
     const raw = bySubject.get(s.id)?.[phase];
     if (raw == null || raw === "" || isNaN(Number(raw))) return false;
     return gradeFor(Number(raw), bands)?.grade === "F9";
   });
 
-  const phase = (ph: "bot" | "mid" | "eot") => {
+  const phase = (ph: string) => {
     const sum = summary(ph);
     const has = hasPhase(ph);
     let division = "";
@@ -166,7 +185,7 @@ export function computeAll(d: PrimaryData) {
     };
   };
 
-  return { bySubject, coreOk, bot: phase("bot"), mid: phase("mid"), eot: phase("eot") };
+  return { bySubject, coreOk, phase, bot: phase("bot"), mid: phase("mid"), eot: phase("eot") };
 }
 
 /* ---------------------------------------------------------------- render */
@@ -246,13 +265,30 @@ const LEFT = 12;
 const RIGHT = 198;
 const CONTENT_W = RIGHT - LEFT;
 
+type Block = { kind: "phase" | "detail"; label: string; key: string } | { kind: "merged"; label: string; ids: string[] };
+
+const LEGACY_LABELS: Record<string, string> = { bot: "BEGINNING OF TERM EXAMINATION RESULTS", mid: "MID TERM EXAMINATION RESULTS", eot: "END OF TERM EXAMINATION RESULTS" };
+const DEFAULT_NAMES: Record<string, string> = { bot: "Beginning of Term", mid: "Mid-Term", eot: "End of Term" };
+
+/** Report-card tables for the school's assessment configuration (default = BOT, MID, detailed EOT). */
+export function primaryBlocks(d: Pick<PrimaryData, "assessmentConfig">): Block[] {
+  const cfg = d.assessmentConfig ?? DEFAULT_ASSESSMENT_CONFIG;
+  const label = (id: string, name: string) => DEFAULT_NAMES[id] === name ? LEGACY_LABELS[id] : `${name.toUpperCase()} RESULTS`;
+  if (cfg.arrangement === "separate") {
+    return reportAssessments(cfg).map(a => ({ kind: a.id === "eot" ? "detail" : "phase", label: label(a.id, a.name), key: a.id }));
+  }
+  const blocks: Block[] = reportTables(cfg).map(t => ({ kind: "merged", label: t.heading, ids: t.assessmentIds }));
+  if (cfg.arrangement === "merged_final") blocks.push({ kind: "detail", label: (cfg.finalHeading || "Final Results").toUpperCase(), key: FINAL_KEY });
+  return blocks;
+}
+
 export async function renderPrimaryBytes(d: PrimaryData): Promise<Uint8Array> {
   const c = computeAll(d);
   const s: Any = (d.school as Any) ?? {};
   const doc = await PDFDocument.create();
   const page = doc.addPage([mm(A4_W), mm(A4_H)]);
   const fonts = await loadFonts(doc);
-  const p = new Painter(page, fonts);
+  let p = new Painter(page, fonts);
 
   const [logo, photo, headSig, classSig, stamp, watermark] = await Promise.all([
     embedImage(doc, d.assets.logo),
@@ -263,6 +299,7 @@ export async function renderPrimaryBytes(d: PrimaryData): Promise<Uint8Array> {
     embedImage(doc, d.assets.watermark),
   ]);
 
+  const decorate = () => {
   /* Watermark sits underneath everything. */
   if (s.watermark_enabled && watermark) {
     const opacity = s.watermark_opacity ?? 0.3;
@@ -283,6 +320,10 @@ export async function renderPrimaryBytes(d: PrimaryData): Promise<Uint8Array> {
 
   /* Outer frame comes only from Settings → Report Card Border Style. */
   drawBorder(p, d.borderStyle);
+
+  };
+  decorate();
+  const newPage = () => { p = new Painter(doc.addPage([mm(A4_W), mm(A4_H)]), fonts); decorate(); y = 13; };
 
   const subjects = d.subjects;
   const n = Math.max(subjects.length, 1);
@@ -369,24 +410,41 @@ export async function renderPrimaryBytes(d: PrimaryData): Promise<Uint8Array> {
   const PAGE_BOTTOM = 283;
   const tailH = BOTTOM_H + DATES_H + GRADE_BLOCK_H + MOTTO_H + 6;
 
-  const phaseFixed = 5 + 3 * 6.2 + 6.5 + 2.5;   // label + 3 rows + summary + gap
+  let rowUnit = 6.2;                             // phase / merged row height
+  let phaseFixed = 5 + 3 * rowUnit + 6.5 + 2.5;   // label + 3 rows + summary + gap
   const eotFixed = 5 + 6.5 + 6.5 + 2.5;         // label + header + summary + gap
+  const blocks = primaryBlocks(d);
+  let mergedH = (rows: number) => 5 + rowUnit * (rows + 1) + 2.5;
+  const fixedOf = (b: Block) => b.kind === "merged" ? mergedH(b.ids.length) : b.kind === "phase" ? phaseFixed : eotFixed;
+  let fixed = blocks.reduce((t, b) => t + fixedOf(b), 0);
+  const detailCount = blocks.filter(b => b.kind === "detail").length;
   const avail = PAGE_BOTTOM - tailH - y;
-  const eotRowH = Math.min(11, Math.max(6, (avail - phaseFixed * 2 - eotFixed) / n));
+  const smallRows = blocks.reduce((t, b) => t + (b.kind === "phase" ? 3 : b.kind === "merged" ? b.ids.length + 1 : 0), 0);
+  const setUnit = (u: number) => { rowUnit = u; phaseFixed = 5 + 3 * u + 6.5 + 2.5; mergedH = (rows: number) => 5 + u * (rows + 1) + 2.5; fixed = blocks.reduce((t, b) => t + fixedOf(b), 0); };
+  // Slightly tighter (still readable) rows before resorting to a second page.
+  if (avail - fixed - 6 * n * detailCount < 0) setUnit(5.4);
+  let eotRowH = detailCount ? Math.min(11, Math.max(6, (avail - fixed) / (n * detailCount))) : 0;
   /* Any leftover height is absorbed by the comments block so the card never
      leaves a large blank gap above the grading table. */
-  const slack = avail - phaseFixed * 2 - eotFixed - eotRowH * n;
+  let slack = avail - fixed - eotRowH * n * detailCount;
+  // Content that genuinely needs more room flows onto extra A4 pages at readable sizes.
+  const multiPage = slack < 0;
+  if (multiPage) { eotRowH = 7.5; slack = 0; setUnit(6.2); }
+  // Short layouts (few or merged tables) grow their rows instead of leaving a gap above the grading table.
+  if (slack > 14 && smallRows && (detailCount === 0 || eotRowH >= 11)) { const grow = Math.min(4.5, (slack - 14) / smallRows); setUnit(rowUnit + grow); slack -= grow * smallRows; }
   BOTTOM_H += Math.max(0, Math.min(14, slack));
+  const room = (h: number) => { if (multiPage && y + h > PAGE_BOTTOM) newPage(); };
 
   /* ------------------------------------------------------------ BOT / MID */
   const drawPhase = (
     label: string,
-    phaseKey: "bot" | "mid",
+    phaseKey: string,
     info: { total: number; avg: number; division: string; aggregateText: string; position: number | null; classSize: number },
   ) => {
+    room(phaseFixed);
     p.text(label, { x: LEFT, y, width: CONTENT_W, size: 9, bold: true, align: "center" });
     y += 5;
-    const rowH = 6.2;
+    const rowH = rowUnit;
     const w = cols(LEFT, CONTENT_W, [1.5, ...subjects.map(() => 1)]);
     const rows: { text: (i: number) => string; bold?: boolean; fill?: string; label: string }[] = [
       { label: "SUBJECTS", bold: true, fill: HEAD_FILL, text: (i) => codeFor(subjects[i].name) },
@@ -439,11 +497,10 @@ export async function renderPrimaryBytes(d: PrimaryData): Promise<Uint8Array> {
     y += h;
   };
 
-  drawPhase("BEGINNING OF TERM EXAMINATION RESULTS", "bot", c.bot);
-  drawPhase("MID TERM EXAMINATION RESULTS", "mid", c.mid);
 
-  /* ----------------------------------------------------------------- EOT */
-  p.text("END OF TERM EXAMINATION RESULTS", { x: LEFT, y, width: CONTENT_W, size: 9, bold: true, align: "center" });
+  const drawDetail = (label: string, key: string) => {
+  room(eotFixed + eotRowH * n);
+  p.text(label, { x: LEFT, y, width: CONTENT_W, size: 9, bold: true, align: "center" });
   y += 5;
   const eotCols = cols(LEFT, CONTENT_W, [2.6, 1.3, 1.3, 1.1, 1.7, 1.1]);
   const eotHead = ["SUBJECTS", "FULL MARKS", "MARKS GOT", "GRADE", "REMARKS", "INITIALS"];
@@ -455,7 +512,7 @@ export async function renderPrimaryBytes(d: PrimaryData): Promise<Uint8Array> {
   y += 6.5;
   subjects.forEach((sub, ri) => {
     const m = c.bySubject.get(sub.id);
-    const raw = m?.eot;
+    const raw = m?.[key];
     const has = raw != null && raw !== "" && !isNaN(Number(raw));
     const band = has ? gradeFor(Number(raw), d.bands) : null;
     const vals = [
@@ -473,8 +530,42 @@ export async function renderPrimaryBytes(d: PrimaryData): Promise<Uint8Array> {
     });
   });
   y += eotRowH * subjects.length;
-  drawSummary(c.eot);
+  drawSummary(c.phase(key));
   y += 2.5;
+  };
+
+
+  const drawMerged = (heading: string, ids: string[]) => {
+    room(mergedH(ids.length));
+    p.text(heading.toUpperCase(), { x: LEFT, y, width: CONTENT_W, size: 9, bold: true, align: "center" });
+    y += 5;
+    const rowH = rowUnit;
+    const extras = ["TOTAL", "AVERAGE", ...(d.flags.show_position ? ["POSITION"] : []), "AGG", "DIV"];
+    const w = cols(LEFT, CONTENT_W, [2, ...subjects.map(() => 1), ...extras.map(() => 1.05)]);
+    const head = ["ASSESSMENT", ...subjects.map(s0 => codeFor(s0.name)), ...extras];
+    head.forEach((h, i) => { const b = { x: w[i].x, y, w: w[i].w, h: rowH }; cellBox(p, b, HEAD_FILL); cellText(p, h, b, { bold: true, size: 7.2 }); });
+    ids.forEach((id, ri) => {
+      const ry = y + (ri + 1) * rowH;
+      const info = c.phase(id);
+      const name = d.assessmentConfig.assessments.find(a => a.id === id)?.name ?? id;
+      const cells = [name.toUpperCase(), ...subjects.map(s0 => {
+        const raw = c.bySubject.get(s0.id)?.[id];
+        if (raw == null || raw === "" || isNaN(Number(raw))) return "";
+        return `${raw} ${gradeFor(Number(raw), d.bands)?.grade ?? ""}`.trim();
+      }), info.total ? String(info.total) : "", info.avg ? String(info.avg) : "",
+        ...(d.flags.show_position ? [info.position && info.classSize ? `${info.position}/${info.classSize}` : ""] : []),
+        info.aggregateText, info.division];
+      cells.forEach((v, i) => { const b = { x: w[i].x, y: ry, w: w[i].w, h: rowH }; cellBox(p, b, i === 0 ? HEAD_FILL : undefined); cellText(p, v, b, { bold: i === 0, size: 7.4 }); });
+    });
+    y += rowH * (ids.length + 1) + 2.5;
+  };
+
+  for (const b of blocks) {
+    if (b.kind === "merged") drawMerged(b.label, b.ids);
+    else if (b.kind === "phase") drawPhase(b.label, b.key, c.phase(b.key));
+    else if (b.kind === "detail") drawDetail(b.label, b.key);
+  }
+  if (multiPage && y + tailH - 6 > PAGE_BOTTOM) newPage();
 
   /* -------------------------------------- conduct, comments and signatures */
   const bottomTop = y;
@@ -584,7 +675,6 @@ export async function primaryReportBlob(learnerId: string, termId: string): Prom
 export async function appendPrimaryReport(target: PDFDocument, learnerId: string, termId: string) {
   const bytes = await primaryReportBytes(learnerId, termId);
   const src = await PDFDocument.load(bytes);
-  const [page] = await target.copyPages(src, [0]);
-  target.addPage(page);
+  for (const page of await target.copyPages(src, src.getPageIndices())) target.addPage(page);
 }
 

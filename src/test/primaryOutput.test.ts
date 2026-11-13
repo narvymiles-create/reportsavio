@@ -72,9 +72,10 @@ describe("Primary output page contract", () => {
     expect(progress.mock.calls).toEqual([[1, 3], [2, 3], [3, 3]]);
   });
 
-  it("rejects extra blank pages rather than silently printing them", async () => {
+  it("keeps every page of a report that genuinely needs two A4 pages, in bulk too", async () => {
     generator.mockResolvedValue(await sample(2));
-    await expect(generatePrimaryOutput(["one"], "term")).rejects.toThrow("Expected 1 report page(s), received 2");
+    const pdf = await validatePrimaryPdf(await generatePrimaryOutput(["one", "two"], "term"), 4);
+    expect(pdf.getPageCount()).toBe(4);
   });
 
   it("rejects pages that are not A4 portrait", async () => {
