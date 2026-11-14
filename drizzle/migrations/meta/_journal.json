@@ -71,6 +71,13 @@
       "when": 1794583723780,
       "tag": "0009_assessment_marks",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1794698847548,
+      "tag": "0010_assessment_marks_admin_writes",
+      "breakpoints": true
     }
   ]
 }
