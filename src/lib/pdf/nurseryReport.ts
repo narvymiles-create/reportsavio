@@ -7,6 +7,8 @@ import type { ReportDataSource } from "@/lib/reportDataSource";
 import { currentReportDataSource } from "@/lib/onlineReportDataSource";
 import { A4_H, A4_W, Painter, embedImage, loadFonts, mm, bytesToPdfBlob } from "./core";
 import { drawBorder } from "./borders";
+import { APPEARANCE_KEY, parseAppearance, type ReportAppearance } from "@/lib/reportAppearance";
+import { AppearancePainter } from "./appearancePainter";
 
 type Any = Record<string, any>;
 
@@ -27,7 +29,7 @@ export async function loadNurseryData(learnerId: string, termId: string, provide
   const [l] = await source.read("nursery_learners", { eq: { id: learnerId } });
   if (!l) throw new Error("Learner not found in this school.");
   const [settingsRows, schools, terms, areas, colors, ams, reports] = await Promise.all([
-    source.read("system_settings", { in: { key: ["border_style", "learner_fields"] } }),
+    source.read("system_settings", { in: { key: ["border_style", "learner_fields", APPEARANCE_KEY] } }),
     source.read("school_info", { eq: { is_active: true }, order: "created_at", ascending: false, limit: 1 }),
     source.read("terms", { eq: { id: termId } }), source.read("nursery_learning_areas", { order: "sort_order" }),
     source.read("nursery_grade_colors", { order: "sort_order" }),
@@ -55,7 +57,7 @@ export async function loadNurseryData(learnerId: string, termId: string, provide
   ]);
   return { school: (s ?? {}) as Any, learner: l as Any, cls, stream, classTeacher, term: term as Any, areas, areaImageUrls, colors, assessments,
     report: { class_teacher_comment: rc?.class_teacher_comment ?? "", head_teacher_comment: rc?.head_teacher_comment ?? "" },
-    borderStyle, showPayCode, assets: { logo, stamp, watermark, headSig, classSig, photo } };
+    borderStyle, showPayCode, appearance: parseAppearance(sMap[APPEARANCE_KEY]), assets: { logo, stamp, watermark, headSig, classSig, photo } };
 }
 
 export type NurseryData = Awaited<ReturnType<typeof loadNurseryData>>;
@@ -66,12 +68,13 @@ export async function buildNurseryReportPdf(learnerId: string, termId: string, d
 }
 
 /** Draws one nursery report page onto a (new or existing) document. */
-export async function renderNurseryReport(d: NurseryData, doc?: PDFDocument): Promise<PDFDocument> {
+export async function renderNurseryReport(d: NurseryData & { appearance?: ReportAppearance }, doc?: PDFDocument): Promise<PDFDocument> {
   const pdf = doc ?? (await PDFDocument.create());
   const page = pdf.addPage([mm(A4_W), mm(A4_H)]);
   const fonts = await loadFonts(pdf);
-  const p = new Painter(page, fonts);
   const s: Any = d.school ?? {};
+  const p = new AppearancePainter(page, fonts, d.appearance, !!s.watermark_enabled);
+  p.background();
 
   const [logo, photo, stamp, watermark, classSig, headSig] = await Promise.all([
     embedImage(pdf, d.assets.logo),
@@ -92,7 +95,7 @@ export async function renderNurseryReport(d: NurseryData, doc?: PDFDocument): Pr
     p.image(watermark, { x: cx - w / 2, y: cy - h / 2, w, h }, { opacity: Number(s.watermark_opacity ?? 0.15) });
   }
 
-  drawBorder(p, d.borderStyle);
+  drawBorder(new Painter(page, fonts), d.borderStyle);
 
   /* Header ------------------------------------------------------------- */
   let y = 13;
@@ -110,11 +113,14 @@ export async function renderNurseryReport(d: NurseryData, doc?: PDFDocument): Pr
   const midX = X0 + boxW + 3;
   const midW = photoX - midX - 3;
   let ty = y;
+  p.textRole = "schoolName";
   ty += p.text((s.name ?? "SCHOOL NAME").toUpperCase(), { x: midX, y: ty, width: midW, align: "center", size: 13, bold: true, color: "#1a2a52" });
+  p.textRole = "schoolInfo";
   if (s.motto) ty += p.text(String(s.motto), { x: midX, y: ty, width: midW, align: "center", size: 6.8, italic: true, color: "#444444" });
   ty += 1;
   p.line(midX + midW * 0.15, ty, midX + midW * 0.85, ty, { color: "#1a2a52", width: 0.4 });
   ty += 1.6;
+  p.textRole = "reportTitle";
   ty += p.text(d.term ? `${(d.term.name ?? "").toUpperCase()} ASSESSMENT` : "TERM ASSESSMENT",
     { x: midX, y: ty, width: midW, align: "center", size: 8.6, bold: true });
   ty += 0.8;
@@ -122,10 +128,14 @@ export async function renderNurseryReport(d: NurseryData, doc?: PDFDocument): Pr
   const field = (label: string, value: string, x: number, yy: number) => {
     const size = 7.2;
     const lw = p.widthOf(label, size, { bold: true });
+    p.textRole = "infoLabel";
     p.text(label, { x, y: yy, size, bold: true });
+    p.textRole = "infoValue";
     p.text(value ?? "", { x: x + lw + 1, y: yy, size });
     return lw + 1 + p.widthOf(value ?? "", size);
   };
+  p.section("infoValue", "infoBackground", "infoBorder");
+  if (d.appearance?.infoBackground) p.rect({ x: midX, y: ty, w: midW, h: 13 });
   field("Pupil's Name:", d.learner.full_name ?? "", midX, ty);
   ty += 4.4;
   const cols3 = midW / 3;
@@ -156,6 +166,7 @@ export async function renderNurseryReport(d: NurseryData, doc?: PDFDocument): Pr
   const colorMap = new Map<string, string>();
   d.colors.forEach((c) => colorMap.set(String(c.grade).toUpperCase(), c.color));
 
+  p.section("rowHeading", "tableBackground", "tableBorder");
   d.areas.forEach((a, i) => {
     const ry = areasTop + i * rowH;
     if (ry + rowH > keyTop) return;
@@ -166,9 +177,12 @@ export async function renderNurseryReport(d: NurseryData, doc?: PDFDocument): Pr
 
     const textX = X0 + imgW + 2;
     const textW = W - imgW - gradeW - 4;
+    p.textRole = "rowHeading";
+    if (d.appearance?.rowBackground) { const fill = p.fillRole; p.fillRole = "rowBackground"; p.rect({ x: textX, y: ry + 0.5, w: textW, h: 4.5 }); p.fillRole = fill; }
     p.text(a.name ?? "", { x: textX, y: ry + 1.2, size: 7.4, bold: true, width: textW });
     const comment = d.assessments[a.id]?.comment ?? "";
     if (comment) {
+      p.textRole = "commentText";
       p.paragraph(comment, { x: textX, y: ry + 5.4, size: 6.8, width: textW, maxLines: Math.max(1, Math.floor((rowH - 6) / 3)), color: "#1d4ed8" });
     }
 
@@ -177,17 +191,20 @@ export async function renderNurseryReport(d: NurseryData, doc?: PDFDocument): Pr
       const bg = colorMap.get(grade) ?? "#e5e7eb";
       const gx = X0 + W - gradeW + 2.5;
       const gh = Math.min(8, rowH - 2);
-      p.rect({ x: gx, y: ry + (rowH - gh) / 2, w: gradeW - 5, h: gh, fill: bg, border: "#333333", lineWidth: 0.2 });
+      new Painter(page, fonts).rect({ x: gx, y: ry + (rowH - gh) / 2, w: gradeW - 5, h: gh, fill: bg, border: "#333333", lineWidth: 0.2 });
+      p.textRole = "tableText";
       p.textInBox(grade, { x: gx, y: ry + (rowH - gh) / 2, w: gradeW - 5, h: gh }, { size: 7.4, bold: true });
     }
   });
 
   /* Key ----------------------------------------------------------------- */
   let kx = X0 + 1;
+  p.textRole = "tableTitle";
   p.text("KEY", { x: kx, y: keyTop + 1.6, size: 7, bold: true });
   kx += 8;
   d.colors.forEach((c) => {
-    p.rect({ x: kx, y: keyTop + 1, w: 6, h: 4.5, fill: c.color, border: "#333333", lineWidth: 0.2 });
+    new Painter(page, fonts).rect({ x: kx, y: keyTop + 1, w: 6, h: 4.5, fill: c.color, border: "#333333", lineWidth: 0.2 });
+    p.textRole = "tableText";
     p.textInBox(String(c.grade), { x: kx, y: keyTop + 1, w: 6, h: 4.5 }, { size: 6 });
     kx += 7;
     const label = `- ${c.label}`;
@@ -198,10 +215,13 @@ export async function renderNurseryReport(d: NurseryData, doc?: PDFDocument): Pr
   /* Comments ------------------------------------------------------------ */
   const halfW = W / 2;
   const commentCell = (x: number, title: string, body: string, img: typeof classSig, name: string) => {
+    p.section("commentHeading", "commentBackground", "commentBorder");
     p.rect({ x, y: commentsTop, w: halfW, h: COMMENTS_H, border: LINE, lineWidth: LW });
     p.text(title, { x: x + 2, y: commentsTop + 1.6, size: 7, bold: true });
+    p.textRole = "commentText";
     p.paragraph(body ?? "", { x: x + 2, y: commentsTop + 5.6, size: 6.8, width: halfW - 4, maxLines: 4 });
     const signY = commentsTop + COMMENTS_H - 9;
+    p.textRole = "designation";
     p.text("Sign:", { x: x + 2, y: signY + 4, size: 6.6, bold: true });
     const lineX1 = x + 11, lineX2 = x + halfW * 0.62;
     if (img) p.image(img, { x: lineX1, y: signY - 1.5, w: lineX2 - lineX1, h: 7 });
@@ -213,6 +233,7 @@ export async function renderNurseryReport(d: NurseryData, doc?: PDFDocument): Pr
     s.nursery_head_teacher_name ?? s.head_teacher_name ?? "");
 
   /* Footer + motto ------------------------------------------------------ */
+  p.textRole = "dates";
   p.text(`Next term begins on: ${fmtDate(d.term?.next_begins_on)}`, { x: X0, y: FOOTER_Y, width: W / 2, align: "center", size: 7, bold: true });
   p.text(`Ends on: ${fmtDate(d.term?.ends_on ?? d.term?.end_date)}`, { x: X0 + W / 2, y: FOOTER_Y, width: W / 2, align: "center", size: 7, bold: true });
   if (s.motto) p.text(String(s.motto), { x: X0, y: MOTTO_Y, width: W, align: "center", size: 7.4, bold: true, italic: true, color: "#1a2a52" });
