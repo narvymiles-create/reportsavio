@@ -1,9 +1,11 @@
-import { PDFDocument, StandardFonts } from "pdf-lib";
+import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import { hexToRgb } from "../core";
+import { appearanceRoleForSource, type ReportAppearance } from "@/lib/reportAppearance";
 import type { ReportAssociation } from "@/lib/reportCustomFields";
 
 export type FilledAssociation = ReportAssociation & { value: string; multiline: boolean };
 /** Coordinates are PDF points from the top left; artwork is never erased or reflowed. */
-export async function applyCustomPlacements(bytes: Uint8Array, associations: FilledAssociation[]) {
+export async function applyCustomPlacements(bytes: Uint8Array, associations: FilledAssociation[], appearance: ReportAppearance = {}) {
   const placements = associations.filter(a => !a.pdf_field && a.value);
   if (!placements.length) return bytes;
   const doc = await PDFDocument.load(bytes);
@@ -32,7 +34,9 @@ export async function applyCustomPlacements(bytes: Uint8Array, associations: Fil
     lines.forEach((line, i) => {
       const width = font.widthOfTextAtSize(line, size);
       const x = a.x + (a.align === "center" ? (a.width - width) / 2 : a.align === "right" ? a.width - width : 0);
-      page.drawText(line, { x, y: page.getHeight() - a.y - size - i * size * 1.2, size, font });
+      const colour = appearance[appearanceRoleForSource(a.source_key ?? "")];
+      const c = colour ? hexToRgb(colour) : null;
+      page.drawText(line, { x, y: page.getHeight() - a.y - size - i * size * 1.2, size, font, color: c ? rgb(c.r, c.g, c.b) : undefined });
     });
   }
   return doc.save({ updateFieldAppearances: false });

@@ -17,6 +17,8 @@ import {
   A4_H, A4_W, INK, MM, Painter, bytesToPdfBlob, embedImage, loadFonts, mm,
 } from "./core";
 import { drawBorder } from "./borders";
+import { APPEARANCE_KEY, parseAppearance, type ReportAppearance } from "@/lib/reportAppearance";
+import { AppearancePainter } from "./appearancePainter";
 
 type Any = Record<string, any>;
 
@@ -54,7 +56,7 @@ export async function loadPrimaryData(learnerId: string, termId: string, provide
     source.read("report_cards", { eq: { learner_id: learnerId, term_id: termId } }),
     source.read("school_info", { eq: { is_active: true }, order: "created_at", ascending: false, limit: 1 }),
     source.read("grading_scales", { order: "sort_order" }),
-    source.read("system_settings", { in: { key: ["learner_fields", "learner_info_order", "border_style", "report_template_primary", PRIMARY_ASSESSMENT_KEY] } }),
+    source.read("system_settings", { in: { key: ["learner_fields", "learner_info_order", "border_style", "report_template_primary", PRIMARY_ASSESSMENT_KEY, APPEARANCE_KEY] } }),
   ]);
   const term = terms[0], report = reports[0], school = schools[0];
   if (!term) throw new Error("Term not found in this school.");
@@ -80,7 +82,7 @@ export async function loadPrimaryData(learnerId: string, termId: string, provide
   if (learner.stream_id) stream = (await source.read("streams", { eq: { id: learner.stream_id } }))[0] ?? null;
   if (klass?.class_teacher_id) classTeacher = (await source.read("teachers", { eq: { id: klass.class_teacher_id } }))[0] ?? null;
   const marks: Any[] = await source.read("marks", { eq: { term_id: termId, learner_id: learnerId } });
-  const assessmentConfig = normaliseConfig(sMap[PRIMARY_ASSESSMENT_KEY]);
+  const assessmentConfig = normaliseConfig(sMap[PRIMARY_ASSESSMENT_KEY, APPEARANCE_KEY]);
   // School-configured extra assessments are stored separately; merge them into the same per-subject rows.
   const extraIds = assessmentConfig.assessments.filter(a => !isLegacy(a.id)).map(a => a.id);
   if (extraIds.length) {
@@ -99,7 +101,7 @@ export async function loadPrimaryData(learnerId: string, termId: string, provide
     source.assetUrl("school-assets", school?.stamp_path), source.assetUrl("school-assets", school?.watermark_path),
   ]);
   return { learner, term, report, school, klass, stream, classTeacher, bands: gs as GradeBand[], subjects: subjects.slice(0, 7), marks,
-    classSubjects, classMarks, classSize, teachersById, flags, assessmentConfig, order, borderStyle, templateSetting, assets: { logo, headSig, classSig, photo, stamp, watermark } };
+    classSubjects, classMarks, classSize, teachersById, flags, assessmentConfig, order, borderStyle, templateSetting, appearance: parseAppearance(sMap[APPEARANCE_KEY]), assets: { logo, headSig, classSig, photo, stamp, watermark } };
 }
 
 /* --------------------------------------------------------------- compute */
@@ -240,7 +242,11 @@ function labelValue(
   while (s > 4.4 && total() > box.w - 2) s -= 0.2;
   const lw = p.widthOf(`${label} `, s, { bold: true }) + 0.6;
   const y = box.y + (box.h - (s * 1.0) / MM) / 2;
+  const ap = p instanceof AppearancePainter ? p : null;
+  const role = ap?.textRole;
+  if (ap && role !== "dates") ap.textRole = role === "conductText" ? "conductLabel" : "infoLabel";
   p.text(label, { x: box.x + 1, y, size: s, bold: true });
+  if (ap && role) ap.textRole = role;
   if (val) p.text(val, { x: box.x + 1 + lw, y, size: s });
 }
 
@@ -282,13 +288,13 @@ export function primaryBlocks(d: Pick<PrimaryData, "assessmentConfig">): Block[]
   return blocks;
 }
 
-export async function renderPrimaryBytes(d: PrimaryData): Promise<Uint8Array> {
+export async function renderPrimaryBytes(d: PrimaryData & { appearance?: ReportAppearance }): Promise<Uint8Array> {
   const c = computeAll(d);
   const s: Any = (d.school as Any) ?? {};
   const doc = await PDFDocument.create();
   const page = doc.addPage([mm(A4_W), mm(A4_H)]);
   const fonts = await loadFonts(doc);
-  let p = new Painter(page, fonts);
+  let p = new AppearancePainter(page, fonts, d.appearance, !!s.watermark_enabled);
 
   const [logo, photo, headSig, classSig, stamp, watermark] = await Promise.all([
     embedImage(doc, d.assets.logo),
@@ -300,6 +306,7 @@ export async function renderPrimaryBytes(d: PrimaryData): Promise<Uint8Array> {
   ]);
 
   const decorate = () => {
+  p.background();
   /* Watermark sits underneath everything. */
   if (s.watermark_enabled && watermark) {
     const opacity = s.watermark_opacity ?? 0.3;
@@ -319,11 +326,11 @@ export async function renderPrimaryBytes(d: PrimaryData): Promise<Uint8Array> {
   }
 
   /* Outer frame comes only from Settings → Report Card Border Style. */
-  drawBorder(p, d.borderStyle);
+  drawBorder(new Painter(p.page, fonts), d.borderStyle);
 
   };
   decorate();
-  const newPage = () => { p = new Painter(doc.addPage([mm(A4_W), mm(A4_H)]), fonts); decorate(); y = 13; };
+  const newPage = () => { p = new AppearancePainter(doc.addPage([mm(A4_W), mm(A4_H)]), fonts, d.appearance, !!s.watermark_enabled); decorate(); y = 13; };
 
   const subjects = d.subjects;
   const n = Math.max(subjects.length, 1);
@@ -382,11 +389,13 @@ export async function renderPrimaryBytes(d: PrimaryData): Promise<Uint8Array> {
   if (contact) lines.push(contact);
 
   const nameSize = fitSize(p, (s.name ?? "SCHOOL NAME").toUpperCase(), 17, midW, { bold: true });
+  p.textRole = "schoolName";
   p.text((s.name ?? "SCHOOL NAME").toUpperCase(), {
     x: midX, y: y + 1, width: midW, size: nameSize, bold: true, align: "center",
   });
   let ly = y + 1 + (nameSize * 1.35) / MM;
   const lineSize = Math.min(8.5 + contactBoost * 1.2, Math.max(6, (HEAD_H - (ly - y) - 1) / Math.max(lines.length, 1) * MM / 1.35));
+  p.textRole = "schoolInfo";
   lines.forEach((l) => {
     const sz = fitSize(p, l, lineSize, midW);
     p.text(l, { x: midX, y: ly, width: midW, size: sz, align: "center" });
@@ -400,6 +409,7 @@ export async function renderPrimaryBytes(d: PrimaryData): Promise<Uint8Array> {
   /* ------------------------------------------------------------------ title */
   const title = `LEARNER'S ASSESSMENT REPORT CARD    TERM: ${d.term.name ?? ""}    YEAR: ${d.term.year ?? ""}`;
   const tSize = fitSize(p, title, 11.5, CONTENT_W, { bold: true });
+  p.textRole = "reportTitle";
   p.text(title, { x: LEFT, y, width: CONTENT_W, size: tSize, bold: true, align: "center" });
   y += 6.5;
 
@@ -425,7 +435,8 @@ export async function renderPrimaryBytes(d: PrimaryData): Promise<Uint8Array> {
   ].filter((f) => f.on);
 
   const INFO_ROW_H = 8.5;
-  p.roundRect({ x: LEFT, y, w: CONTENT_W, h: INFO_ROW_H * 2, r: 2.5, border: GRID, lineWidth: 0.4 });
+  p.section("infoValue", "infoBackground", "infoBorder");
+  p.roundRect({ x: LEFT, y, w: CONTENT_W, h: INFO_ROW_H * 2, fill: d.appearance?.infoBackground, r: 2.5, border: GRID, lineWidth: 0.4 });
   [row1, row2].forEach((row, ri) => {
     /* Weight each field by the space its label + value actually needs so long
        values shrink neighbours instead of falling to a third row. */
@@ -446,7 +457,9 @@ export async function renderPrimaryBytes(d: PrimaryData): Promise<Uint8Array> {
     info: { total: number; avg: number; division: string; aggregateText: string; position: number | null; classSize: number },
   ) => {
     room(phaseFixed);
-    p.text(label, { x: LEFT, y, width: CONTENT_W, size: 9, bold: true, align: "center" });
+    p.section("tableTitle", "tableBackground", "tableBorder");
+    p.section("tableTitle", "tableBackground", "tableBorder");
+  p.text(label, { x: LEFT, y, width: CONTENT_W, size: 9, bold: true, align: "center" });
     y += 5;
     const rowH = rowUnit;
     const w = cols(LEFT, CONTENT_W, [1.5, ...subjects.map(() => 1)]);
@@ -463,10 +476,12 @@ export async function renderPrimaryBytes(d: PrimaryData): Promise<Uint8Array> {
     ];
     rows.forEach((r, ri) => {
       const ry = y + ri * rowH;
+      p.section("rowHeading", "rowBackground", "tableBorder");
       cellBox(p, { x: w[0].x, y: ry, w: w[0].w, h: rowH }, HEAD_FILL);
       cellText(p, r.label, { x: w[0].x, y: ry, w: w[0].w, h: rowH }, { bold: true, size: 7.5 });
       subjects.forEach((_, i) => {
         const b = { x: w[i + 1].x, y: ry, w: w[i + 1].w, h: rowH };
+        p.section(ri === 0 ? "columnHeading" : "tableText", ri === 0 ? "columnBackground" : "tableBackground", "tableBorder");
         cellBox(p, b, r.fill);
         cellText(p, r.text(i), b, { bold: !!r.bold, size: 8 });
       });
@@ -477,6 +492,7 @@ export async function renderPrimaryBytes(d: PrimaryData): Promise<Uint8Array> {
   };
 
   const drawSummary = (info: { total: number; avg: number; division: string; aggregateText: string; position: number | null; classSize: number }) => {
+    p.section("rowHeading", "tableBackground", "tableBorder");
     const items = [
       { l: "TOTAL:", v: info.total ? String(info.total) : "" },
       { l: "AVERAGE:", v: info.avg ? String(info.avg) : "" },
@@ -495,7 +511,9 @@ export async function renderPrimaryBytes(d: PrimaryData): Promise<Uint8Array> {
       while (size > 4.6 && p.widthOf(`${it.l} ${it.v}`, size, { bold: true }) > b.w - 3) size -= 0.2;
       const lw = p.widthOf(`${it.l} `, size, { bold: true }) + 0.6;
       const ty = b.y + (b.h - (size * 1.0) / MM) / 2;
+      p.textRole = "rowHeading";
       p.text(it.l, { x: b.x + 1.5, y: ty, size, bold: true });
+      p.textRole = "tableText";
       if (it.v) p.text(it.v, { x: b.x + 1.5 + lw, y: ty, size, bold: true });
     });
     y += h;
@@ -504,16 +522,19 @@ export async function renderPrimaryBytes(d: PrimaryData): Promise<Uint8Array> {
 
   const drawDetail = (label: string, key: string) => {
   room(eotFixed + eotRowH * n);
+  p.section("tableTitle", "tableBackground", "tableBorder");
   p.text(label, { x: LEFT, y, width: CONTENT_W, size: 9, bold: true, align: "center" });
   y += 5;
   const eotCols = cols(LEFT, CONTENT_W, [2.6, 1.3, 1.3, 1.1, 1.7, 1.1]);
   const eotHead = ["SUBJECTS", "FULL MARKS", "MARKS GOT", "GRADE", "REMARKS", "INITIALS"];
+  p.section("columnHeading", "columnBackground", "tableBorder");
   eotHead.forEach((h, i) => {
     const b = { x: eotCols[i].x, y, w: eotCols[i].w, h: 6.5 };
     cellBox(p, b, HEAD_FILL);
     cellText(p, h, b, { bold: true, size: 7.8 });
   });
   y += 6.5;
+  p.section("tableText", "tableBackground", "tableBorder");
   subjects.forEach((sub, ri) => {
     const m = c.bySubject.get(sub.id);
     const raw = m?.[key];
@@ -541,12 +562,14 @@ export async function renderPrimaryBytes(d: PrimaryData): Promise<Uint8Array> {
 
   const drawMerged = (heading: string, ids: string[]) => {
     room(mergedH(ids.length));
+    p.section("tableTitle", "tableBackground", "tableBorder");
     p.text(heading.toUpperCase(), { x: LEFT, y, width: CONTENT_W, size: 9, bold: true, align: "center" });
     y += 5;
     const rowH = rowUnit;
     const extras = ["TOTAL", "AVERAGE", ...(d.flags.show_position ? ["POSITION"] : []), "AGG", "DIV"];
     const w = cols(LEFT, CONTENT_W, [2, ...subjects.map(() => 1), ...extras.map(() => 1.05)]);
     const head = ["ASSESSMENT", ...subjects.map(s0 => codeFor(s0.name)), ...extras];
+    p.section("columnHeading", "columnBackground", "tableBorder");
     head.forEach((h, i) => { const b = { x: w[i].x, y, w: w[i].w, h: rowH }; cellBox(p, b, HEAD_FILL); cellText(p, h, b, { bold: true, size: 7.2 }); });
     ids.forEach((id, ri) => {
       const ry = y + (ri + 1) * rowH;
@@ -559,7 +582,7 @@ export async function renderPrimaryBytes(d: PrimaryData): Promise<Uint8Array> {
       }), info.total ? String(info.total) : "", info.avg ? String(info.avg) : "",
         ...(d.flags.show_position ? [info.position && info.classSize ? `${info.position}/${info.classSize}` : ""] : []),
         info.aggregateText, info.division];
-      cells.forEach((v, i) => { const b = { x: w[i].x, y: ry, w: w[i].w, h: rowH }; cellBox(p, b, i === 0 ? HEAD_FILL : undefined); cellText(p, v, b, { bold: i === 0, size: 7.4 }); });
+      cells.forEach((v, i) => { p.section(i === 0 ? "rowHeading" : "tableText", i === 0 ? "rowBackground" : "tableBackground", "tableBorder"); const b = { x: w[i].x, y: ry, w: w[i].w, h: rowH }; cellBox(p, b, i === 0 ? HEAD_FILL : undefined); cellText(p, v, b, { bold: i === 0, size: 7.4 }); });
     });
     y += rowH * (ids.length + 1) + 2.5;
   };
@@ -579,6 +602,8 @@ export async function renderPrimaryBytes(d: PrimaryData): Promise<Uint8Array> {
   const conductH = 7.5;
   const commentH = (BOTTOM_H - conductH) / 2;
 
+  p.section("conductText", "commentBackground", "commentBorder");
+  if (d.appearance?.commentBackground) p.roundRect({ x: LEFT, y: bottomTop, w: CONTENT_W, h: BOTTOM_H, r: 2.5, fill: d.appearance.commentBackground, border: GRID, lineWidth: 0.4 });
   const conductCols = cols(LEFT, CONTENT_W, [1, 1]);
   [
     { l: "Learner's Conduct & Behavior:", v: d.learner.conduct ?? "" },
@@ -596,6 +621,7 @@ export async function renderPrimaryBytes(d: PrimaryData): Promise<Uint8Array> {
     const cy = bottomTop + conductH + i * commentH;
     const lb = { x: LEFT, y: cy, w: leftW, h: commentH };
     // Label centred at the top; the comment starts at the table's left margin below it.
+    p.textRole = "commentHeading";
     p.text(cm.l, { x: lb.x, y: cy + 1.3, width: leftW, size: 7.6, bold: true, align: "center" });
     const textTop = cy + 1.3 + 7.6 * 1.25 / MM;
     const textW = leftW - 3;
@@ -604,10 +630,12 @@ export async function renderPrimaryBytes(d: PrimaryData): Promise<Uint8Array> {
     while (cs > 5.5 && p.wrap(cm.v, cs, textW).length > maxLines) cs -= 0.2;
     const cl = p.wrap(cm.v, cs, textW).slice(0, Math.max(maxLines, 1));
     let ty = textTop + Math.max(0, (cy + commentH - textTop - cl.length * (cs * 1.2) / MM) / 2 - 0.4);
+    p.textRole = "commentText";
     cl.forEach((line) => { ty += p.text(line, { x: lb.x + 1.5, y: ty, size: cs, lineHeight: 1.2 }); });
 
     const rb = { x: LEFT + leftW, y: cy, w: rightW, h: commentH };
     if (cm.sig) p.image(cm.sig, { x: rb.x + 6, y: rb.y + 1, w: rb.w - 12, h: commentH * 0.5 });
+    p.textRole = "designation";
     cellText(p, cm.name, { x: rb.x, y: rb.y + commentH * 0.55, w: rb.w, h: commentH * 0.45 }, { size: 8 });
   });
   // One rounded frame with inner dividers, matching the learner details box.
@@ -619,6 +647,7 @@ export async function renderPrimaryBytes(d: PrimaryData): Promise<Uint8Array> {
   y = bottomTop + BOTTOM_H;
 
   /* ----------------------------------------------------------- term dates */
+  p.section("dates", "pageBackground", "infoBorder");
   const dateCols = cols(LEFT, CONTENT_W, [1, 1]);
   [
     { l: "Term Ends On:", v: fmtDate(d.term.ends_on ?? d.term.end_date) },
@@ -634,6 +663,7 @@ export async function renderPrimaryBytes(d: PrimaryData): Promise<Uint8Array> {
   const mottoY = PAGE_BOTTOM - MOTTO_H + 1;
   const gradeTableH = 12;
   const gradeTitleY = mottoY - gradeTableH - 6.5;
+  p.section("tableTitle", "tableBackground", "tableBorder");
   p.text("SCHOOL GRADING SYSTEM", { x: LEFT, y: Math.max(y + 2, gradeTitleY), width: CONTENT_W, size: 9, bold: true, align: "center" });
 
   const bandsList = d.bands.filter((b) => b.grade);
@@ -643,10 +673,12 @@ export async function renderPrimaryBytes(d: PrimaryData): Promise<Uint8Array> {
   ["GRADE", "MARKS"].forEach((rowLabel, ri) => {
     const ry = gTop + ri * gRowH;
     const lb = { x: gCols[0].x, y: ry, w: gCols[0].w, h: gRowH };
+    p.section("rowHeading", "rowBackground", "tableBorder");
     cellBox(p, lb, HEAD_FILL);
     cellText(p, rowLabel, lb, { bold: true, size: 7.8 });
     bandsList.forEach((b, i) => {
       const cb = { x: gCols[i + 1].x, y: ry, w: gCols[i + 1].w, h: gRowH };
+      p.section(ri === 0 ? "columnHeading" : "tableText", ri === 0 ? "columnBackground" : "tableBackground", "tableBorder");
       cellBox(p, cb, ri === 0 ? HEAD_FILL : undefined);
       cellText(p, ri === 0 ? String(b.grade) : `${b.min_mark}-${b.max_mark}`, cb, { bold: ri === 0, size: 7.6 });
     });
@@ -655,6 +687,7 @@ export async function renderPrimaryBytes(d: PrimaryData): Promise<Uint8Array> {
   if (s.motto) {
     const motto = `"${String(s.motto).replace(/^"|"$/g, "")}"`;
     const size = fitSize(p, motto, 9, CONTENT_W, { bold: true, italic: true });
+    p.textRole = "dates";
     p.text(motto, { x: LEFT, y: mottoY, width: CONTENT_W, size, bold: true, italic: true, align: "center" });
   }
 

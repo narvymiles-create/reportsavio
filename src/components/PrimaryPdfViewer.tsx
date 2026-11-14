@@ -7,6 +7,7 @@ import { safeFilename, triggerBlobDownload } from "@/lib/pdf/core";
 import { createPrimaryPdfSession } from "@/lib/pdf/primaryPdfSession";
 import { PrimaryPdfPages } from "@/components/PrimaryPdfPages";
 import { toast } from "@/hooks/use-toast";
+import { APPEARANCE_CHANGED } from "@/lib/reportAppearance";
 
 type Props = {
   learnerIds: string[];
@@ -25,6 +26,7 @@ export function PrimaryPdfViewer({ learnerIds, termId, autoPrint = false, filena
   const [error, setError] = useState("");
   const [done, setDone] = useState(0);
   const [retry, setRetry] = useState(0);
+  useEffect(() => { const changed = () => setRetry(v => v + 1); window.addEventListener(APPEARANCE_CHANGED, changed); return () => window.removeEventListener(APPEARANCE_CHANGED, changed); }, []);
   const key = JSON.stringify([learnerIds, termId, retry]);
   const currentKey = useRef(key);
   currentKey.current = key;

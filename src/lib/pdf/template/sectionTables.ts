@@ -1,4 +1,6 @@
-import { PDFDocument, StandardFonts } from "pdf-lib";
+import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import { hexToRgb } from "../core";
+import { appearanceRoleForSource, type ReportAppearance } from "@/lib/reportAppearance";
 import type { TemplateValues } from "./forms";
 import type { StaticTable } from "@/lib/templateSections";
 
@@ -9,7 +11,7 @@ export function tableCellText(table: StaticTable, values: TemplateValues, row: n
 }
 
 /** One-time positioned tables for fixed/scanned PDFs: evenly divided cells in top-left PDF points; artwork is untouched. */
-export async function applySectionTables(bytes: Uint8Array, tables: StaticTable[], values: TemplateValues) {
+export async function applySectionTables(bytes: Uint8Array, tables: StaticTable[], values: TemplateValues, appearance: ReportAppearance = {}) {
   if (!tables.length) return bytes;
   const doc = await PDFDocument.load(bytes);
   const font = await doc.embedFont(StandardFonts.Helvetica);
@@ -26,7 +28,9 @@ export async function applySectionTables(bytes: Uint8Array, tables: StaticTable[
       while (text.length > 1 && font.widthOfTextAtSize(text, size) > cellW - 2) text = text.slice(0, -1);
       const x = t.x + c * cellW + (cellW - font.widthOfTextAtSize(text, size)) / 2;
       const y = page.getHeight() - (t.y + (r - 1) * cellH) - (cellH + size * 0.7) / 2;
-      page.drawText(text, { x, y, size, font });
+      const colour = appearance[appearanceRoleForSource(`table.${t.section}.${r}.${column}`)];
+      const c = colour ? hexToRgb(colour) : null;
+      page.drawText(text, { x, y, size, font, color: c ? rgb(c.r, c.g, c.b) : undefined });
     });
   }
   return doc.save({ updateFieldAppearances: false });

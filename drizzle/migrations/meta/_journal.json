@@ -78,6 +78,13 @@
       "when": 1794698847548,
       "tag": "0010_assessment_marks_admin_writes",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1794700296106,
+      "tag": "0011_school_report_appearance_validation",
+      "breakpoints": true
     }
   ]
 }

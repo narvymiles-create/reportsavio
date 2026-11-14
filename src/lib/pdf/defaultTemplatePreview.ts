@@ -3,9 +3,10 @@ import { bytesToPdfBlob } from "./core";
 import { loadPrimaryData, renderPrimaryBytes, type PrimaryData } from "./primaryReport";
 import { loadNurseryData, renderNurseryReport, type NurseryData } from "./nurseryReport";
 import type { Level } from "./template/registry";
+import { APPEARANCE_KEY, parseAppearance, type ReportAppearance } from "@/lib/reportAppearance";
 
 /** Use the default renderer directly, never the school's active alternative. */
-export async function defaultTemplatePreview(level: Level, schoolId: string): Promise<Blob> {
+export async function defaultTemplatePreview(level: Level, schoolId: string, appearance?: ReportAppearance): Promise<Blob> {
   const [{ data: learners, error: learnerError }, { data: terms, error: termError }] = await Promise.all([
     supabase.from(level === "primary" ? "learners" : "nursery_learners").select("id").eq("school_id", schoolId).order("full_name").limit(1),
     supabase.from("terms").select("*").eq("school_id", schoolId).order("is_current", { ascending: false }).limit(1),
@@ -15,8 +16,9 @@ export async function defaultTemplatePreview(level: Level, schoolId: string): Pr
   const learner = learners?.[0];
   const term = terms?.[0];
   if (learner && term) {
-    if (level === "primary") return bytesToPdfBlob(await renderPrimaryBytes(await loadPrimaryData(learner.id, term.id)));
-    return bytesToPdfBlob(await (await renderNurseryReport(await loadNurseryData(learner.id, term.id))).save());
+    if (level === "primary") { const data = await loadPrimaryData(learner.id, term.id); return bytesToPdfBlob(await renderPrimaryBytes({ ...data, appearance: appearance ?? data.appearance })); }
+    const data = await loadNurseryData(learner.id, term.id);
+    return bytesToPdfBlob(await (await renderNurseryReport({ ...data, appearance: appearance ?? data.appearance })).save());
   }
   const [{ data: school }, { data: settings }, { data: bands }, { data: areas }, { data: colors }] = await Promise.all([
     supabase.from("school_info").select("*").eq("school_id", schoolId).eq("is_active", true).limit(1).maybeSingle(),
@@ -26,7 +28,7 @@ export async function defaultTemplatePreview(level: Level, schoolId: string): Pr
     supabase.from("nursery_grade_colors").select("*").eq("school_id", schoolId).order("sort_order"),
   ]);
   const border = settings?.find(s => s.key === "border_style")?.value;
-  const common = { school: school ?? {}, learner: { full_name: "" }, term: term ?? {}, stream: null, classTeacher: null,
+  const common = { appearance: appearance ?? parseAppearance(settings?.find(s => s.key === APPEARANCE_KEY)?.value), school: school ?? {}, learner: { full_name: "" }, term: term ?? {}, stream: null, classTeacher: null,
     report: { class_teacher_comment: "", head_teacher_comment: "" }, borderStyle: typeof border === "string" ? border : "double",
     assets: { logo: null, photo: null, stamp: null, watermark: null, classSig: null, headSig: null } };
   if (level === "primary") {

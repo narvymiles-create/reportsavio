@@ -1873,6 +1873,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      report_colour_luminance: { Args: { c: string }; Returns: number }
       select_report_template: {
         Args: { _level: string; _template_id?: string }
         Returns: undefined

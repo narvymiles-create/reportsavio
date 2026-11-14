@@ -1,4 +1,5 @@
-import { PDFDocument, PDFTextField, StandardFonts } from "pdf-lib";
+import { PDFDocument, PDFTextField, StandardFonts, rgb } from "pdf-lib";
+import { hexToRgb } from "../core";
 
 export type TemplateValues = Record<string, string | number | null | undefined>;
 export const normalizeField = (name: string) => name.trim().toLowerCase().replace(/[\s_-]+/g, ".");
@@ -67,7 +68,7 @@ export async function inspectTemplate(bytes: Uint8Array) {
   return { pageCount: doc.getPageCount(), width: page.getWidth(), height: page.getHeight(), fieldNames: textFields.map(f => f.getName()), unsupportedCount: fields.length - textFields.length };
 }
 
-export async function fillTemplate(bytes: Uint8Array, values: TemplateValues, overrides: TemplateValues = {}): Promise<Uint8Array> {
+export async function fillTemplate(bytes: Uint8Array, values: TemplateValues, overrides: TemplateValues = {}, colours: Record<string, string> = {}): Promise<Uint8Array> {
   const doc = await PDFDocument.load(bytes);
   const form = doc.getForm();
   if (form.hasXFA()) throw new Error("XFA templates cannot be populated.");
@@ -83,6 +84,8 @@ export async function fillTemplate(bytes: Uint8Array, values: TemplateValues, ov
     const maxLength = field.getMaxLength();
     if (maxLength !== undefined && value.length > maxLength) throw new Error(`“${field.getName()}” exceeds the template's field length.`);
     field.setText(value);
+    const colour = colours[key];
+    if (colour) { const c = hexToRgb(colour); field.setTextColor(rgb(c.r, c.g, c.b)); }
     field.updateAppearances(font);
     field.enableReadOnly();
   }
