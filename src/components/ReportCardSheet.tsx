@@ -11,7 +11,7 @@ type Anything = Record<string, any>;
 
 async function signedUrl(bucket: string, path: string | null): Promise<string | null> {
   if (!path) return null;
-  const { data } = await supabase.storage.from(bucket).createSignedUrl(path, 3600);
+  const { data } = await supabase.storage.from(bucket).createSignedUrl(path, 60);
   return data?.signedUrl ?? null;
 }
 

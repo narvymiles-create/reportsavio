@@ -76,7 +76,7 @@ export default function SchoolInfoPage() {
     if (row?.logo_path) {
       const { data: signed } = await supabase.storage
         .from("school-assets")
-        .createSignedUrl(row.logo_path, 3600);
+        .createSignedUrl(row.logo_path, 60);
       setLogoUrl(signed?.signedUrl ?? null);
     } else {
       setLogoUrl(null);
@@ -84,7 +84,7 @@ export default function SchoolInfoPage() {
     if (row?.stamp_path) {
       const { data: signed } = await supabase.storage
         .from("school-assets")
-        .createSignedUrl(row.stamp_path, 3600);
+        .createSignedUrl(row.stamp_path, 60);
       setStampUrl(signed?.signedUrl ?? null);
     } else {
       setStampUrl(null);
@@ -92,7 +92,7 @@ export default function SchoolInfoPage() {
     if (row?.watermark_path) {
       const { data: signed } = await supabase.storage
         .from("school-assets")
-        .createSignedUrl(row.watermark_path, 3600);
+        .createSignedUrl(row.watermark_path, 60);
       setWatermarkUrl(signed?.signedUrl ?? null);
     } else {
       setWatermarkUrl(null);

@@ -127,7 +127,7 @@ export default function LearnersPage() {
       const map: Record<string, string> = {};
       await Promise.all(
         withPhotos.map(async (x) => {
-          const { data } = await supabase.storage.from("learner-photos").createSignedUrl(x.photo_path!, 3600);
+          const { data } = await supabase.storage.from("learner-photos").createSignedUrl(x.photo_path!, 60);
           if (data?.signedUrl) map[x.id] = data.signedUrl;
         })
       );

@@ -74,20 +74,20 @@ export function NurseryReportSheet({ learnerId, termId, onReady, pageBreak }: Pr
       let watermarkBase64: string | null = null;
       let headSigBase64: string | null = null;
       if ((s as any)?.logo_path) {
-        const { data: u } = await supabase.storage.from("school-assets").createSignedUrl((s as any).logo_path, 3600);
+        const { data: u } = await supabase.storage.from("school-assets").createSignedUrl((s as any).logo_path, 60);
         logoBase64 = await preloadImageAsBase64(u?.signedUrl ?? null);
       }
       if ((s as any)?.stamp_path) {
-        const { data: u } = await supabase.storage.from("school-assets").createSignedUrl((s as any).stamp_path, 3600);
+        const { data: u } = await supabase.storage.from("school-assets").createSignedUrl((s as any).stamp_path, 60);
         stampBase64 = await preloadImageAsBase64(u?.signedUrl ?? null);
       }
       if ((s as any)?.watermark_path) {
-        const { data: u } = await supabase.storage.from("school-assets").createSignedUrl((s as any).watermark_path, 3600);
+        const { data: u } = await supabase.storage.from("school-assets").createSignedUrl((s as any).watermark_path, 60);
         watermarkBase64 = await preloadImageAsBase64(u?.signedUrl ?? null);
       }
       const headSigPath = (s as any)?.nursery_head_teacher_signature_path ?? (s as any)?.head_teacher_signature_path;
       if (headSigPath) {
-        const { data: u } = await supabase.storage.from("signatures").createSignedUrl(headSigPath, 3600);
+        const { data: u } = await supabase.storage.from("signatures").createSignedUrl(headSigPath, 60);
         headSigBase64 = await preloadImageAsBase64(u?.signedUrl ?? null);
       }
 
@@ -108,7 +108,7 @@ export function NurseryReportSheet({ learnerId, termId, onReady, pageBreak }: Pr
           const { data: t } = await supabase.from("teachers" as any).select("*").eq("id", (c as any).class_teacher_id).maybeSingle();
           teacherData = t;
           if ((t as any)?.signature_path) {
-            const { data: u } = await supabase.storage.from("signatures").createSignedUrl((t as any).signature_path, 3600);
+            const { data: u } = await supabase.storage.from("signatures").createSignedUrl((t as any).signature_path, 60);
             classSigBase64 = await preloadImageAsBase64(u?.signedUrl ?? null);
           }
         }
@@ -140,7 +140,7 @@ export function NurseryReportSheet({ learnerId, termId, onReady, pageBreak }: Pr
         const { data: c2 } = await supabase.from("nursery_classes" as any).select("class_signature_path").eq("id", (l as any)?.class_id).maybeSingle();
         const csp = (c2 as any)?.class_signature_path;
         if (csp) {
-          const { data: u } = await supabase.storage.from("signatures").createSignedUrl(csp, 3600);
+          const { data: u } = await supabase.storage.from("signatures").createSignedUrl(csp, 60);
           if (u?.signedUrl) classSigBase64 = await preloadImageAsBase64(u.signedUrl);
         }
       } catch {}
