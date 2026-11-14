@@ -56,7 +56,7 @@ const primaryGroups = [
     ],
   },
   { label: "Reports", items: [{ title: "Report Cards", url: "/report-cards", icon: FileText }, { title: "Report Templates", url: "/report-templates", icon: FileText }] },
-  { label: "System", items: [{ title: "Settings", url: "/settings", icon: SettingsIcon }] },
+  { label: "System", items: [{ title: "Report Appearance", url: "/report-appearance", icon: Palette }, { title: "Settings", url: "/settings", icon: SettingsIcon }] },
 ];
 
 const nurseryGroups = [
@@ -82,7 +82,7 @@ const nurseryGroups = [
     ],
   },
   { label: "Reports", items: [{ title: "Nursery Report Cards", url: "/nursery/reports", icon: FileText }, { title: "Report Templates", url: "/report-templates", icon: FileText }] },
-  { label: "System", items: [{ title: "Nursery Settings", url: "/settings", icon: SettingsIcon }] },
+  { label: "System", items: [{ title: "Report Appearance", url: "/report-appearance", icon: Palette }, { title: "Nursery Settings", url: "/settings", icon: SettingsIcon }] },
 ];
 
 export function AppSidebar() {
