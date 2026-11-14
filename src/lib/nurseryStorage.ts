@@ -8,7 +8,7 @@ const BUCKET = "nursery-assets";
  */
 export async function nurserySignedUrl(
   path: string | null | undefined,
-  expiresInSeconds: number = 3600,
+  expiresInSeconds: number = 60,
 ): Promise<string | null> {
   if (!path) return null;
   const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(path, expiresInSeconds);

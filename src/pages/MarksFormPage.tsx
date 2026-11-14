@@ -417,7 +417,7 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
         row.DIVISION = calc?.div ?? "";
         return row;
       });
-      const csv = `\uFEFF${Papa.unparse(rows)}`;
+      const csv = `\uFEFF${Papa.unparse(rows.map((r: Record<string, unknown>) => Object.fromEntries(Object.entries(r).map(([k, v]) => [k, typeof v === "string" && /^[=+\-@\t\r]/.test(v) ? `'${v}` : v]))))}`;
       triggerBlobDownload(new Blob([csv], { type: "text/csv;charset=utf-8" }), `${exportFilename()}.csv`);
       toast({ title: "Excel CSV downloaded" });
     } catch (error: unknown) {
