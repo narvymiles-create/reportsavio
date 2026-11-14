@@ -87,7 +87,7 @@ export function NurseryReportSheet({ learnerId, termId, onReady, pageBreak }: Pr
       }
       const headSigPath = (s as any)?.nursery_head_teacher_signature_path ?? (s as any)?.head_teacher_signature_path;
       if (headSigPath) {
-        const { data: u } = await supabase.storage.from("signatures").createSignedUrl(headSigPath, 3600);
+        const { data: u } = await supabase.storage.from("signatures").createSignedUrl(headSigPath, 60);
         headSigBase64 = await preloadImageAsBase64(u?.signedUrl ?? null);
       }
 
@@ -140,7 +140,7 @@ export function NurseryReportSheet({ learnerId, termId, onReady, pageBreak }: Pr
         const { data: c2 } = await supabase.from("nursery_classes" as any).select("class_signature_path").eq("id", (l as any)?.class_id).maybeSingle();
         const csp = (c2 as any)?.class_signature_path;
         if (csp) {
-          const { data: u } = await supabase.storage.from("signatures").createSignedUrl(csp, 3600);
+          const { data: u } = await supabase.storage.from("signatures").createSignedUrl(csp, 60);
           if (u?.signedUrl) classSigBase64 = await preloadImageAsBase64(u.signedUrl);
         }
       } catch {}

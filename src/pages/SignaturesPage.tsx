@@ -28,7 +28,7 @@ function SignatureCell({ path, onChange, kind }: { path: string | null; onChange
   useEffect(() => {
     let cancelled = false;
     if (!path) { setUrl(null); return; }
-    supabase.storage.from("signatures").createSignedUrl(path, 3600).then(({ data }) => {
+    supabase.storage.from("signatures").createSignedUrl(path, 60).then(({ data }) => {
       if (!cancelled) setUrl(data?.signedUrl ?? null);
     });
     return () => { cancelled = true; };

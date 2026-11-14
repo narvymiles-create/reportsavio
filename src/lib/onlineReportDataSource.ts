@@ -28,7 +28,7 @@ export class OnlineReportDataSource implements ReportDataSource {
   }
   async assetUrl(bucket: string, path: string | null | undefined) {
     if (!path) return null;
-    const { data, error } = await supabase.storage.from(bucket).createSignedUrl(path, 3600);
+    const { data, error } = await supabase.storage.from(bucket).createSignedUrl(path, 60);
     if (error) {
       const warning = `A saved ${bucket} image is missing or unavailable. Upload the school's image again.`;
       if (!this.warnings.includes(warning)) this.warnings.push(warning);
