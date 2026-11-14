@@ -12,6 +12,7 @@ import type { ReportDataSource } from "@/lib/reportDataSource";
 import { currentReportDataSource } from "@/lib/onlineReportDataSource";
 import { recogniseField, usableStaticTables, valueKey, type Level, type SectionMap } from "@/lib/templateSections";
 import { applySectionTables } from "./template/sectionTables";
+import { appearanceRoleForSource, type ReportAppearance } from "@/lib/reportAppearance";
 
 const fmtDate = (value?: string | null) => value ? new Date(value).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" }) : "";
 
@@ -27,7 +28,7 @@ export async function customReportValues(level: string, learnerId: string, termI
 }
 
 /** Same loaders and calculations as the default report cards, flattened into template keys. */
-export async function customReportData(level: string, learnerId: string, termId: string, schoolId?: string, academicYear?: number, provider?: ReportDataSource): Promise<{ values: TemplateValues; decorations: Omit<TemplateDecorations, "border"> & { borderStyle: string } }> {
+export async function customReportData(level: string, learnerId: string, termId: string, schoolId?: string, academicYear?: number, provider?: ReportDataSource): Promise<{ values: TemplateValues; appearance: ReportAppearance; decorations: Omit<TemplateDecorations, "border"> & { borderStyle: string } }> {
   const source = provider ?? await currentReportDataSource();
   if (schoolId && source.schoolId !== schoolId) throw new Error("The template must belong to the current school.");
   const d = level === "primary" ? await loadPrimaryData(learnerId, termId, source) : await loadNurseryData(learnerId, termId, source);
@@ -119,7 +120,7 @@ export async function customReportData(level: string, learnerId: string, termId:
       }
     });
   }
-  return { values, decorations: { level, school: d.school, assets: d.assets, borderStyle: d.borderStyle } };
+  return { values, appearance: d.appearance, decorations: { level, school: d.school, assets: d.assets, borderStyle: d.borderStyle } };
 }
 
 export const sectionMapOf = (template: Pick<SchoolTemplate, "section_map">): SectionMap => (template.section_map && typeof template.section_map === "object" && !Array.isArray(template.section_map) ? template.section_map : {}) as SectionMap;
@@ -137,7 +138,7 @@ export function recognisedValues(template: Pick<SchoolTemplate, "level" | "field
   return out;
 }
 
-export async function generateCustomOutput(template: SchoolTemplate, learnerIds: string[], termId: string, onProgress?: (done: number, total: number) => void, academicYear?: number, provider?: ReportDataSource): Promise<Blob> {
+export async function generateCustomOutput(template: SchoolTemplate, learnerIds: string[], termId: string, onProgress?: (done: number, total: number) => void, academicYear?: number, provider?: ReportDataSource, appearanceOverride?: ReportAppearance): Promise<Blob> {
   if (!learnerIds.length) throw new Error("No learners selected");
   const source = provider ?? await currentReportDataSource();
   if (source.schoolId !== template.school_id) throw new Error("The template must belong to the current school.");
@@ -146,10 +147,12 @@ export async function generateCustomOutput(template: SchoolTemplate, learnerIds:
   const settingsBorder = await usesSettingsBorder(source, template.level);
   const merged = await PDFDocument.create();
   for (const [index, learnerId] of learnerIds.entries()) {
-    const { values, decorations } = await customReportData(template.level, learnerId, termId, template.school_id, academicYear, source);
+    const { values, decorations, appearance: savedAppearance } = await customReportData(template.level, learnerId, termId, template.school_id, academicYear, source);
+    const appearance = appearanceOverride ?? savedAppearance;
     const associations = associationValues(custom, values, learnerId, termId);
     const overrides = { ...Object.fromEntries(associations.filter(a => a.pdf_field).map(a => [normalizeField(a.pdf_field ?? ""), a.value])), ...recognisedValues(template, values, custom.fields, custom.values, learnerId, termId) };
-    const placed = await applySectionTables(await applyCustomPlacements(await fillTemplate(bytes, values, overrides), associations), usableStaticTables(template.level as Level, templateFieldNames(template), sectionMapOf(template)), values);
+    const colours = Object.fromEntries(templateFieldNames(template).flatMap(name => { const sourceKey = valueKey(recogniseField(name, template.level as Level, sectionMapOf(template))) ?? associations.find(a => a.pdf_field === name)?.source_key ?? ""; const colour = appearance[appearanceRoleForSource(sourceKey)]; return colour ? [[normalizeField(name), colour]] : []; }));
+    const placed = await applySectionTables(await applyCustomPlacements(await fillTemplate(bytes, values, overrides, colours), associations, appearance), usableStaticTables(template.level as Level, templateFieldNames(template), sectionMapOf(template)), values, appearance);
     const filled = await applyTemplateDecorations(placed, { ...decorations, border: settingsBorder ? decorations.borderStyle : null });
     onProgress?.(index + 1, learnerIds.length);
     if (learnerIds.length === 1) return bytesToPdfBlob(filled);
