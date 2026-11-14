@@ -1,5 +1,10 @@
 # Roadmap
 
+## School report appearance
+- [ ] Add school-isolated appearance settings, presets, contrast validation and live PDF preview.
+- [ ] Apply semantic colours through shared Primary/Nursery and editable uploaded-template output without changing layouts or grading.
+- [ ] Test two-school persistence/isolation, both report renderers and signed-in preview/download/print flows.
+
 - [x] Make Test Template automatically preview a suitable real learner in the current school/level, with read-only testing and clear missing-data messages; activation keeps its existing verification flow.
 - [x] Introduce interchangeable online/device report-data and file access, reusing the existing report loaders and PDF engine; future device installation/synchronisation is not part of this change.
 - [x] Verify selection/isolation rules and signed-in Primary/Nursery one-click previews with saved school records; Nursery download checked, no report-data writes during testing, temporary template removed and original section restored. Missing saved photo files are reported rather than replaced.
