@@ -84,6 +84,7 @@ function AppearanceEditor({ schoolId, level }: { schoolId: string; level: "prima
       </div>
       <div className="min-w-0 xl:sticky xl:top-4">
         <h2 className="font-semibold mb-3">Live report card preview</h2>
+        {preview && "empty" in preview && preview.empty && <p className="text-sm text-muted-foreground mb-3">No saved {level === "primary" ? "Primary" : "Nursery"} learner and term are available. Empty report shown.</p>}
         {preview && <PrimaryPdfViewer learnerIds={["appearance-preview"]} termId="appearance-preview" generate={generate} filename={`${level}-appearance-preview`} />}
       </div>
     </div>}
