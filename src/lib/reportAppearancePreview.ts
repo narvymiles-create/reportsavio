@@ -16,7 +16,7 @@ export async function loadAppearancePreview(schoolId: string, level: "primary" |
     source.read("report_templates", { eq: { level, is_active: true }, limit: 1 }),
   ]);
   const learner = learners[0], term = terms[0];
-  if (!learner || !term) return { template: null, render: (appearance: ReportAppearance) => defaultTemplatePreview(level, schoolId, appearance) };
+  if (!learner || !term) return { template: null, empty: true, render: (appearance: ReportAppearance) => defaultTemplatePreview(level, schoolId, appearance) };
   const template = templates[0] as SchoolTemplate | undefined;
   if (template) return { template, render: (appearance: ReportAppearance) => generateCustomOutput(template, [learner.id], term.id, undefined, undefined, source, appearance) };
   const data = level === "primary" ? await loadPrimaryData(learner.id, term.id, source) : await loadNurseryData(learner.id, term.id, source);

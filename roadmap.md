@@ -1,9 +1,11 @@
 # Roadmap
 
 ## School report appearance
-- [ ] Add school-isolated appearance settings, presets, contrast validation and live PDF preview.
-- [ ] Apply semantic colours through shared Primary/Nursery and editable uploaded-template output without changing layouts or grading.
-- [ ] Test two-school persistence/isolation, both report renderers and signed-in preview/download/print flows.
+- [x] Add school-isolated appearance settings, presets, contrast validation and live PDF preview.
+- [x] Apply semantic colours through shared Primary/Nursery and editable uploaded-template output without changing layouts or grading; immutable printed/scanned artwork cannot be recoloured safely.
+- [x] Test two-school provider isolation and both PDF renderers; 119 tests pass. Signed-in Primary save/reload/preview/download/native PDF opening and cross-school/unreadable-write rejection verified; Nursery save/reload/empty preview/download verified. Original colours restored.
+- [ ] Verify saved themes using two live schools — blocked: temporary live-backend test administrator was declined; only the current school is accessible.
+- [ ] Verify Nursery with real learners and native physical printing — blocked: current school has no Nursery learners; headless Chrome cannot verify the native print dialog or physical output.
 
 - [x] Make Test Template automatically preview a suitable real learner in the current school/level, with read-only testing and clear missing-data messages; activation keeps its existing verification flow.
 - [x] Introduce interchangeable online/device report-data and file access, reusing the existing report loaders and PDF engine; future device installation/synchronisation is not part of this change.
