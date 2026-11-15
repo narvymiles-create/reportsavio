@@ -82,7 +82,7 @@ export async function loadPrimaryData(learnerId: string, termId: string, provide
   if (learner.stream_id) stream = (await source.read("streams", { eq: { id: learner.stream_id } }))[0] ?? null;
   if (klass?.class_teacher_id) classTeacher = (await source.read("teachers", { eq: { id: klass.class_teacher_id } }))[0] ?? null;
   const marks: Any[] = await source.read("marks", { eq: { term_id: termId, learner_id: learnerId } });
-  const assessmentConfig = normaliseConfig(sMap[PRIMARY_ASSESSMENT_KEY, APPEARANCE_KEY]);
+  const assessmentConfig = normaliseConfig(sMap[PRIMARY_ASSESSMENT_KEY]);
   // School-configured extra assessments are stored separately; merge them into the same per-subject rows.
   const extraIds = assessmentConfig.assessments.filter(a => !isLegacy(a.id)).map(a => a.id);
   if (extraIds.length) {
@@ -458,8 +458,7 @@ export async function renderPrimaryBytes(d: PrimaryData & { appearance?: ReportA
   ) => {
     room(phaseFixed);
     p.section("tableTitle", "tableBackground", "tableBorder");
-    p.section("tableTitle", "tableBackground", "tableBorder");
-  p.text(label, { x: LEFT, y, width: CONTENT_W, size: 9, bold: true, align: "center" });
+    p.text(label, { x: LEFT, y, width: CONTENT_W, size: 9, bold: true, align: "center" });
     y += 5;
     const rowH = rowUnit;
     const w = cols(LEFT, CONTENT_W, [1.5, ...subjects.map(() => 1)]);
