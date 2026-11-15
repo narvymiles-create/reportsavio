@@ -85,20 +85,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [refreshFor]);
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error: error?.message };
+    const { error } = await supabase.auth.signInWithPassword({ email: email.trim().toLowerCase(), password });
+    if (!error) return {};
+    if (/not confirmed/i.test(error.message)) return { error: "Please confirm your email first. Use the link we sent you, or resend it below." };
+    if (/invalid login/i.test(error.message)) return { error: "Incorrect email or password." };
+    return { error: error.message };
   };
 
   const signUp = async (email: string, password: string, fullName: string) => {
-    const { error } = await supabase.auth.signUp({
-      email,
+    const { data, error } = await supabase.auth.signUp({
+      email: email.trim().toLowerCase(),
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/`,
+        emailRedirectTo: `${window.location.origin}/auth?verified=1`,
         data: { full_name: fullName },
       },
     });
-    return { error: error?.message };
+    if (error) return { error: error.message };
+    // An existing address returns a user with no identities: don't create a duplicate.
+    if (data.user && (data.user.identities?.length ?? 0) === 0) {
+      return { error: "An account with this email already exists. Please sign in instead." };
+    }
+    return {};
   };
 
   const signOut = async () => {
