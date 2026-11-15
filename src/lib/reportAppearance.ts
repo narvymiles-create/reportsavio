@@ -32,7 +32,7 @@ export function appearanceWarnings(value: ReportAppearance, level = "primary") {
   if (!Object.keys(value).length) return [];
   const c = { ...defaultColours(level), ...value };
   const pairs: [AppearanceRole, AppearanceRole][] = [["schoolName", "pageBackground"], ["schoolInfo", "pageBackground"], ["reportTitle", "pageBackground"], ["tableTitle", "pageBackground"], ["dates", "pageBackground"], ["infoLabel", "infoBackground"], ["infoValue", "infoBackground"], ["columnHeading", "columnBackground"], ["rowHeading", "rowBackground"], ["tableText", "tableBackground"], ["conductLabel", "commentBackground"], ["conductText", "commentBackground"], ["commentHeading", "commentBackground"], ["commentText", "commentBackground"], ["designation", "commentBackground"]];
-  const label = (role: AppearanceRole) => COLOUR_GROUPS.flatMap(g => g.fields).find(f => f[0] === role)?.[1] ?? role;
+  const label = (role: AppearanceRole) => COLOUR_GROUPS.map(g => g.fields.find(f => f[0] === role)?.[1]).find(Boolean) ?? role;
   return [...pairs.filter(([text, bg]) => contrast(c[text], c[bg]) < 4.5).map(([text]) => `${label(text)} needs more contrast (minimum 4.5:1).`),
     ...(["pageBackground", "infoBackground", "tableBackground", "commentBackground"] as AppearanceRole[]).filter(k => luminance(c[k]) < 0.65).map(k => `${label(k)} must stay light to protect logos, signatures and watermarks.`)];
 }

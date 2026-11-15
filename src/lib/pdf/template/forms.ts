@@ -1,4 +1,4 @@
-import { PDFDocument, PDFTextField, StandardFonts, rgb } from "pdf-lib";
+import { PDFDocument, PDFTextField, StandardFonts } from "pdf-lib";
 import { hexToRgb } from "../core";
 
 export type TemplateValues = Record<string, string | number | null | undefined>;
@@ -85,7 +85,13 @@ export async function fillTemplate(bytes: Uint8Array, values: TemplateValues, ov
     if (maxLength !== undefined && value.length > maxLength) throw new Error(`“${field.getName()}” exceeds the template's field length.`);
     field.setText(value);
     const colour = colours[key];
-    if (colour) { const c = hexToRgb(colour); field.setTextColor(rgb(c.r, c.g, c.b)); }
+    if (colour) {
+      const c = hexToRgb(colour);
+      const da = field.acroField.getDefaultAppearance() ?? "";
+      const withoutColour = da.replace(/(?:[\d.]+\s+){3}rg\b|[\d.]+\s+g\b|(?:[\d.]+\s+){4}k\b/g, "");
+      field.acroField.setDefaultAppearance(`${withoutColour} ${c.r} ${c.g} ${c.b} rg`);
+      field.acroField.getWidgets().forEach(widget => widget.setDefaultAppearance(`${widget.getDefaultAppearance() ?? withoutColour} ${c.r} ${c.g} ${c.b} rg`));
+    }
     field.updateAppearances(font);
     field.enableReadOnly();
   }

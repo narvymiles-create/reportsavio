@@ -29,8 +29,8 @@ export async function applySectionTables(bytes: Uint8Array, tables: StaticTable[
       const x = t.x + c * cellW + (cellW - font.widthOfTextAtSize(text, size)) / 2;
       const y = page.getHeight() - (t.y + (r - 1) * cellH) - (cellH + size * 0.7) / 2;
       const colour = appearance[appearanceRoleForSource(`table.${t.section}.${r}.${column}`)];
-      const c = colour ? hexToRgb(colour) : null;
-      page.drawText(text, { x, y, size, font, color: c ? rgb(c.r, c.g, c.b) : undefined });
+      const ink = colour ? hexToRgb(colour) : null;
+      page.drawText(text, { x, y, size, font, color: ink ? rgb(ink.r, ink.g, ink.b) : undefined });
     });
   }
   return doc.save({ updateFieldAppearances: false });

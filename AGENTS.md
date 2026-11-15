@@ -1,5 +1,7 @@
 # Architecture rules
 
+- Appearance uses validated school-scoped colour overrides and shared PDF painters; empty overrides retain defaults, customized Nursery prints PDF bytes, and uploaded artwork stays immutable.
+
 - Report reads and original asset files use a school-bound read-only ReportDataSource; online and device adapters feed the same default loaders, custom values and PDF renderer so offline providers never duplicate grading or artwork.
 - One-click template tests select real learner/term candidates against recognised exam sections; test previews do not write verification records or configuration, while explicit activation retains server-side verification gating.
 
