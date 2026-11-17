@@ -7,7 +7,7 @@ import { loadNurseryData, renderNurseryReport } from "./pdf/nurseryReport";
 import { generateCustomOutput } from "./pdf/customReport";
 import { bytesToPdfBlob } from "./pdf/core";
 import type { SchoolTemplate } from "./reportTemplates";
-export async function loadAppearancePreview(schoolId: string, level: "primary" | "nursery") {
+export async function loadAppearancePreview(schoolId: string, level: "primary" | "nursery", pick: { learnerId?: string; termId?: string } = {}) {
   const source = await currentReportDataSource();
   if (source.schoolId !== schoolId) throw new Error("School changed. Reopen appearance settings.");
   const [learners, terms, templates] = await Promise.all([
@@ -15,7 +15,7 @@ export async function loadAppearancePreview(schoolId: string, level: "primary" |
     source.read("terms", { order: "is_current", ascending: false, limit: 1 }),
     source.read("report_templates", { eq: { level, is_active: true }, limit: 1 }),
   ]);
-  const learner = learners[0], term = terms[0];
+  const learner = pick.learnerId ? { id: pick.learnerId } : learners[0], term = pick.termId ? { id: pick.termId } : terms[0];
   if (!learner || !term) return { template: null, empty: true, render: (appearance: ReportAppearance) => defaultTemplatePreview(level, schoolId, appearance) };
   const template = templates[0] as SchoolTemplate | undefined;
   if (template) return { template, render: (appearance: ReportAppearance) => generateCustomOutput(template, [learner.id], term.id, undefined, undefined, source, appearance) };
