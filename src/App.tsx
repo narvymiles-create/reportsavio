@@ -42,6 +42,10 @@ import BulkNurseryReportCardsPage from "./pages/BulkNurseryReportCardsPage";
 import NotFound from "./pages/NotFound.tsx";
 import ReportTemplatesPage from "./pages/ReportTemplatesPage";
 import ReportAppearancePage from "./pages/ReportAppearancePage";
+import { HelmetProvider } from "react-helmet-async";
+import { useAuth } from "@/contexts/AuthContext";
+import { PrivateRobots } from "@/components/Seo";
+import { HomePage, FeaturesPage, NurseryPage, PrimaryPage, AboutPage } from "./pages/public/PublicPages";
 
 const queryClient = new QueryClient();
 
@@ -56,19 +60,32 @@ const HomeDashboard = () => {
   return module === "nursery" ? <NurseryDashboard /> : <Dashboard />;
 };
 
+/** Signed-out visitors see the public home page; signed-in staff see their dashboard. */
+const HomeRoute = () => {
+  const { user, loading } = useAuth();
+  if (!loading && !user) return <HomePage />;
+  return <Protected><HomeDashboard /></Protected>;
+};
+
 const App = () => (
+  <HelmetProvider>
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
+          <PrivateRobots />
           <Routes>
+            <Route path="/features" element={<FeaturesPage />} />
+            <Route path="/nursery-report-cards" element={<NurseryPage />} />
+            <Route path="/primary-report-cards" element={<PrimaryPage />} />
+            <Route path="/about" element={<AboutPage />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/onboarding" element={<OnboardingSchool />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/" element={<Protected><HomeDashboard /></Protected>} />
+            <Route path="/" element={<HomeRoute />} />
             <Route path="/school" element={<Protected><SchoolInfoPage /></Protected>} />
             <Route path="/classes" element={<Protected><ClassesPage /></Protected>} />
             <Route path="/subjects" element={<Protected><SubjectsPage /></Protected>} />
@@ -104,6 +121,7 @@ const App = () => (
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
+  </HelmetProvider>
 );
 
 export default App;

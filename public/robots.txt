@@ -1,14 +1,25 @@
-User-agent: Googlebot
-Allow: /
-
-User-agent: Bingbot
-Allow: /
-
-User-agent: Twitterbot
-Allow: /
-
-User-agent: facebookexternalhit
-Allow: /
-
+# Public marketing pages are crawlable. Private app pages also send noindex and require sign-in.
 User-agent: *
 Allow: /
+Disallow: /auth
+Disallow: /onboarding
+Disallow: /forgot-password
+Disallow: /reset-password
+Disallow: /print/
+Disallow: /marks
+Disallow: /learners
+Disallow: /report-cards
+Disallow: /report-templates
+Disallow: /report-appearance
+Disallow: /nursery/
+Disallow: /settings
+Disallow: /school
+Disallow: /classes
+Disallow: /subjects
+Disallow: /teachers
+Disallow: /terms
+Disallow: /grading
+Disallow: /comments
+Disallow: /signatures
+
+Sitemap: https://skavioedureports.dev/sitemap.xml
