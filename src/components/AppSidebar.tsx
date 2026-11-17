@@ -106,7 +106,7 @@ export function AppSidebar() {
           />
           {!collapsed && (
             <div className="leading-tight">
-              <div className="text-sidebar-foreground font-semibold text-sm">Sona Reports</div>
+              <div className="text-sidebar-foreground font-semibold text-sm">Skavio EduReports</div>
               <div className="text-sidebar-foreground/60 text-xs">Powered by Skavio Technologies</div>
             </div>
           )}
