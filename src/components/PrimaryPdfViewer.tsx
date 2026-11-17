@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { Download, ExternalLink, Loader2, Printer, RefreshCw } from "lucide-react";
 import type { PDFDocumentProxy } from "pdfjs-dist";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,7 @@ type Props = {
   autoPrint?: boolean;
   filename?: string;
   generate?: typeof generatePrimaryOutput;
-  toolbar?: React.ReactNode;
+  toolbar?: ReactNode;
 };
 
 /** PDF.js reads the download bytes for preview; Chrome prints those bytes directly. */

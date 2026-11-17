@@ -49,3 +49,19 @@ export function appearanceRoleForSource(source: string): AppearanceRole {
   if (source.startsWith("table.") || /^(bot|mid|eot|subject)\./.test(source)) return "tableText";
   return "infoValue";
 }
+export const CUSTOM_THEMES_KEY = "report_custom_themes";
+export const MAX_THEME_COLOURS = 3;
+export type CustomTheme = { name: string; colours: string[] };
+const HEX = /^#[0-9a-f]{6}$/i;
+/** Expand up to three school colours (main, light shade, text) into the full semantic palette. */
+export function themeFromColours(colours: string[]): ReportAppearance {
+  const [main, pale, text] = colours.filter(c => HEX.test(c)).slice(0, MAX_THEME_COLOURS).map(c => c.toLowerCase());
+  if (!main) return {};
+  const base = preset(main, pale ?? "#ffffff");
+  if (!text) return base;
+  return { ...base, schoolInfo: text, infoValue: text, tableText: text, conductText: text, commentText: text, designation: text, dates: text };
+}
+export function parseCustomThemes(value: unknown): CustomTheme[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap(t => t && typeof t.name === "string" && Array.isArray(t.colours) ? [{ name: t.name.slice(0, 40), colours: t.colours.filter((c: unknown) => typeof c === "string" && HEX.test(c)).slice(0, MAX_THEME_COLOURS) }] : []).filter(t => t.colours.length > 0);
+}
