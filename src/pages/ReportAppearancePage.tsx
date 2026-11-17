@@ -38,7 +38,6 @@ function AppearanceEditor({ schoolId, level }: { schoolId: string; level: "prima
   const [themes, setThemes] = useState<CustomTheme[]>([]);
   const [themeName, setThemeName] = useState("");
   const [themeColours, setThemeColours] = useState<string[]>(["#1e3a8a", "#eff6ff", "#111111"]);
-  const canEdit = isAdmin || isSuperAdmin;
   useEffect(() => {
     let alive = true;
     const nursery = level === "nursery";
