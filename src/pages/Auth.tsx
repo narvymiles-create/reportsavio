@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { GoogleButton, OrDivider } from "@/components/GoogleButton";
 import logo from "@/assets/skavio-logo.png.asset.json";
 
 export default function Auth() {
@@ -96,6 +97,8 @@ export default function Auth() {
               </TabsList>
               <TabsContent value="signin">
                 <form onSubmit={handleSignIn} className="space-y-3 mt-4">
+                  <GoogleButton label="Continue with Google" />
+                  <OrDivider />
                   <div className="space-y-1.5">
                     <Label htmlFor="si-email">Email</Label>
                     <Input id="si-email" name="email" type="email" required autoComplete="email" />
@@ -120,6 +123,8 @@ export default function Auth() {
               </TabsContent>
               <TabsContent value="signup">
                 <form onSubmit={handleSignUp} className="space-y-3 mt-4">
+                  <GoogleButton label="Sign up with Google" />
+                  <OrDivider />
                   <div className="space-y-1.5">
                     <Label htmlFor="su-name">Full name</Label>
                     <Input id="su-name" name="full_name" required maxLength={100} />
