@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { Download, ExternalLink, Loader2, Printer, RefreshCw } from "lucide-react";
 import type { PDFDocumentProxy } from "pdfjs-dist";
 import { Button } from "@/components/ui/button";
@@ -15,10 +15,11 @@ type Props = {
   autoPrint?: boolean;
   filename?: string;
   generate?: typeof generatePrimaryOutput;
+  toolbar?: ReactNode;
 };
 
 /** PDF.js reads the download bytes for preview; Chrome prints those bytes directly. */
-export function PrimaryPdfViewer({ learnerIds, termId, autoPrint = false, filename = "report-card", generate = generatePrimaryOutput }: Props) {
+export function PrimaryPdfViewer({ learnerIds, termId, autoPrint = false, filename = "report-card", generate = generatePrimaryOutput, toolbar }: Props) {
   const printRef = useRef<HTMLButtonElement>(null);
   const [output, setOutput] = useState<{ key: string; blob: Blob; document: PDFDocumentProxy; session: ReturnType<typeof createPrimaryPdfSession> } | null>(null);
   const rendered = useRef(new Set<number>());
@@ -101,7 +102,7 @@ export function PrimaryPdfViewer({ learnerIds, termId, autoPrint = false, filena
   return (
     <section className="flex min-h-screen flex-col bg-muted" aria-label="Primary report PDF">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b bg-background p-3">
-        <span role="status" className="text-sm">{learnerIds.length} report card(s) · {output.document.numPages} page(s) · {ready ? "Ready" : "Loading PDF pages…"}</span>
+        {toolbar ?? <span role="status" className="text-sm">{learnerIds.length} report card(s) · {output.document.numPages} page(s) · {ready ? "Ready" : "Loading PDF pages…"}</span>}
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={() => open(false)} disabled={!ready}>
             <ExternalLink className="mr-2 h-4 w-4" /> Open PDF
