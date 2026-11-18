@@ -1,3 +1,4 @@
 - Accounts without a school get one created automatically by `RequireAdmin` via `lib/autoSchool.ts` (one in-flight call per user); there is no setup form, and admins complete details on School Info.
 - Every report Download/Print goes through `useReportOutput` (unlock RPC, pricing redirect, Learner refunds on failure); unpaid previews watermark only on screen (`watermarkUnpaidPdf` / `UnpaidWatermark`), and output always uses clean bytes.
 - `FeaturesProvider` exposes the school's feature switches; pages use `FeaturePage`/`FeatureNotice` for display only, since the database enforces them.
+- `AuthContext` compares freshly issued sign-in tokens with the device clock (`lib/clockSkew.ts`) and shows `ClockWarning` with auto-refresh stopped, because a wrong clock otherwise loops token renewals into rate limits and sign-outs.

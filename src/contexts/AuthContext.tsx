@@ -1,6 +1,8 @@
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback, useRef } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { deviceClockWrong } from "@/lib/clockSkew";
+import { ClockWarning } from "@/components/ClockWarning";
 
 type AuthCtx = {
   user: User | null;
@@ -24,6 +26,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [schoolId, setSchoolId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  // A wrong device clock makes every new sign-in look expired, so the auth
+  // client renews it in a loop until it is rate-limited and signs the user out.
+  const [clockWrong, setClockWrong] = useState(false);
+  const checkClock = useCallback((token: string | undefined) => {
+    if (!deviceClockWrong(token)) return false;
+    supabase.auth.stopAutoRefresh();
+    setClockWrong(true);
+    return true;
+  }, []);
 
   const refreshFor = useCallback(async (uid: string | undefined) => {
     if (!uid) {
@@ -58,6 +69,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const { data: sub } = supabase.auth.onAuthStateChange((event, newSession) => {
       const uid = newSession?.user?.id ?? null;
+      // Only tokens the server has just issued are compared with the device clock.
+      if ((event === "SIGNED_IN" || event === "TOKEN_REFRESHED") && checkClock(newSession?.access_token)) return;
       // Ignore events that don't change who is signed in (token refreshes fire
       // when the tab regains focus). Pushing a new session/user object or
       // flipping loading here would re-render or remount every page and wipe
@@ -82,11 +95,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     return () => sub.subscription.unsubscribe();
-  }, [refreshFor]);
+  }, [refreshFor, checkClock]);
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email: email.trim().toLowerCase(), password });
-    if (!error) return {};
+    const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim().toLowerCase(), password });
+    if (!error) return checkClock(data.session?.access_token) ? { error: "Your computer's date and time are wrong. Correct them, then sign in again." } : {};
     if (/not confirmed/i.test(error.message)) return { error: "Please confirm your email first. Use the link we sent you, or resend it below." };
     if (/invalid login/i.test(error.message)) return { error: "Incorrect email or password." };
     return { error: error.message };
@@ -117,7 +130,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider
       value={{ user, session, isAdmin, isSuperAdmin, schoolId, loading, refreshContext, signIn, signUp, signOut }}
     >
-      {children}
+      {clockWrong ? <ClockWarning /> : children}
     </AuthContext.Provider>
   );
 }
