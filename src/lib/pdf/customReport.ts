@@ -2,6 +2,7 @@ import { PDFDocument } from "pdf-lib";
 import { loadPrimaryData, computeAll } from "./primaryReport";
 import { loadNurseryData } from "./nurseryReport";
 import { gradeFor } from "@/lib/grading";
+import { assessmentPercent } from "@/lib/assessmentConfig";
 import { fillTemplate, normalizeField, type TemplateValues } from "./template/forms";
 import { templateBytes, type SchoolTemplate } from "@/lib/reportTemplates";
 import { bytesToPdfBlob } from "./core";
@@ -67,7 +68,7 @@ export async function customReportData(level: string, learnerId: string, termId:
         const row = `table.${phase}.${index + 1}`;
         const raw = marks?.[phase];
         const mark = raw == null || raw === "" || isNaN(Number(raw)) ? null : Number(raw);
-        const band = mark == null ? null : gradeFor(mark, primary.bands);
+        const band = mark == null ? null : gradeFor(assessmentPercent(primary.assessmentConfig, phase, mark), primary.bands);
         values[`${row}.subject`] = subject.name; values[`${row}.code`] = subject.code_label || subject.code;
         values[`${row}.full`] = subject.max_marks; values[`${row}.marks`] = mark;
         values[`${row}.grade`] = band?.grade; values[`${row}.points`] = band?.points; values[`${row}.remark`] = band?.remark;
@@ -89,14 +90,14 @@ export async function customReportData(level: string, learnerId: string, termId:
         values[`${prefix}.code`] = subject.code_label || subject.code;
         values[`${prefix}.full.marks`] = subject.max_marks;
         const marks = computed.bySubject.get(subject.id);
-        const eot = marks?.eot == null ? null : gradeFor(Number(marks.eot), primary.bands);
+        const eot = marks?.eot == null ? null : gradeFor(assessmentPercent(primary.assessmentConfig, "eot", Number(marks.eot)), primary.bands);
         values[`${prefix}.grade`] = eot?.grade;
         values[`${prefix}.points`] = eot?.points;
         values[`${prefix}.remark`] = marks?.remark ?? eot?.remark;
         values[`${prefix}.initials`] = marks?.teacher_initials ?? primary.teachersById[subject.subject_teacher_id]?.initials;
         for (const phase of ["bot", "mid", "eot"] as const) {
           const mark = marks?.[phase];
-          const grade = mark == null ? null : gradeFor(Number(mark), primary.bands);
+          const grade = mark == null ? null : gradeFor(assessmentPercent(primary.assessmentConfig, phase, Number(mark)), primary.bands);
           values[`${prefix}.${phase}`] = mark;
           values[`${prefix}.${phase}.grade`] = grade?.grade;
           values[`${prefix}.${phase}.points`] = grade?.points;

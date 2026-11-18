@@ -19,7 +19,7 @@ import skavioLogoUrl from "@/assets/skavio-logo-transparent.png";
 import "./MarksFormPage.css";
 import { useTemplateExams } from "@/hooks/useTemplateExams";
 import { useAssessmentConfig } from "@/hooks/useAssessmentConfig";
-import { finalMark, isLegacy } from "@/lib/assessmentConfig";
+import { assessmentPercent, finalMark, isLegacy } from "@/lib/assessmentConfig";
 import { useAuth } from "@/contexts/AuthContext";
 
 
@@ -206,7 +206,7 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
         const v = m?.[exam] ?? null;
         if (v != null && !isNaN(v)) {
           total += v; count += 1;
-          const band = gradeFor(v, bands);
+          const band = gradeFor(assessmentPercent(assessCfg, exam, v), bands);
           if (s.is_core) {
             subjectGrades[s.id] = band?.grade ?? null;
             if (band?.points != null) agg += band.points;
@@ -244,7 +244,7 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
       });
     }
     return out;
-  }, [filteredLearners, subjects, marks, bands, exam, coreCountValid]);
+  }, [filteredLearners, subjects, marks, bands, exam, assessCfg, coreCountValid]);
 
   // Position ranking by total desc (ties share)
   const positions = useMemo(() => {
@@ -306,7 +306,7 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
       for (const l of filteredLearners) {
         const v = marks[`${l.id}|${s.id}`]?.[exam] ?? null;
         if (v == null || isNaN(v)) continue;
-        const band = gradeFor(v, bands);
+        const band = gradeFor(assessmentPercent(assessCfg, exam, v), bands);
         const g = band?.grade?.toUpperCase();
         if (g && counts[g] != null) counts[g] += 1;
       }
@@ -335,7 +335,7 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
     });
     const optional = rows.filter(r => !r.isCore).map(r => ({ ...r, rank: null as number | null }));
     return [...ranked, ...optional];
-  }, [visibleSubjects, filteredLearners, marks, bands, exam]);
+  }, [visibleSubjects, filteredLearners, marks, bands, exam, assessCfg]);
 
   // Dirty detection: compare current marks vs baseline for the active exam column only
   const isDirty = useMemo(() => {
@@ -715,7 +715,7 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
                                 type="number"
                                 inputMode="decimal"
                                 min={0}
-                                max={s.max_marks}
+                                max={assessment && assessment.maxMarks !== 100 ? assessment.maxMarks : s.max_marks}
                                 value={v ?? ""}
                                 onChange={(e) => setMark(l.id, s.id, e.target.value)}
                               />

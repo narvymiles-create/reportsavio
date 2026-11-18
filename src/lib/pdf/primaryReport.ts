@@ -1,4 +1,4 @@
-import { DEFAULT_ASSESSMENT_CONFIG, PRIMARY_ASSESSMENT_KEY, finalMark, isLegacy, normaliseConfig, reportAssessments, reportTables } from "@/lib/assessmentConfig";
+import { DEFAULT_ASSESSMENT_CONFIG, PRIMARY_ASSESSMENT_KEY, assessmentPercent, finalMark, isLegacy, normaliseConfig, reportAssessments, reportTables } from "@/lib/assessmentConfig";
 /**
  * Primary report card — drawn natively with pdf-lib so the PDF is a pixel
  * faithful copy of the on-screen preview / print sheet.
@@ -125,7 +125,7 @@ export function computeAll(d: PrimaryData) {
     const total = present.reduce((a, b) => a + b, 0);
     const avg = present.length ? Math.round((total / present.length) * 100) / 100 : 0;
     const aggregate = coreOk
-      ? vals.reduce((sum, x) => (x.v == null || !coreIds.has(x.id) ? sum : sum + (gradeFor(x.v, bands)?.points ?? 0)), 0)
+      ? vals.reduce((sum, x) => (x.v == null || !coreIds.has(x.id) ? sum : sum + (gradeFor(assessmentPercent(cfg, phase, x.v), bands)?.points ?? 0)), 0)
       : 0;
     return { total, avg, aggregate };
   };
@@ -168,7 +168,7 @@ export function computeAll(d: PrimaryData) {
     if (!isCriticalCoreSubject(s.name)) return false;
     const raw = bySubject.get(s.id)?.[phase];
     if (raw == null || raw === "" || isNaN(Number(raw))) return false;
-    return gradeFor(Number(raw), bands)?.grade === "F9";
+    return gradeFor(assessmentPercent(cfg, phase, Number(raw)), bands)?.grade === "F9";
   });
 
   const phase = (ph: string) => {
@@ -470,7 +470,7 @@ export async function renderPrimaryBytes(d: PrimaryData & { appearance?: ReportA
       } },
       { label: "GRADE", text: (i) => {
         const raw = c.bySubject.get(subjects[i].id)?.[phaseKey];
-        return raw != null && raw !== "" && !isNaN(Number(raw)) ? (gradeFor(Number(raw), d.bands)?.grade ?? "") : "";
+        return raw != null && raw !== "" && !isNaN(Number(raw)) ? (gradeFor(assessmentPercent(d.assessmentConfig, phaseKey, Number(raw)), d.bands)?.grade ?? "") : "";
       } },
     ];
     rows.forEach((r, ri) => {
@@ -538,7 +538,7 @@ export async function renderPrimaryBytes(d: PrimaryData & { appearance?: ReportA
     const m = c.bySubject.get(sub.id);
     const raw = m?.[key];
     const has = raw != null && raw !== "" && !isNaN(Number(raw));
-    const band = has ? gradeFor(Number(raw), d.bands) : null;
+    const band = has ? gradeFor(assessmentPercent(d.assessmentConfig, key, Number(raw)), d.bands) : null;
     const vals = [
       (sub.name ?? "").toUpperCase(),
       String(sub.max_marks ?? 100),
@@ -577,7 +577,7 @@ export async function renderPrimaryBytes(d: PrimaryData & { appearance?: ReportA
       const cells = [name.toUpperCase(), ...subjects.map(s0 => {
         const raw = c.bySubject.get(s0.id)?.[id];
         if (raw == null || raw === "" || isNaN(Number(raw))) return "";
-        return `${raw} ${gradeFor(Number(raw), d.bands)?.grade ?? ""}`.trim();
+        return `${raw} ${gradeFor(assessmentPercent(d.assessmentConfig, id, Number(raw)), d.bands)?.grade ?? ""}`.trim();
       }), info.total ? String(info.total) : "", info.avg ? String(info.avg) : "",
         ...(d.flags.show_position ? [info.position && info.classSize ? `${info.position}/${info.classSize}` : ""] : []),
         info.aggregateText, info.division];

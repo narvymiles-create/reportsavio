@@ -89,13 +89,23 @@ export function validateConfig(c: AssessmentConfig): string[] {
   return errors;
 }
 
+/**
+ * A mark as a percentage of its assessment's maximum (grading bands are 0–100).
+ * Unchanged for assessments out of 100 and for keys that are not assessments (e.g. the final mark).
+ */
+export function assessmentPercent(c: AssessmentConfig | null | undefined, id: string, raw: number): number {
+  const max = c?.assessments.find(a => a.id === id)?.maxMarks ?? 100;
+  return max === 100 ? raw : Math.round((raw / max) * 10000) / 100;
+}
+
 /** Final subject mark (0–100 scale) for one subject from its assessment marks. Null when it cannot be calculated. */
 export function finalMark(c: AssessmentConfig, marks: Record<string, number | null | undefined>): number | null {
   const val = (id: string) => { const m = marks[id]; return m == null || Number.isNaN(Number(m)) ? null : Number(m); };
   const pct = (a: Assessment) => { const m = val(a.id); return m == null ? null : (m / a.maxMarks) * 100; };
   const round = (n: number) => Math.round(n * 100) / 100;
-  if (c.method === "current") return computeTotal(val("bot"), val("mid"), val("eot"));
-  if (c.method === "eot_only") return val("eot");
+  const legacyPct = (id: LegacyExam) => { const m = val(id); return m == null ? null : assessmentPercent(c, id, m); };
+  if (c.method === "current") return computeTotal(legacyPct("bot"), legacyPct("mid"), legacyPct("eot"));
+  if (c.method === "eot_only") return legacyPct("eot");
   const finals = c.finalIds.map(id => c.assessments.find(a => a.id === id)).filter((a): a is Assessment => !!a && a.active);
   if (!finals.length) return null;
   if (c.method === "average") {

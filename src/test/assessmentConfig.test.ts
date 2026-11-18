@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { DEFAULT_ASSESSMENT_CONFIG as D, finalMark, validateConfig, reportTables, normaliseConfig, slugAssessmentId, activeAssessments } from "@/lib/assessmentConfig";
+import { DEFAULT_ASSESSMENT_CONFIG as D, assessmentPercent, finalMark, validateConfig, reportTables, normaliseConfig, slugAssessmentId, activeAssessments } from "@/lib/assessmentConfig";
 
 const cfg = (o: any) => normaliseConfig({ ...D, ...o });
 
@@ -39,5 +39,26 @@ describe("assessment configuration", () => {
   it("new assessment ids never collide with existing marks columns", () => {
     expect(slugAssessmentId("Monthly Assessment", ["monthly_assessment"])).toBe("monthly_assessment_2");
     expect(slugAssessmentId("eot", [])).toBe("eot_2");
+  });
+});
+
+describe("assessment maximum marks", () => {
+  const c = cfg({
+    assessments: [
+      { id: "bot", name: "Test", maxMarks: 30, weight: null, active: true, onReport: true },
+      { id: "mid", name: "Mid-Term", maxMarks: 100, weight: null, active: true, onReport: true },
+      { id: "eot", name: "End of Term", maxMarks: 50, weight: null, active: true, onReport: true },
+    ],
+  });
+  it("grades 28 out of 30 as 93.33%, not 28%", () => {
+    expect(assessmentPercent(c, "bot", 28)).toBe(93.33);
+  });
+  it("leaves marks out of 100 unchanged", () => {
+    expect(assessmentPercent(c, "mid", 64)).toBe(64);
+    expect(assessmentPercent(D, "bot", 64)).toBe(64);
+  });
+  it("uses percentages in the standard final calculation", () => {
+    // 15/30 = 50%, 70/100 = 70%, 45/50 = 90% -> average 70
+    expect(finalMark(c, { bot: 15, mid: 70, eot: 45 })).toBe(70);
   });
 });

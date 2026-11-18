@@ -154,6 +154,8 @@ export class Painter {
   rect(o: {
     x: number; y: number; w: number; h: number;
     fill?: string | RGB; border?: string | RGB; lineWidth?: number; opacity?: number;
+    /** Defaults to `opacity`; set separately so a faded fill can keep a solid outline. */
+    borderOpacity?: number;
     dashArray?: number[];
   }) {
     this.page.drawRectangle({
@@ -165,7 +167,7 @@ export class Painter {
       borderColor: o.border ? col(o.border) : undefined,
       borderWidth: o.border ? mm(o.lineWidth ?? 0.25) : 0,
       opacity: o.opacity,
-      borderOpacity: o.opacity,
+      borderOpacity: o.borderOpacity ?? o.opacity,
       borderDashArray: o.dashArray?.map(mm),
     });
   }
