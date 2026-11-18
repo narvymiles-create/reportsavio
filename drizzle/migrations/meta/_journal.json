@@ -113,6 +113,13 @@
       "when": 1794993993466,
       "tag": "0015_fix_learner_registration_validation",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1794994364159,
+      "tag": "0016_billing_restrict_settings_calendar_read",
+      "breakpoints": true
     }
   ]
 }
