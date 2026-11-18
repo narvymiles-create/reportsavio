@@ -17,7 +17,7 @@ export default function PrintNurseryReportCard() {
   const [ready, setReady] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [learnerName, setLearnerName] = useState<string>("nursery-report");
-  const { run } = useReportOutput();
+  const { run, ensure } = useReportOutput();
 
   useEffect(() => {
     if (!learnerId) return;
@@ -55,7 +55,8 @@ export default function PrintNurseryReportCard() {
 
   return (
     <ReportOutputGate request={{ level: "nursery", termId, learnerIds: [learnerId], action: "print", from: "/nursery/reports" }}>
-    <NurseryTemplateOutput learnerIds={[learnerId]} termId={termId}><div>
+    <NurseryTemplateOutput learnerIds={[learnerId]} termId={termId} watermark={false}
+      beforeOutput={(action) => ensure({ level: "nursery", termId, learnerIds: [learnerId], action, from: "/nursery/reports" }).then(Boolean)}><div>
       <div className="no-print sticky top-0 z-10 bg-background border-b p-3 flex justify-end gap-2">
         <Button onClick={runDownload} disabled={downloading} variant="outline">
           {downloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}

@@ -7,6 +7,7 @@ import { NurseryReportSheet } from "@/components/NurseryReportSheet";
 import { toast } from "@/hooks/use-toast";
 import { NurseryTemplateOutput } from "@/components/NurseryTemplateOutput";
 import { ReportOutputGate } from "@/components/billing/ReportIssueGate";
+import { useReportOutput } from "@/hooks/useReportOutput";
 
 type Learner = { id: string; full_name: string; stream_id: string | null };
 
@@ -17,6 +18,7 @@ export default function BulkNurseryReportCardsPage() {
   const streamId = params.get("stream") || "";
 
   const [learners, setLearners] = useState<Learner[]>([]);
+  const { ensure } = useReportOutput();
   const [readyCount, setReadyCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
@@ -91,11 +93,12 @@ export default function BulkNurseryReportCardsPage() {
   );
 
   const allReady = readyCount >= learners.length;
+  const outputCheck = (action: "download" | "print") => ensure({ level: "nursery", termId: termId ?? "", learnerIds: learners.map(l => l.id), action: action === "print" ? "bulk_print" : "bulk_download", classId, streamId: streamId || undefined, from: "/nursery/reports" }).then(Boolean);
   if (!termId) return <p>Missing term.</p>;
 
   return (
     <ReportOutputGate request={{ level: "nursery", termId, learnerIds: learners.map(l => l.id), action: "bulk_print", classId, streamId: streamId || undefined, from: "/nursery/reports" }}>
-    <NurseryTemplateOutput learnerIds={learners.map(l => l.id)} termId={termId}><div>
+    <NurseryTemplateOutput learnerIds={learners.map(l => l.id)} termId={termId} watermark={false} beforeOutput={outputCheck}><div>
       <div className="no-print sticky top-0 z-10 bg-background border-b p-3 flex items-center justify-between gap-2">
         <div className="text-sm">
           <strong>{learners.length}</strong> nursery report(s) — {allReady ? "ready" : `loading ${readyCount}/${learners.length}…`}

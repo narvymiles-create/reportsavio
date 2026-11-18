@@ -20,6 +20,8 @@ import {
   ShieldCheck,
   Tags,
   ToggleRight,
+  KeyRound,
+  BadgeCheck,
 } from "lucide-react";
 import {
   Sidebar,
@@ -105,11 +107,12 @@ export function AppSidebar() {
       ...g,
       items: [
         ...g.items,
-        ...(billingAdmin ? [{ title: "Billing & Subscription", url: "/billing", icon: Wallet }, { title: "Pricing & Packages", url: "/pricing", icon: Tags }] : []),
+        ...(billingAdmin ? [{ title: "Billing & Subscription", url: "/billing", icon: Wallet }, { title: "Pricing & Packages", url: "/pricing", icon: Tags }, { title: "Activate Package", url: "/activate", icon: KeyRound }] : []),
       ],
     }),
     ...(isSuperAdmin ? [{ label: "System Admin", items: [
       { title: "Platform Billing", url: "/platform/billing", icon: ShieldCheck },
+      { title: "Payments & Activation Keys", url: "/platform/payments", icon: BadgeCheck },
       { title: "Feature Management", url: "/platform/features", icon: ToggleRight },
     ] }] : []),
   ];

@@ -15,7 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "@/hooks/use-toast";
-import { AlertTriangle, CreditCard, Download, Loader2, MonitorDown, Receipt, RefreshCw, ShieldCheck, Tags, Ticket, Users } from "lucide-react";
+import { AlertTriangle, CreditCard, Download, KeyRound, Loader2, MonitorDown, Receipt, RefreshCw, Tags, Ticket, Users } from "lucide-react";
 import { desktopPackageName, onlinePackageName } from "@/components/billing/PricingCards";
 import { CheckoutDialog, type CheckoutRequest } from "@/components/billing/CheckoutDialog";
 import {
@@ -162,9 +162,6 @@ export default function BillingPage() {
   }
   if (lowCredits) warnings.push({ title: "Learners are running low", body: `${balance} learner(s) remain.` });
 
-  const gatewayNotice = !data.gateway?.configured
-    ? "Online payments are being set up. You can review prices now; payment buttons will work once the payment gateway is connected."
-    : data.gateway.gateway_mode === "TEST" ? "Payments are in TEST mode — no real money is collected." : null;
 
   return (
     <div className="space-y-6">
@@ -179,7 +176,10 @@ export default function BillingPage() {
         </div>
       </div>
 
-      {gatewayNotice && <Alert><ShieldCheck className="h-4 w-4" /><AlertDescription>{gatewayNotice}</AlertDescription></Alert>}
+      <Alert><KeyRound className="h-4 w-4" /><AlertDescription className="flex flex-wrap items-center justify-between gap-2">
+        <span>Paid by mobile money? Send your proof and enter the activation key Skavio sends you on the Activate Package page.</span>
+        <Button asChild size="sm" variant="outline"><Link to="/activate">Activate package</Link></Button>
+      </AlertDescription></Alert>
       {warnings.map((w) => (
         <Alert key={w.title} variant={w.critical ? "destructive" : "default"}><AlertTriangle className="h-4 w-4" /><AlertTitle>{w.title}</AlertTitle><AlertDescription>{w.body}</AlertDescription></Alert>
       ))}
@@ -196,7 +196,7 @@ export default function BillingPage() {
         <TabsContent value="overview" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <Card>
-              <CardHeader className="pb-2"><CardDescription>Current edition & package</CardDescription><CardTitle className="text-lg">{current ? `Online ${current.plan === "annual" ? "annual" : "termly"}` : licence ? "Desktop lifetime" : data.profile?.default_method === "per_report" ? "Pay per report card" : data.settings?.enforcement_enabled ? "Unpaid preview" : "No package yet"}</CardTitle></CardHeader>
+              <CardHeader className="pb-2"><CardDescription>Current edition & package</CardDescription><CardTitle className="text-lg">{current ? `Online ${current.plan === "annual" ? "annual" : "termly"}` : licence ? "Desktop lifetime" : data.profile?.default_method === "per_report" ? "Pay per report card" : "Unpaid preview"}</CardTitle></CardHeader>
               <CardContent className="text-sm text-muted-foreground space-y-1">
                 {!current && !licence && data.profile?.default_method !== "per_report" && (data.settings?.enforcement_enabled
                   ? <p>Previews are free. <Link to="/pricing" className="underline">Choose a package</Link> to download and print.</p>

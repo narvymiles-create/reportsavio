@@ -398,8 +398,8 @@ function SettingsTab({ d, reload }: { d: AllData; reload: () => void }) {
     <Card>
       <CardHeader><CardTitle className="text-base">Billing settings</CardTitle></CardHeader>
       <CardContent className="space-y-4">
-        <Alert><AlertDescription>While this is off, every school can download and print freely; schools still see prices and can pay. When it is on, unpaid schools keep free previews (with the “SKAVIO EDUREPORTS – UNPAID PREVIEW” watermark) but Download, Bulk Download, Print and Bulk Print stay locked until they pay. Turn it on only after the academic calendar is published and payments work.</AlertDescription></Alert>
-        <div className="flex items-center gap-3"><Switch id="enforce" checked={form.enforcement_enabled} onCheckedChange={(v) => setForm({ ...form, enforcement_enabled: v })} /><Label htmlFor="enforce">Lock downloads and printing for unpaid schools (and enforce learner limits)</Label></div>
+        <Alert><AlertDescription>Download, Bulk Download, Open PDF, Print and Bulk Print are always locked for schools without an active package; unpaid previews carry the “SKAVIO EDUREPORTS – UNPAID PREVIEW” watermark. This cannot be switched off. Verify payments and issue keys under Payments &amp; Activation Keys.</AlertDescription></Alert>
+        <div className="flex items-center gap-3"><Switch id="enforce" checked={form.enforcement_enabled} onCheckedChange={(v) => setForm({ ...form, enforcement_enabled: v })} /><Label htmlFor="enforce">Enforce learner limits (package capacity plus the permanent Growth Allowance)</Label></div>
         <div className="grid gap-3 sm:grid-cols-3">
           <div><Label>Payment mode</Label><Select value={form.payment_mode} onValueChange={(v) => setForm({ ...form, payment_mode: v })}><SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent><SelectItem value="TEST">TEST (sandbox)</SelectItem><SelectItem value="LIVE">LIVE</SelectItem></SelectContent></Select></div>

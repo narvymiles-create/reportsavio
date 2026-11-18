@@ -7,11 +7,15 @@ import { APPEARANCE_CHANGED, APPEARANCE_KEY, parseAppearance } from "@/lib/repor
 import { supabase } from "@/integrations/supabase/client";
 import { generateNurseryOutput } from "@/lib/reportAppearancePreview";
 
-function CustomViewer({ template, learnerIds, termId }: { template: SchoolTemplate; learnerIds: string[]; termId: string }) {
+type Access = { watermark?: boolean; beforeOutput?: (action: "download" | "print") => Promise<boolean> };
+
+function CustomViewer({ template, learnerIds, termId, access }: { template: SchoolTemplate; learnerIds: string[]; termId: string; access: Access }) {
   const generate = useCallback((ids: string[], term: string, progress?: (done: number, total: number) => void) => generateCustomOutput(template, ids, term, progress), [template.id]);
-  return <PrimaryPdfViewer learnerIds={learnerIds} termId={termId} generate={generate} filename="report-cards" />;
+  return <PrimaryPdfViewer learnerIds={learnerIds} termId={termId} generate={generate} filename="report-cards" {...access} />;
 }
-export function NurseryTemplateOutput({ learnerIds, termId, children }: { learnerIds: string[]; termId: string; children: ReactNode }) {
+/** Nursery output for uploaded templates / customised colours; unpaid state and unlock checks come from the page. */
+export function NurseryTemplateOutput({ learnerIds, termId, children, watermark, beforeOutput }: { learnerIds: string[]; termId: string; children: ReactNode } & Access) {
+  const access: Access = { watermark, beforeOutput };
   const { schoolId } = useAuth();
   const [state, setState] = useState<{ template: SchoolTemplate | null; customized?: boolean; error?: string } | null>(null);
   const [revision, setRevision] = useState(0);
@@ -26,5 +30,5 @@ export function NurseryTemplateOutput({ learnerIds, termId, children }: { learne
   }, [schoolId, idsKey, termId, revision]);
   if (!state) return <p role="status" className="p-6 text-muted-foreground">Preparing report…</p>;
   if (state.error) return <p role="alert" className="p-6 text-destructive">{state.error}</p>;
-  return state.template ? <CustomViewer template={state.template} learnerIds={learnerIds} termId={termId} /> : state.customized ? <PrimaryPdfViewer key={revision} learnerIds={learnerIds} termId={termId} generate={generateNurseryOutput} filename="nursery-report-cards" /> : <>{children}</>;
+  return state.template ? <CustomViewer template={state.template} learnerIds={learnerIds} termId={termId} access={access} /> : state.customized ? <PrimaryPdfViewer key={revision} learnerIds={learnerIds} termId={termId} generate={generateNurseryOutput} filename="nursery-report-cards" {...access} /> : <>{children}</>;
 }

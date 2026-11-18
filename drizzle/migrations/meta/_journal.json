@@ -134,6 +134,13 @@
       "when": 1795015133642,
       "tag": "0018_permanent_growth_allowance_and_feature_management",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1795037234407,
+      "tag": "0019_manual_payments_activation_keys",
+      "breakpoints": true
     }
   ]
 }

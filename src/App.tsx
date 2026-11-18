@@ -43,6 +43,8 @@ import ReportTemplatesPage from "./pages/ReportTemplatesPage";
 import ReportAppearancePage from "./pages/ReportAppearancePage";
 import BillingPage from "./pages/BillingPage";
 import PlatformBillingPage from "./pages/PlatformBillingPage";
+import PlatformPaymentsPage from "./pages/PlatformPaymentsPage";
+import ActivatePage from "./pages/ActivatePage";
 import PricingPage from "./pages/PricingPage";
 import FeatureManagementPage from "./pages/FeatureManagementPage";
 import { FeaturesProvider } from "@/contexts/FeaturesContext";
@@ -123,6 +125,8 @@ const App = () => (
             <Route path="/report-templates" element={<Protected><FeaturePage feature="template_view"><FeatureNotice keys={["template_select", "template_create", "template_edit", "custom_fields"]} /><ReportTemplatesPage /></FeaturePage></Protected>} />
             <Route path="/billing" element={<Protected><BillingPage /></Protected>} />
             <Route path="/platform/billing" element={<Protected><PlatformBillingPage /></Protected>} />
+            <Route path="/platform/payments" element={<Protected><PlatformPaymentsPage /></Protected>} />
+            <Route path="/activate" element={<Protected><ActivatePage /></Protected>} />
             <Route path="/platform/features" element={<Protected><FeatureManagementPage /></Protected>} />
             <Route path="/pricing" element={<PricingRoute />} />
             <Route path="/print/report-card/:learnerId/:termId" element={<RequireAdmin><PrintReportCard /></RequireAdmin>} />

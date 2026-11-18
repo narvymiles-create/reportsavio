@@ -39,7 +39,7 @@ export default function NurseryReportsPage() {
   useEffect(() => {
     try { sessionStorage.setItem(FILTERS_KEY, JSON.stringify({ classId, streamId, termId, learnerId })); } catch { /* best effort */ }
   }, [classId, streamId, termId, learnerId]);
-  const { run } = useReportOutput();
+  const { run, ensure } = useReportOutput();
   const [ctc, setCtc] = useState("");
   const [htc, setHtc] = useState("");
   const [bulkPreview, setBulkPreview] = useState(false);
@@ -131,6 +131,9 @@ export default function NurseryReportsPage() {
     }
   };
 
+  const singleLocked = singleAccess.watermark !== false;
+  const bulkLocked = bulkAccess.watermark !== false;
+  const lockedIcon = (locked: boolean, Icon: typeof Printer) => locked ? <Lock className="h-4 w-4 mr-1" /> : <Icon className="h-4 w-4 mr-1" />;
   const bulkBase = classId && termId ? `/print/nursery-bulk/${termId}/${classId}${streamId ? `?stream=${streamId}` : ""}` : "";
 
   return (
@@ -191,11 +194,15 @@ export default function NurseryReportsPage() {
               <Button variant="secondary" onClick={() => { setLearnerId(""); setBulkPreview(true); }}>
                 <Users className="h-4 w-4 mr-1" />Bulk Preview ({filteredLearners.length})
               </Button>
-              <Link to={`${bulkBase}${bulkBase.includes("?") ? "&" : "?"}mode=print`} target="_blank">
-                <Button variant="outline"><Printer className="h-4 w-4 mr-1" />Bulk Print</Button>
-              </Link>
+              {bulkLocked ? (
+                <Button variant="outline" onClick={() => ensure({ ...outputBase, learnerIds: filteredLearners.map((l) => l.id), action: "bulk_print" }).then((q) => { if (q) window.open(`${bulkBase}${bulkBase.includes("?") ? "&" : "?"}mode=print`, "_blank"); })}>{lockedIcon(true, Printer)}Bulk Print</Button>
+              ) : (
+                <Link to={`${bulkBase}${bulkBase.includes("?") ? "&" : "?"}mode=print`} target="_blank">
+                  <Button variant="outline"><Printer className="h-4 w-4 mr-1" />Bulk Print</Button>
+                </Link>
+              )}
               <Button variant="outline" onClick={handleBulkDownload} disabled={bulkDownloading || filteredLearners.length === 0}>
-                {bulkDownloading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Download className="h-4 w-4 mr-1" />}
+                {bulkDownloading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : lockedIcon(bulkLocked, Download)}
                 {bulkDownloading && bulkProgress
                   ? `Downloading ${bulkProgress.done}/${bulkProgress.total}…`
                   : `Bulk Download ZIP (${filteredLearners.length})`}
@@ -211,11 +218,15 @@ export default function NurseryReportsPage() {
               </div>
               <div className="flex gap-2">
                 <Button onClick={saveComments}><Save className="h-4 w-4 mr-1" />Save Comments</Button>
-                <Link to={`/print/nursery/${learnerId}/${termId}`} target="_blank">
-                  <Button variant="outline"><FileText className="h-4 w-4 mr-1" />Open Print View</Button>
-                </Link>
+                {singleLocked ? (
+                  <Button variant="outline" onClick={() => ensure({ ...outputBase, learnerIds: [learnerId], action: "print" }).then((q) => { if (q) window.open(`/print/nursery/${learnerId}/${termId}`, "_blank"); })}>{lockedIcon(true, FileText)}Open Print View</Button>
+                ) : (
+                  <Link to={`/print/nursery/${learnerId}/${termId}`} target="_blank">
+                    <Button variant="outline"><FileText className="h-4 w-4 mr-1" />Open Print View</Button>
+                  </Link>
+                )}
                 <Button variant="outline" onClick={handleSingleDownload} disabled={singleDownloading}>
-                  {singleDownloading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Download className="h-4 w-4 mr-1" />}
+                  {singleDownloading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : lockedIcon(singleLocked, Download)}
                   Download PDF
                 </Button>
               </div>
@@ -230,7 +241,8 @@ export default function NurseryReportsPage() {
           <CardContent>
             <div className="overflow-auto border rounded p-4 bg-muted/20">
               <UnpaidWatermark active={!!singleAccess.watermark}>
-                <NurseryTemplateOutput learnerIds={[learnerId]} termId={termId}><NurseryReportSheet learnerId={learnerId} termId={termId} /></NurseryTemplateOutput>
+                <NurseryTemplateOutput learnerIds={[learnerId]} termId={termId} watermark={singleAccess.watermark ?? true}
+                  beforeOutput={(action) => ensure({ ...outputBase, learnerIds: [learnerId], action }).then(Boolean)}><NurseryReportSheet learnerId={learnerId} termId={termId} /></NurseryTemplateOutput>
               </UnpaidWatermark>
             </div>
           </CardContent>
@@ -246,7 +258,8 @@ export default function NurseryReportsPage() {
           <CardContent>
             <div className="overflow-auto border rounded p-4 bg-muted/20 space-y-6 max-h-[80vh]">
               <UnpaidWatermark active={!!bulkAccess.watermark}>
-              <NurseryTemplateOutput learnerIds={filteredLearners.map(l => l.id)} termId={termId}>{filteredLearners.map((l) => (
+              <NurseryTemplateOutput learnerIds={filteredLearners.map(l => l.id)} termId={termId} watermark={bulkAccess.watermark ?? true}
+                beforeOutput={(action) => ensure({ ...outputBase, learnerIds: filteredLearners.map((l) => l.id), action: action === "print" ? "bulk_print" : "bulk_download" }).then(Boolean)}>{filteredLearners.map((l) => (
                 <div key={l.id}>
                   <div className="text-xs text-muted-foreground mb-2 font-semibold">{l.full_name}</div>
                   <NurseryReportSheet learnerId={l.id} termId={termId} />

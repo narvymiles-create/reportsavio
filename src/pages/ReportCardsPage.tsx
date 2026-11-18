@@ -124,7 +124,7 @@ function ReportJobRunner({ job, termId, onDone, beforeDownload }: { job: ReportJ
         <Button variant="outline" onClick={onDone}>Close</Button>
       </div>
       {/* Printing was unlocked before this opened; Download still checks its own switch/payment. */}
-      <PrimaryPdfViewer key={job.id} learnerIds={job.learners.map(learner => learner.id)} termId={termId} autoPrint filename={job.label}
+      <PrimaryPdfViewer key={job.id} learnerIds={job.learners.map(learner => learner.id)} termId={termId} autoPrint filename={job.label} watermark={false}
         beforeOutput={(action) => action === "print" ? Promise.resolve(true) : beforeDownload()} />
     </div>
   );
@@ -323,6 +323,8 @@ export default function ReportCardsPage() {
   if (loading) return <div className="flex items-center justify-center p-12"><Loader2 className="h-6 w-6 animate-spin" /></div>;
 
   const generatedCount = filtered.filter(l => reports[l.id]).length;
+  // Visible lock until the database says these cards are covered; clicks still ask the database (and go to packages when locked).
+  const outputLocked = access.watermark !== false;
 
   return (
     <div className="space-y-6">
@@ -443,10 +445,10 @@ export default function ReportCardsPage() {
               </SelectContent>
             </Select>
             <Button variant="outline" onClick={() => startReportJob()} disabled={!termId || !classId || generatedCount === 0 || !!reportJob}>
-              <Package className="mr-2 h-4 w-4" /> Bulk Print
+              {outputLocked ? <Lock className="mr-2 h-4 w-4" /> : <Package className="mr-2 h-4 w-4" />} Bulk Print
             </Button>
             <Button variant="outline" onClick={downloadAllZip} disabled={!termId || !classId || generatedCount === 0 || !!bulkDownload}>
-              <FileDown className="mr-2 h-4 w-4" /> Bulk Download (ZIP)
+              {outputLocked ? <Lock className="mr-2 h-4 w-4" /> : <FileDown className="mr-2 h-4 w-4" />} Bulk Download (ZIP)
             </Button>
           </div>
         </CardHeader>
@@ -486,17 +488,17 @@ export default function ReportCardsPage() {
                         {r ? (
                           <div className="inline-flex items-center gap-1 justify-end">
                             <IconAction icon={Eye} label="View" asChild href={printUrl} target="_blank" />
-                            <IconAction icon={Printer} label="Print" onClick={() => startReportJob([l], `Print ${l.full_name}`)} />
+                            <IconAction icon={outputLocked ? Lock : Printer} label={outputLocked ? "Print (locked)" : "Print"} onClick={() => startReportJob([l], `Print ${l.full_name}`)} />
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button size="icon" variant="ghost" className="h-8 w-8 inline-flex lg:hidden" onClick={() => downloadOne(l)} disabled={downloadingId === l.id} title="Download PDF" aria-label="Download PDF">
-                                  {downloadingId === l.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                                  {downloadingId === l.id ? <Loader2 className="h-4 w-4 animate-spin" /> : outputLocked ? <Lock className="h-4 w-4" /> : <Download className="h-4 w-4" />}
                                 </Button>
                               </TooltipTrigger>
                               <TooltipContent>Download PDF</TooltipContent>
                             </Tooltip>
                             <Button size="sm" variant="ghost" className="hidden lg:inline-flex" onClick={() => downloadOne(l)} disabled={downloadingId === l.id}>
-                              {downloadingId === l.id ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Download className="mr-1 h-4 w-4" />} Download
+                              {downloadingId === l.id ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : outputLocked ? <Lock className="mr-1 h-4 w-4" /> : <Download className="mr-1 h-4 w-4" />} Download
                             </Button>
                             <Tooltip>
                               <TooltipTrigger asChild>

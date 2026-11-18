@@ -111,6 +111,116 @@ export type Database = {
           },
         ]
       }
+      billing_activation_keys: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          expires_at: string
+          id: string
+          key_hash: string
+          key_hint: string
+          package: Json
+          payment_id: string
+          product: string
+          revoked_at: string | null
+          revoked_by: string | null
+          school_id: string
+          status: string
+          used_at: string | null
+          used_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          expires_at: string
+          id?: string
+          key_hash: string
+          key_hint: string
+          package?: Json
+          payment_id: string
+          product: string
+          revoked_at?: string | null
+          revoked_by?: string | null
+          school_id: string
+          status?: string
+          used_at?: string | null
+          used_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string
+          id?: string
+          key_hash?: string
+          key_hint?: string
+          package?: Json
+          payment_id?: string
+          product?: string
+          revoked_at?: string | null
+          revoked_by?: string | null
+          school_id?: string
+          status?: string
+          used_at?: string | null
+          used_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_activation_keys_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "billing_payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_activation_keys_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      billing_audit_log: {
+        Row: {
+          action: string
+          actor: string | null
+          created_at: string
+          details: Json
+          id: string
+          key_id: string | null
+          payment_id: string | null
+          school_id: string | null
+        }
+        Insert: {
+          action: string
+          actor?: string | null
+          created_at?: string
+          details?: Json
+          id?: string
+          key_id?: string | null
+          payment_id?: string | null
+          school_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor?: string | null
+          created_at?: string
+          details?: Json
+          id?: string
+          key_id?: string | null
+          payment_id?: string | null
+          school_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_audit_log_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       billing_calendar: {
         Row: {
           academic_year: number
@@ -207,11 +317,19 @@ export type Database = {
           last_checked_at: string | null
           mode: string | null
           msisdn: string | null
+          payer_phone: string | null
+          payer_reference: string | null
           product: string
+          proof_path: string | null
+          proof_submitted_at: string | null
           provider: string | null
           receipt_no: string | null
           reference: string
           refunded_amount: number
+          review_note: string | null
+          review_status: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
           school_id: string
           status: string
           updated_at: string
@@ -234,11 +352,19 @@ export type Database = {
           last_checked_at?: string | null
           mode?: string | null
           msisdn?: string | null
+          payer_phone?: string | null
+          payer_reference?: string | null
           product: string
+          proof_path?: string | null
+          proof_submitted_at?: string | null
           provider?: string | null
           receipt_no?: string | null
           reference: string
           refunded_amount?: number
+          review_note?: string | null
+          review_status?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           school_id: string
           status?: string
           updated_at?: string
@@ -261,11 +387,19 @@ export type Database = {
           last_checked_at?: string | null
           mode?: string | null
           msisdn?: string | null
+          payer_phone?: string | null
+          payer_reference?: string | null
           product?: string
+          proof_path?: string | null
+          proof_submitted_at?: string | null
           provider?: string | null
           receipt_no?: string | null
           reference?: string
           refunded_amount?: number
+          review_note?: string | null
+          review_status?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           school_id?: string
           status?: string
           updated_at?: string
@@ -2814,6 +2948,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      billing__audit: {
+        Args: {
+          _action: string
+          _details?: Json
+          _key: string
+          _payment: string
+          _school: string
+        }
+        Returns: undefined
+      }
       billing__caller_school_for_term: {
         Args: { _term_id: string }
         Returns: string
@@ -2840,9 +2984,26 @@ export type Database = {
         }
         Returns: Json
       }
+      billing__new_key: {
+        Args: { _days?: number; _payment_id: string }
+        Returns: Json
+      }
+      billing_activate_key: { Args: { _key: string }; Returns: Json }
       billing_active_learner_count: {
         Args: { _school: string }
         Returns: number
+      }
+      billing_admin_reissue_key: {
+        Args: { _payment_id: string }
+        Returns: Json
+      }
+      billing_admin_review_payment: {
+        Args: { _approve: boolean; _note?: string; _payment_id: string }
+        Returns: Json
+      }
+      billing_admin_revoke_key: {
+        Args: { _key_id: string; _note?: string }
+        Returns: Json
       }
       billing_daily_maintenance: { Args: never; Returns: Json }
       billing_fulfil_payment: {
@@ -2867,6 +3028,16 @@ export type Database = {
         }
         Returns: Json
       }
+      billing_manual_submit_proof: {
+        Args: {
+          _payer_phone: string
+          _payer_reference: string
+          _payment_id: string
+          _proof_path: string
+        }
+        Returns: Json
+      }
+      billing_my_entitlement: { Args: never; Returns: Json }
       billing_record_refund: {
         Args: { _payment_id: string; _refunded: number; _status: string }
         Returns: undefined
@@ -2893,6 +3064,7 @@ export type Database = {
         }
         Returns: string
       }
+      billing_school_entitlement: { Args: { _school: string }; Returns: Json }
       billing_set_default_method: {
         Args: { _method: string }
         Returns: undefined

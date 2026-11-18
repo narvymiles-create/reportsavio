@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowLeft, Lightbulb, Loader2, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowLeft, KeyRound, Lightbulb, Loader2, Sparkles } from "lucide-react";
+import { SKAVIO_PAYMENT_NUMBER } from "@/lib/billing/manual";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -170,9 +171,6 @@ export default function PricingPage({ signedIn = true }: { signedIn?: boolean })
     return null;
   };
 
-  const gatewayNotice = signedIn && snap && (!snap.gateway?.configured
-    ? "Online payments are being set up. You can review and choose packages now; payment will work once the payment gateway is connected."
-    : snap.gateway.gateway_mode === "TEST" ? "Payments are in TEST mode — no real money is collected." : null);
 
   return (
     <div className="space-y-6">
@@ -186,7 +184,12 @@ export default function PricingPage({ signedIn = true }: { signedIn?: boolean })
           Online and Desktop packages include a permanent 10% Growth Allowance.</p>
       </div>
 
-      {gatewayNotice && <Alert><ShieldCheck className="h-4 w-4" /><AlertDescription>{gatewayNotice}</AlertDescription></Alert>}
+      {signedIn && (
+        <Alert><KeyRound className="h-4 w-4" /><AlertDescription className="flex flex-wrap items-center justify-between gap-2">
+          <span>Choose a package, pay by mobile money to <strong>{SKAVIO_PAYMENT_NUMBER}</strong>, send your proof, then enter the activation key Skavio sends you. Downloads and printing unlock only after activation.</span>
+          <Button asChild size="sm" variant="outline"><Link to="/activate">I have an activation key</Link></Button>
+        </AlertDescription></Alert>
+      )}
 
       {signedIn && (loading || !snap ? <div className="flex justify-center p-6"><Loader2 className="h-5 w-5 animate-spin" /></div> : (
         <Card className="border-accent/50">

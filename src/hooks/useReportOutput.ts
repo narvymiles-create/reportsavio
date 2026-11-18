@@ -80,8 +80,8 @@ export function useReportAccess(level: ReportLevel, termId: string | undefined, 
     setState((s) => ({ ...s, watermark: s.key === key ? s.watermark : null }));
     quoteReportCards(level, termId, learnerIds)
       .then((quote) => { if (!cancelled) setState({ key, quote, watermark: !quote.paid }); })
-      // If the check itself fails, downloads stay locked by the database anyway.
-      .catch(() => { if (!cancelled) setState({ key, quote: null, watermark: false }); });
+      // If the check fails the preview stays watermarked; downloads stay locked by the database anyway.
+      .catch(() => { if (!cancelled) setState({ key, quote: null, watermark: true }); });
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, tick]);

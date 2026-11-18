@@ -18,7 +18,7 @@ const CreateBody = z.object({
   licence_id: z.string().uuid().optional(),
   quantity: z.number().int().min(1).max(5000).optional(),
   quote_id: z.string().uuid().optional(),
-  channel: z.enum(["hosted_checkout", "mobile_money"]),
+  channel: z.enum(["hosted_checkout", "mobile_money", "manual"]),
   msisdn: z.string().max(20).optional(),
   client_request_id: z.string().uuid(),
   return_origin: z.string().max(200).optional(),
@@ -190,6 +190,13 @@ function reference() {
   return `SER-${d}-${rand}`;
 }
 
+/** Short, easy-to-type order reference for manual payments (no 0/O or 1/I confusion). */
+function manualReference() {
+  const alphabet = "23456789ABCDEFGHJKMNPQRSTUVWXYZ";
+  const bytes = crypto.getRandomValues(new Uint8Array(8));
+  return `SKV-${Array.from(bytes, (b) => alphabet[b % alphabet.length]).join("")}`;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
@@ -250,6 +257,32 @@ Deno.serve(async (req) => {
 
     // ---- create ----
     if (!caller.schoolId || !caller.isSchoolBillingAdmin) return json({ error: "Only school administrators can make payments." }, 403);
+
+    // Manual mobile-money order: priced on the server exactly like gateway payments, then verified by Skavio and
+    // unlocked with a single-use activation key. Nothing is activated here.
+    if (body.channel === "manual") {
+      const { data: existing } = await admin.from("billing_payments").select("*").eq("school_id", caller.schoolId).eq("client_request_id", body.client_request_id).maybeSingle();
+      if (existing) return json({ payment_id: existing.id, reference: existing.reference, status: existing.status, amount: existing.amount, description: existing.description, reused: true });
+      const priced = await price(admin, caller, body);
+      if (priced.amount <= 0) throw new UserError("Nothing to pay for this package.");
+      const ref = manualReference();
+      const { data: row, error: insErr } = await admin.from("billing_payments").insert({
+        school_id: caller.schoolId, reference: ref, client_request_id: body.client_request_id, product: priced.product,
+        description: priced.description, amount: priced.amount, channel: "manual", provider: "manual", mode: "MANUAL",
+        review_status: "awaiting_proof", details: priced.details, created_by: caller.userId,
+      }).select("*").single();
+      if (insErr) {
+        if (insErr.code === "23505") {
+          const { data: again } = await admin.from("billing_payments").select("*").eq("school_id", caller.schoolId).eq("client_request_id", body.client_request_id).single();
+          return json({ payment_id: again?.id, reference: again?.reference, status: again?.status, amount: again?.amount, description: again?.description, reused: true });
+        }
+        throw new Error(insErr.message);
+      }
+      await admin.from("billing_audit_log").insert({ school_id: caller.schoolId, payment_id: row.id, action: "order_created", actor: caller.userId,
+        details: { product: priced.product, amount: priced.amount, reference: ref } });
+      return json({ payment_id: row.id, reference: ref, status: "pending", amount: priced.amount, description: priced.description });
+    }
+
     if (!client) return json({ error: "Online payments are not configured yet. Please contact Skavio support." }, 503);
     const cfg = await settings(admin);
     if (cfg.payment_mode !== client.mode) {
