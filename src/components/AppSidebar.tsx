@@ -16,6 +16,8 @@ import {
   Baby,
   Palette,
   Shapes,
+  Wallet,
+  ShieldCheck,
 } from "lucide-react";
 import {
   Sidebar,
@@ -32,6 +34,8 @@ import {
 import { useReportModule } from "@/hooks/useReportModule";
 import { Button } from "@/components/ui/button";
 import skavioLogo from "@/assets/skavio-logo-transparent.png";
+import { useAuth } from "@/contexts/AuthContext";
+import { useBillingAdmin } from "@/hooks/useBillingAdmin";
 
 const primaryGroups = [
   { label: "Overview", items: [{ title: "Dashboard", url: "/", icon: LayoutDashboard }] },
@@ -90,7 +94,18 @@ export function AppSidebar() {
   const collapsed = state === "collapsed";
   const { pathname } = useLocation();
   const { module, setModule } = useReportModule();
-  const groups = module === "nursery" ? nurseryGroups : primaryGroups;
+  const { isSuperAdmin } = useAuth();
+  const billingAdmin = useBillingAdmin();
+  const baseGroups = module === "nursery" ? nurseryGroups : primaryGroups;
+  // Billing is only shown to school administrators; the platform dashboard only to Skavio administrators.
+  const groups = baseGroups.map((g) => g.label !== "System" ? g : {
+    ...g,
+    items: [
+      ...g.items,
+      ...(billingAdmin ? [{ title: "Billing & Subscription", url: "/billing", icon: Wallet }] : []),
+      ...(isSuperAdmin ? [{ title: "Platform Billing", url: "/platform/billing", icon: ShieldCheck }] : []),
+    ],
+  });
 
   return (
     <Sidebar collapsible="icon">

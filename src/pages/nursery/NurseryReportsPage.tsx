@@ -11,6 +11,8 @@ import { FileText, Save, Eye, Printer, Users, Download, Loader2 } from "lucide-r
 import { NurseryReportSheet } from "@/components/NurseryReportSheet";
 import { NurseryTemplateOutput } from "@/components/NurseryTemplateOutput";
 import { downloadNurseryReportCardPDF, downloadNurseryReportCardsZip, type BulkProgress } from "@/lib/nurseryPdfGenerator";
+import { ReportIssueGate } from "@/components/billing/ReportIssueGate";
+import { billingErrorMessage, withIssuedReportCards } from "@/lib/billing/api";
 
 type Cls = { id: string; name: string };
 type Stream = { id: string; name: string; class_id: string };
@@ -78,10 +80,11 @@ export default function NurseryReportsPage() {
     const learner = filteredLearners.find(l => l.id === learnerId);
     setSingleDownloading(true);
     try {
-      await downloadNurseryReportCardPDF(learnerId, termId, learner?.full_name ?? "nursery-report");
-      toast({ title: "PDF downloaded" });
+      const done = await withIssuedReportCards("nursery", termId, [learnerId],
+        () => downloadNurseryReportCardPDF(learnerId, termId, learner?.full_name ?? "nursery-report").then(() => true));
+      if (done) toast({ title: "PDF downloaded" });
     } catch (e: any) {
-      toast({ title: "Download failed", description: e.message, variant: "destructive" });
+      toast({ title: "Download failed", description: billingErrorMessage(e), variant: "destructive" });
     } finally {
       setSingleDownloading(false);
     }
@@ -93,19 +96,18 @@ export default function NurseryReportsPage() {
     setBulkProgress(null);
     try {
       const className = classes.find(c => c.id === classId)?.name ?? "nursery";
-      const { failed } = await downloadNurseryReportCardsZip(
-        filteredLearners,
-        termId,
-        `${className}-reports`,
-        (p) => setBulkProgress(p),
-      );
+      const result = await withIssuedReportCards("nursery", termId, filteredLearners.map((l) => l.id),
+        () => downloadNurseryReportCardsZip(filteredLearners, termId, `${className}-reports`, (p) => setBulkProgress(p)),
+        (r) => filteredLearners.filter((l) => r.failed.some((f) => f.name === l.full_name)).map((l) => l.id));
+      if (!result) return;
+      const { failed } = result;
       if (failed.length) {
         toast({ title: `Done with ${failed.length} error(s)`, description: failed.map(f => f.name).join(", "), variant: "destructive" });
       } else {
         toast({ title: "ZIP downloaded successfully" });
       }
     } catch (e: any) {
-      toast({ title: "Bulk download failed", description: e.message, variant: "destructive" });
+      toast({ title: "Bulk download failed", description: billingErrorMessage(e), variant: "destructive" });
     } finally {
       setBulkDownloading(false);
       setBulkProgress(null);
@@ -200,7 +202,9 @@ export default function NurseryReportsPage() {
           <CardHeader><CardTitle className="flex items-center gap-2"><Eye className="h-4 w-4" />Live Preview</CardTitle></CardHeader>
           <CardContent>
             <div className="overflow-auto border rounded p-4 bg-muted/20">
-              <NurseryTemplateOutput learnerIds={[learnerId]} termId={termId}><NurseryReportSheet learnerId={learnerId} termId={termId} /></NurseryTemplateOutput>
+              <ReportIssueGate level="nursery" termId={termId} learnerIds={[learnerId]}>
+                <NurseryTemplateOutput learnerIds={[learnerId]} termId={termId}><NurseryReportSheet learnerId={learnerId} termId={termId} /></NurseryTemplateOutput>
+              </ReportIssueGate>
             </div>
           </CardContent>
         </Card>
@@ -214,12 +218,14 @@ export default function NurseryReportsPage() {
           </CardHeader>
           <CardContent>
             <div className="overflow-auto border rounded p-4 bg-muted/20 space-y-6 max-h-[80vh]">
+              <ReportIssueGate level="nursery" termId={termId} learnerIds={filteredLearners.map(l => l.id)}>
               <NurseryTemplateOutput learnerIds={filteredLearners.map(l => l.id)} termId={termId}>{filteredLearners.map((l) => (
                 <div key={l.id}>
                   <div className="text-xs text-muted-foreground mb-2 font-semibold">{l.full_name}</div>
                   <NurseryReportSheet learnerId={l.id} termId={termId} />
                 </div>
               ))}</NurseryTemplateOutput>
+              </ReportIssueGate>
             </div>
           </CardContent>
         </Card>

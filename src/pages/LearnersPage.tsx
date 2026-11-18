@@ -42,6 +42,7 @@ type Learner = {
   photo_path: string | null;
   conduct: string | null;
   co_curricular: string | null;
+  status?: string | null;
 };
 
 const calcAge = (dob: string | null | undefined): number | null => {
@@ -203,6 +204,7 @@ export default function LearnersPage() {
     const payCodeVal = String(fd.get("pay_code") ?? "");
     const conductVal = String(fd.get("conduct") ?? "").trim();
     const coCurricularVal = String(fd.get("co_curricular") ?? "").trim();
+    const statusVal = String(fd.get("status") ?? "active");
 
     const payload: any = {
       full_name: parsed.data.full_name,
@@ -221,6 +223,7 @@ export default function LearnersPage() {
       pay_code: payCodeVal || null,
       conduct: conductVal || null,
       co_curricular: coCurricularVal || null,
+      status: ["active", "archived", "withdrawn", "graduated"].includes(statusVal) ? statusVal : "active",
     };
 
     setSubmitting(true);
@@ -252,7 +255,7 @@ export default function LearnersPage() {
 
     setSubmitting(false);
     if (error) {
-      toast({ title: "Save failed", description: error.message, variant: "destructive" });
+      toast({ title: "Save failed", description: String(error.message ?? "").replace(/^BILLING_[A-Z_]+:\s*/, ""), variant: "destructive" });
     } else {
       toast({ title: editing ? "Learner updated" : "Learner added" });
       setOpen(false);
@@ -355,6 +358,20 @@ export default function LearnersPage() {
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="status">Enrolment status</Label>
+                <Select name="status" defaultValue={editing?.status ?? "active"}>
+                  <SelectTrigger id="status"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="archived">Archived</SelectItem>
+                    <SelectItem value="withdrawn">Withdrawn</SelectItem>
+                    <SelectItem value="graduated">Graduated</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">Only active learners count towards your package capacity. Records are never deleted.</p>
               </div>
 
               <div className="grid grid-cols-3 gap-3">
@@ -532,7 +549,7 @@ export default function LearnersPage() {
                           <AvatarFallback className="text-xs"><User className="h-4 w-4" /></AvatarFallback>
                         </Avatar>
                       </TableCell>
-                      <TableCell className="font-medium">{l.full_name}</TableCell>
+                      <TableCell className="font-medium">{l.full_name}{l.status && l.status !== "active" && <span className="ml-2 rounded border px-1.5 py-0.5 text-xs font-normal capitalize text-muted-foreground">{l.status}</span>}</TableCell>
                       <TableCell>{l.sex ?? "—"}</TableCell>
                       <TableCell className="text-sm">{className(l.class_id)} / {streamName(l.stream_id)}</TableCell>
                       <TableCell>{l.age ?? "—"}</TableCell>

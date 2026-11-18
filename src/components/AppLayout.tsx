@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { LogOut } from "lucide-react";
 import { PoweredByFooter } from "@/components/PoweredByFooter";
+import { BillingBanner } from "@/components/billing/BillingBanner";
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const { user, signOut } = useAuth();
@@ -29,7 +30,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
               </Button>
             </div>
           </header>
-          <main className="flex-1 p-4 md:p-6 overflow-x-hidden">{children}</main>
+          <main className="flex-1 p-4 md:p-6 overflow-x-hidden"><BillingBanner />{children}</main>
           <PoweredByFooter className="border-t bg-card" />
         </div>
       </div>

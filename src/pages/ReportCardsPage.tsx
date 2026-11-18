@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { generateClassReports } from "@/lib/reportCards";
+import { billingErrorMessage, chargeConfirmText, quoteBlockedText, quoteReportCards } from "@/lib/billing/api";
 import { calculateDivision } from "@/lib/grading";
 import { PrimaryPdfViewer } from "@/components/PrimaryPdfViewer";
 import { downloadReportCardPDF, downloadReportCardsZip, type BulkProgress } from "@/lib/pdfGenerator";
@@ -205,15 +206,26 @@ export default function ReportCardsPage() {
     });
   }, [learners, streamId, sortBy, reports]);
 
+  /** Pay-per-report-card schools confirm before new cards use credits; reprints and regeneration stay free. */
+  const confirmBilling = async () => {
+    const q = await quoteReportCards("primary", termId, learners.map((l) => l.id));
+    if (!q.allowed) {
+      toast({ title: "Billing", description: quoteBlockedText(q), variant: "destructive" });
+      return false;
+    }
+    return q.credits_needed > 0 ? window.confirm(chargeConfirmText(q)) : true;
+  };
+
   const generate = async () => {
     if (!termId || !classId) return toast({ title: "Pick a term and class", variant: "destructive" });
     setGenerating(true);
     try {
+      if (!(await confirmBilling())) return;
       const rows = await generateClassReports(termId, classId);
       toast({ title: `Generated ${rows.length} report card(s)` });
       loadReports();
     } catch (e: unknown) {
-      toast({ title: "Failed", description: errorMessage(e), variant: "destructive" });
+      toast({ title: "Failed", description: billingErrorMessage(e), variant: "destructive" });
     } finally {
       setGenerating(false);
     }
@@ -225,12 +237,13 @@ export default function ReportCardsPage() {
     }
     setGeneratingOne(singleLearnerId);
     try {
+      if (!(await confirmBilling())) return;
       // Generation runs class-wide (positions need the whole class), then we open the chosen learner
       await generateClassReports(termId, classId);
       await loadReports();
       toast({ title: "Report card ready" });
     } catch (e: unknown) {
-      toast({ title: "Failed", description: errorMessage(e), variant: "destructive" });
+      toast({ title: "Failed", description: billingErrorMessage(e), variant: "destructive" });
     } finally {
       setGeneratingOne(null);
     }

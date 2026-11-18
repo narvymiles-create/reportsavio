@@ -3,6 +3,7 @@ import { useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 import { PrimaryPdfViewer } from "@/components/PrimaryPdfViewer";
+import { ReportIssueGate } from "@/components/billing/ReportIssueGate";
 
 type Learner = { id: string; full_name: string };
 
@@ -43,5 +44,9 @@ export default function BulkReportCardsPage() {
   if (loading) return <div className="flex items-center justify-center p-12"><Loader2 className="h-6 w-6 animate-spin" /></div>;
   if (errorMsg) return <div role="alert" className="p-8 text-center text-destructive">{errorMsg}</div>;
   if (!learners.length) return <div className="p-8 text-center text-muted-foreground">No generated report cards found for this class &amp; term.</div>;
-  return <PrimaryPdfViewer learnerIds={learners.map(learner => learner.id)} termId={termId} autoPrint={params.get("mode") === "print"} filename="report-cards" />;
+  return (
+    <ReportIssueGate level="primary" termId={termId} learnerIds={learners.map(learner => learner.id)} allowCharge={false}>
+      <PrimaryPdfViewer learnerIds={learners.map(learner => learner.id)} termId={termId} autoPrint={params.get("mode") === "print"} filename="report-cards" />
+    </ReportIssueGate>
+  );
 }

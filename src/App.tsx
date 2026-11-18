@@ -42,6 +42,8 @@ import BulkNurseryReportCardsPage from "./pages/BulkNurseryReportCardsPage";
 import NotFound from "./pages/NotFound.tsx";
 import ReportTemplatesPage from "./pages/ReportTemplatesPage";
 import ReportAppearancePage from "./pages/ReportAppearancePage";
+import BillingPage from "./pages/BillingPage";
+import PlatformBillingPage from "./pages/PlatformBillingPage";
 import { HelmetProvider } from "react-helmet-async";
 import { useAuth } from "@/contexts/AuthContext";
 import { PrivateRobots } from "@/components/Seo";
@@ -104,6 +106,8 @@ const App = () => (
             <Route path="/settings" element={<Protected><SettingsPage /></Protected>} />
             <Route path="/report-appearance" element={<Protected><ReportAppearancePage /></Protected>} />
             <Route path="/report-templates" element={<Protected><ReportTemplatesPage /></Protected>} />
+            <Route path="/billing" element={<Protected><BillingPage /></Protected>} />
+            <Route path="/platform/billing" element={<Protected><PlatformBillingPage /></Protected>} />
             <Route path="/print/report-card/:learnerId/:termId" element={<RequireAdmin><PrintReportCard /></RequireAdmin>} />
             <Route path="/print/bulk/:termId/:classId" element={<RequireAdmin><BulkReportCardsPage /></RequireAdmin>} />
             {/* Nursery module */}

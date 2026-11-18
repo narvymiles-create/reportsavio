@@ -10,7 +10,7 @@ import { uploadNurseryAsset, nurserySignedUrl } from "@/lib/nurseryStorage";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 
-type L = { id: string; full_name: string; age: number | null; sex: string | null; class_id: string | null; stream_id: string | null; photo_path: string | null };
+type L = { id: string; full_name: string; age: number | null; sex: string | null; class_id: string | null; stream_id: string | null; photo_path: string | null; status?: string | null };
 type Cls = { id: string; name: string };
 type Stream = { id: string; class_id: string; name: string };
 
@@ -53,8 +53,13 @@ export default function NurseryLearnersPage() {
       class_id: classId || null,
       stream_id: streamId || null,
     } as any);
-    if (error) return toast({ title: "Error", description: error.message, variant: "destructive" });
+    if (error) return toast({ title: "Error", description: error.message.replace(/^BILLING_[A-Z_]+:\s*/, ""), variant: "destructive" });
     setName(""); setAge(""); setSex(""); setStreamId(""); load();
+  };
+  const setStatus = async (id: string, status: string) => {
+    const { error } = await supabase.from("nursery_learners" as any).update({ status } as any).eq("id", id);
+    if (error) return toast({ title: "Could not update", description: error.message.replace(/^BILLING_[A-Z_]+:\s*/, ""), variant: "destructive" });
+    load();
   };
   const del = async (id: string) => {
     await supabase.from("nursery_learners" as any).delete().eq("id", id);
@@ -119,6 +124,15 @@ export default function NurseryLearnersPage() {
                     <div className="font-medium">{l.full_name}</div>
                     <div className="text-xs text-muted-foreground">{cls?.name ?? "—"} {st && `· ${st.name}`} {l.age ? `· ${l.age}y` : ""}</div>
                   </div>
+                  <Select value={l.status ?? "active"} onValueChange={(v) => setStatus(l.id, v)}>
+                    <SelectTrigger className="w-32 h-8" aria-label="Enrolment status"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="archived">Archived</SelectItem>
+                      <SelectItem value="withdrawn">Withdrawn</SelectItem>
+                      <SelectItem value="graduated">Graduated</SelectItem>
+                    </SelectContent>
+                  </Select>
                   <input ref={(el) => (fileRefs.current[l.id] = el)} type="file" accept="image/*" hidden onChange={(e) => e.target.files?.[0] && uploadPhoto(l.id, e.target.files[0])} />
                   <Button size="sm" variant="outline" onClick={() => fileRefs.current[l.id]?.click()}><Upload className="h-3 w-3 mr-1" />Photo</Button>
                   <Button size="sm" variant="ghost" onClick={() => del(l.id)}><Trash2 className="h-4 w-4" /></Button>

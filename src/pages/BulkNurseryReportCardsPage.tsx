@@ -6,6 +6,7 @@ import { Loader2, Printer } from "lucide-react";
 import { NurseryReportSheet } from "@/components/NurseryReportSheet";
 import { toast } from "@/hooks/use-toast";
 import { NurseryTemplateOutput } from "@/components/NurseryTemplateOutput";
+import { ReportIssueGate } from "@/components/billing/ReportIssueGate";
 
 type Learner = { id: string; full_name: string; stream_id: string | null };
 
@@ -93,6 +94,7 @@ export default function BulkNurseryReportCardsPage() {
   if (!termId) return <p>Missing term.</p>;
 
   return (
+    <ReportIssueGate level="nursery" termId={termId} learnerIds={learners.map(l => l.id)}>
     <NurseryTemplateOutput learnerIds={learners.map(l => l.id)} termId={termId}><div>
       <div className="no-print sticky top-0 z-10 bg-background border-b p-3 flex items-center justify-between gap-2">
         <div className="text-sm">
@@ -115,5 +117,6 @@ export default function BulkNurseryReportCardsPage() {
         ))}
       </div>
     </div></NurseryTemplateOutput>
+    </ReportIssueGate>
   );
 }

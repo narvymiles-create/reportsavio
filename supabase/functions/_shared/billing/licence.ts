@@ -77,9 +77,9 @@ export async function verifyLicenceToken(token: string, publicKeyB64url: string)
   try {
     const [prefix, body, sig] = (token || "").trim().split(".");
     if (prefix !== LICENCE_TOKEN_PREFIX || !body || !sig) return { valid: false, error: "Malformed licence" };
-    const key = await crypto.subtle.importKey("raw", b64urlDecode(publicKeyB64url), { name: "Ed25519" }, false, ["verify"]);
+    const key = await crypto.subtle.importKey("raw", b64urlDecode(publicKeyB64url) as BufferSource, { name: "Ed25519" }, false, ["verify"]);
     const bodyBytes = b64urlDecode(body);
-    const ok = await crypto.subtle.verify({ name: "Ed25519" }, key, b64urlDecode(sig), bodyBytes);
+    const ok = await crypto.subtle.verify({ name: "Ed25519" }, key, b64urlDecode(sig) as BufferSource, bodyBytes as BufferSource);
     if (!ok) return { valid: false, error: "Signature does not match" };
     const payload = JSON.parse(dec.decode(bodyBytes)) as LicencePayload;
     if (payload.v !== 1) return { valid: false, error: "Unsupported licence version" };

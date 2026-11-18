@@ -7,6 +7,7 @@ import { downloadNurseryReportCardPDF } from "@/lib/nurseryPdfGenerator";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { NurseryTemplateOutput } from "@/components/NurseryTemplateOutput";
+import { ReportIssueGate } from "@/components/billing/ReportIssueGate";
 
 export default function PrintNurseryReportCard() {
   const { learnerId, termId } = useParams<{ learnerId: string; termId: string }>();
@@ -49,6 +50,7 @@ export default function PrintNurseryReportCard() {
   if (!learnerId || !termId) return <div className="p-8 text-center text-muted-foreground">Missing parameters.</div>;
 
   return (
+    <ReportIssueGate level="nursery" termId={termId} learnerIds={[learnerId]}>
     <NurseryTemplateOutput learnerIds={[learnerId]} termId={termId}><div>
       <div className="no-print sticky top-0 z-10 bg-background border-b p-3 flex justify-end gap-2">
         <Button onClick={runDownload} disabled={downloading} variant="outline">
@@ -63,5 +65,6 @@ export default function PrintNurseryReportCard() {
         <NurseryReportSheet learnerId={learnerId} termId={termId} onReady={() => setReady(true)} />
       </div>
     </div></NurseryTemplateOutput>
+    </ReportIssueGate>
   );
 }

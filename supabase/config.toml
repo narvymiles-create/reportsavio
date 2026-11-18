@@ -3,3 +3,12 @@ project_id = "kbfpnsrvcjunfyqguzzd"
 [functions]
   [functions.auth-email-hook]
     verify_jwt = false
+
+  [functions.billing-payments]
+    verify_jwt = false
+
+  [functions.intesapay-webhook]
+    verify_jwt = false
+
+  [functions.desktop-licence]
+    verify_jwt = false
