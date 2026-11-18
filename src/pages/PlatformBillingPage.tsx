@@ -100,7 +100,7 @@ function schoolSummary(d: AllData, today: string) {
       next_renewal: current ? (nextTerm?.renewal_due_on ?? current.expires_on) : "",
       last_payment_amount: lastPay ? Number(lastPay.amount) : "",
       last_payment_reference: lastPay?.reference ?? "",
-      credits_remaining: credits?.balance ?? "",
+      learners_remaining: credits?.balance ?? "",
       upgrades: d.upgrades.filter((u) => u.school_id === s.id).length,
       days_to_expiry: current ? diffDays(current.expires_on, today) : null,
     };
@@ -131,14 +131,14 @@ function SchoolsTab({ d, reload }: { d: AllData; reload: () => void }) {
         </div>
         <div className="overflow-auto">
           <Table>
-            <TableHeader><TableRow><TableHead>School</TableHead><TableHead>Edition</TableHead><TableHead>Method</TableHead><TableHead>Package</TableHead><TableHead>Learners</TableHead><TableHead>Status</TableHead><TableHead>Expiry</TableHead><TableHead>Credits</TableHead><TableHead /></TableRow></TableHeader>
+            <TableHeader><TableRow><TableHead>School</TableHead><TableHead>Edition</TableHead><TableHead>Method</TableHead><TableHead>Package</TableHead><TableHead>Learners</TableHead><TableHead>Status</TableHead><TableHead>Expiry</TableHead><TableHead>Learners left</TableHead><TableHead /></TableRow></TableHeader>
             <TableBody>{shown.map((r) => (
               <TableRow key={r.id}>
                 <TableCell><span className="block font-medium">{r.name}</span><span className="text-xs text-muted-foreground font-mono">{r.id.slice(0, 8)}</span></TableCell>
                 <TableCell>{r.edition}</TableCell><TableCell>{r.method}</TableCell><TableCell>{r.package}</TableCell>
                 <TableCell>{r.active_learners !== "" ? `${r.active_learners} / ${r.purchased_capacity} (≤${r.grace_capacity})` : "—"}{r.capacity_state && r.capacity_state !== "ok" && <Badge variant="outline" className="ml-1">{r.capacity_state}</Badge>}</TableCell>
                 <TableCell><Badge variant={r.subscription_status === "active" || r.subscription_status === "lifetime" ? "default" : r.subscription_status === "grace" ? "destructive" : "secondary"}>{r.subscription_status}</Badge></TableCell>
-                <TableCell>{dateText(r.expiry || null)}</TableCell><TableCell>{r.credits_remaining}</TableCell>
+                <TableCell>{dateText(r.expiry || null)}</TableCell><TableCell>{r.learners_remaining}</TableCell>
                 <TableCell><Button size="sm" variant="ghost" onClick={() => setOpen(r.id)}>Details</Button></TableCell>
               </TableRow>))}</TableBody>
           </Table>
@@ -305,7 +305,7 @@ function QuotesTab({ d, reload }: { d: AllData; reload: () => void }) {
           <div><Label>Learner capacity</Label><Input type="number" {...f("learner_capacity")} /></div>
           <div><Label>Academic year</Label><Input type="number" {...f("academic_year")} /></div>
           <div><Label>Term (termly only)</Label><Input type="number" min={1} max={3} {...f("term_number")} /></div>
-          <div><Label>Credits (credit quotes)</Label><Input type="number" {...f("quantity")} /></div>
+          <div><Label>Learners (pay-per-report quotes)</Label><Input type="number" {...f("quantity")} /></div>
           <div><Label>Valid until</Label><Input type="date" {...f("valid_until")} /></div>
           <div><Label>Note to school</Label><Input {...f("admin_note")} /></div>
           <div className="sm:col-span-3 flex gap-2"><Button onClick={save}>{editing ? "Save & publish" : "Publish quotation"}</Button>{editing && <Button variant="ghost" onClick={() => { setEditing(null); setForm(blank); }}>Cancel</Button>}</div>
@@ -408,7 +408,7 @@ function SettingsTab({ d, reload }: { d: AllData; reload: () => void }) {
           <div><Label>Capacity allowance (%)</Label><Input type="number" {...num("capacity_grace_percent")} /></div>
           <div><Label>Reminders before expiry (days)</Label><Input {...num("reminder_days")} /></div>
           <div><Label>Reminders during grace (days after expiry)</Label><Input {...num("grace_reminder_days")} /></div>
-          <div><Label>Low-credit warning at</Label><Input type="number" {...num("low_credit_threshold")} /></div>
+          <div><Label>Low-learners warning at</Label><Input type="number" {...num("low_credit_threshold")} /></div>
           <div><Label>Computers per new desktop licence</Label><Input type="number" {...num("default_max_devices")} /></div>
         </div>
         <Button onClick={save}>Save settings</Button>

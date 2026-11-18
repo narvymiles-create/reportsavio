@@ -162,7 +162,7 @@ export default function BillingPage() {
     }
     if (c.state === "exceeded" || c.state === "upgrade_required") warnings.push({ title: `${label} package upgrade needed`, body: `${c.active_learners} active learners exceed the ${c.licensed}-learner package${c.state === "exceeded" ? ` and its temporary limit of ${c.grace_limit}` : " after the 30-day grace period"}. Existing learners and records are not affected.`, critical: true });
   }
-  if (lowCredits) warnings.push({ title: "Report-card credits are running low", body: `${balance} credit(s) remain.` });
+  if (lowCredits) warnings.push({ title: "Learners are running low", body: `${balance} learner(s) remain.` });
 
   const gatewayNotice = !data.gateway?.configured
     ? "Online payments are being set up. You can review prices now; payment buttons will work once the payment gateway is connected."
@@ -219,7 +219,7 @@ export default function BillingPage() {
               </CardContent>
             </Card>
             <Card>
-              <CardHeader className="pb-2"><CardDescription>Report-card credits</CardDescription><CardTitle className="text-lg">{balance} remaining</CardTitle></CardHeader>
+              <CardHeader className="pb-2"><CardDescription>Learners</CardDescription><CardTitle className="text-lg">{balance} remaining</CardTitle></CardHeader>
               <CardContent className="text-sm text-muted-foreground space-y-1">
                 <p>Purchased {data.credits?.purchased ?? 0} · Used {data.credits?.used ?? 0}</p>
                 <p>{data.issueCount} report card(s) generated in total</p>
@@ -389,16 +389,16 @@ function CreditsTab({ data, derived, openCheckout, onChanged }: { data: BillingD
     const { error } = await supabase.rpc("billing_set_default_method", { _method: "per_report" });
     setSaving(false);
     if (error) return toast({ title: "Could not update", description: error.message, variant: "destructive" });
-    toast({ title: "Pay per report card selected", description: "Terms without a subscription will use report-card credits." });
+    toast({ title: "Pay per report card selected", description: "Terms without a subscription will use prepaid learners." });
     onChanged();
   };
-  const buy = (qty: number) => openCheckout(`${qty} report-card credits`, creditsAmount(qty), { product: "report_credits", quantity: qty }, [{ label: "Credits", value: String(qty) }, { label: "Price each", value: "UGX 500" }]);
+  const buy = (qty: number) => openCheckout(`${qty} learners`, creditsAmount(qty), { product: "report_credits", quantity: qty }, [{ label: "Learners", value: String(qty) }, { label: "Price each", value: "UGX 500" }]);
   return (
     <>
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2"><Ticket className="h-4 w-4" />UGX 500 per report card</CardTitle>
-          <CardDescription>For schools that prefer not to subscribe. One credit is used the first time a learner's report card is generated for a term. Reprints, downloads and regenerating after corrections are free. A term is billed either by subscription or per report card — never both.</CardDescription>
+          <CardDescription>For schools that prefer not to subscribe. One learner is used the first time a learner's report card is generated for a term. Reprints, downloads and regenerating after corrections are free. A term is billed either by subscription or per report card — never both.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-wrap items-center gap-3">
@@ -411,7 +411,7 @@ function CreditsTab({ data, derived, openCheckout, onChanged }: { data: BillingD
             <div className="rounded-md border p-3"><p className="text-xs text-muted-foreground">Remaining</p><p className="text-xl font-semibold">{derived.balance}</p></div>
           </div>
           <div className="flex flex-wrap items-end gap-2">
-            {CREDIT_PACKS.map((n) => <Button key={n} onClick={() => buy(n)}><CreditCard className="mr-2 h-4 w-4" />{n} credits · {formatUGX(creditsAmount(n))}</Button>)}
+            {CREDIT_PACKS.map((n) => <Button key={n} onClick={() => buy(n)}><CreditCard className="mr-2 h-4 w-4" />{n} Learners · {formatUGX(creditsAmount(n))}</Button>)}
             <div className="flex items-end gap-2">
               <div className="w-28"><Label htmlFor="custom-credits">Custom</Label><Input id="custom-credits" type="number" min={1} max={5000} value={custom} onChange={(e) => setCustom(e.target.value)} /></div>
               <Button variant="outline" disabled={!(Number(custom) >= 1 && Number(custom) <= 5000)} onClick={() => buy(Math.floor(Number(custom)))}>Buy {formatUGX(creditsAmount(Math.max(0, Math.floor(Number(custom) || 0))))}</Button>
@@ -421,10 +421,10 @@ function CreditsTab({ data, derived, openCheckout, onChanged }: { data: BillingD
       </Card>
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
-          <CardHeader><CardTitle className="text-base">Credit transactions</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base">Learner transactions</CardTitle></CardHeader>
           <CardContent className="max-h-96 overflow-auto">
             {data.ledger.length === 0 ? <p className="text-sm text-muted-foreground">No transactions yet.</p> : (
-              <Table><TableHeader><TableRow><TableHead>Date</TableHead><TableHead>Type</TableHead><TableHead className="text-right">Credits</TableHead></TableRow></TableHeader>
+              <Table><TableHeader><TableRow><TableHead>Date</TableHead><TableHead>Type</TableHead><TableHead className="text-right">Learners</TableHead></TableRow></TableHeader>
                 <TableBody>{data.ledger.map((l) => <TableRow key={l.id}><TableCell>{dateText(l.created_at)}</TableCell><TableCell className="capitalize">{l.kind === "release" ? "Returned (generation failed)" : l.kind}</TableCell><TableCell className="text-right">{l.delta > 0 ? `+${l.delta}` : l.delta}</TableCell></TableRow>)}</TableBody></Table>
             )}
           </CardContent>
@@ -434,7 +434,7 @@ function CreditsTab({ data, derived, openCheckout, onChanged }: { data: BillingD
           <CardContent className="max-h-96 overflow-auto">
             {data.issues.length === 0 ? <p className="text-sm text-muted-foreground">None yet.</p> : (
               <Table><TableHeader><TableRow><TableHead>Date</TableHead><TableHead>Level</TableHead><TableHead>Period</TableHead><TableHead>Billing</TableHead></TableRow></TableHeader>
-                <TableBody>{data.issues.map((i) => <TableRow key={i.id} className={i.released_at ? "opacity-50" : ""}><TableCell>{dateText(i.issued_at)}</TableCell><TableCell className="capitalize">{i.level}</TableCell><TableCell>{i.term_number ? `Term ${i.term_number} ${i.academic_year}` : i.academic_year}</TableCell><TableCell>{({ subscription: "Subscription", per_report: "1 credit", unbilled: "Free (setup period)", legacy: "Before billing" } as Record<string, string>)[i.method]}{i.released_at ? " · returned" : ""}</TableCell></TableRow>)}</TableBody></Table>
+                <TableBody>{data.issues.map((i) => <TableRow key={i.id} className={i.released_at ? "opacity-50" : ""}><TableCell>{dateText(i.issued_at)}</TableCell><TableCell className="capitalize">{i.level}</TableCell><TableCell>{i.term_number ? `Term ${i.term_number} ${i.academic_year}` : i.academic_year}</TableCell><TableCell>{({ subscription: "Subscription", per_report: "1 learner", unbilled: "Free (setup period)", legacy: "Before billing" } as Record<string, string>)[i.method]}{i.released_at ? " · returned" : ""}</TableCell></TableRow>)}</TableBody></Table>
             )}
           </CardContent>
         </Card>

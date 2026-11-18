@@ -65,7 +65,7 @@ export default function Auth() {
     } else {
       toast({
         title: "Account created",
-        description: "Check your email to confirm, then sign in to set up your school.",
+        description: "Check your email to confirm, then sign in.",
       });
       setResendEmail(String(fd.get("email")).trim().toLowerCase());
       setNotice("We sent you a confirmation email from Skavio EduReports. Click the link, then sign in.");

@@ -47,12 +47,12 @@ export async function releaseReportCards(level: ReportLevel, termId: string, lea
 }
 
 export function chargeConfirmText(q: IssueQuote): string {
-  return `${q.new} new report card(s) will use ${q.credits_needed} report-card credit(s) (UGX ${(q.credits_needed * 500).toLocaleString("en-US")}). `
-    + `You have ${q.balance} credit(s). Reprints and downloads of these cards stay free. Continue?`;
+  return `${q.new} new report card(s) will use ${q.credits_needed} learner(s) (UGX ${(q.credits_needed * 500).toLocaleString("en-US")}). `
+    + `You have ${q.balance} learner(s) left. Reprints and downloads of these cards stay free. Continue?`;
 }
 
 export function quoteBlockedText(q: IssueQuote): string {
-  if (q.reason === "insufficient_credits") return `${q.credits_needed} credit(s) are needed but only ${q.balance} remain. Buy report-card credits in Billing & Subscription.`;
+  if (q.reason === "insufficient_credits") return `${q.credits_needed} learner(s) are needed but only ${q.balance} remain. Buy more learners in Billing & Subscription.`;
   if (q.reason === "not_generated") return "This report card has not been generated yet. Generate it from the report cards page first.";
   return `No subscription or pay-per-report-card plan covers Term ${q.term_number} of ${q.academic_year}. Choose one in Billing & Subscription.`;
 }
@@ -94,7 +94,7 @@ export const PRODUCT_LABELS: Record<string, string> = {
   online_term: "Termly subscription",
   online_annual: "Annual subscription",
   online_upgrade: "Capacity upgrade",
-  report_credits: "Report-card credits",
+  report_credits: "Learners (pay per report card)",
   desktop_licence: "Desktop lifetime licence",
   desktop_upgrade: "Desktop licence upgrade",
 };

@@ -61,10 +61,10 @@ export function ReportIssueGate({ level, termId, learnerIds, allowCharge = true,
       {state === "confirm" && quote ? (
         <>
           <p className="text-muted-foreground">
-            {quote.new} new report card(s) for Term {quote.term_number} {quote.academic_year} will use {quote.credits_needed} credit(s) (UGX {(quote.credits_needed * 500).toLocaleString("en-US")}).
-            You have {quote.balance} credit(s). {quote.already_issued > 0 && `${quote.already_issued} card(s) are already generated and stay free.`}
+            {quote.new} new report card(s) for Term {quote.term_number} {quote.academic_year} will use {quote.credits_needed} learner(s) (UGX {(quote.credits_needed * 500).toLocaleString("en-US")}).
+            You have {quote.balance} learner(s) left. {quote.already_issued > 0 && `${quote.already_issued} card(s) are already generated and stay free.`}
           </p>
-          <Button onClick={confirm} disabled={busy}>{busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Generate and use {quote.credits_needed} credit(s)</Button>
+          <Button onClick={confirm} disabled={busy}>{busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Generate and use {quote.credits_needed} learner(s)</Button>
         </>
       ) : (
         <>

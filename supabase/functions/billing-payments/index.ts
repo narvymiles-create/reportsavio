@@ -135,8 +135,8 @@ async function price(admin: SupabaseClient, caller: Caller, body: z.infer<typeof
     }
     case "report_credits": {
       const qty = body.quantity ?? 0;
-      if (qty < 1) throw new UserError("Choose how many report-card credits to buy");
-      return { product: "report_credits", amount: creditsAmount(qty), description: `${qty} report-card credit(s)`, details: { quantity: qty, unit_price: 500 } };
+      if (qty < 1) throw new UserError("Choose how many learners to buy");
+      return { product: "report_credits", amount: creditsAmount(qty), description: `${qty} learner(s) (pay per report card)`, details: { quantity: qty, unit_price: 500 } };
     }
     case "desktop_licence": {
       const tier = desktopTier(body.tier ?? "");
@@ -178,7 +178,7 @@ async function price(admin: SupabaseClient, caller: Caller, body: z.infer<typeof
       }
       const qty = q.quantity as number | null;
       if (!qty) throw new UserError("This quotation is incomplete.");
-      return { product: "report_credits", amount, description: `${qty} report-card credit(s) (quotation)`, details: { quantity: qty, ...extra } };
+      return { product: "report_credits", amount, description: `${qty} learner(s) (pay per report card, quotation)`, details: { quantity: qty, ...extra } };
     }
   }
   throw new UserError("Unknown product");

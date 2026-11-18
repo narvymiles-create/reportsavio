@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,7 +7,6 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { RequireAdmin } from "@/components/RequireAdmin";
 import { AppLayout } from "@/components/AppLayout";
 import Auth from "./pages/Auth";
-import OnboardingSchool from "./pages/OnboardingSchool";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import Dashboard from "./pages/Dashboard";
@@ -84,7 +83,7 @@ const App = () => (
             <Route path="/primary-report-cards" element={<PrimaryPage />} />
             <Route path="/about" element={<AboutPage />} />
             <Route path="/auth" element={<Auth />} />
-            <Route path="/onboarding" element={<OnboardingSchool />} />
+            <Route path="/onboarding" element={<Navigate to="/" replace />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/" element={<HomeRoute />} />

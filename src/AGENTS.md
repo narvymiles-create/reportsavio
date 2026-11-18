@@ -1,0 +1,1 @@
+- Accounts without a school get one created automatically by `RequireAdmin` via `lib/autoSchool.ts` (one in-flight call per user); there is no setup form, and admins complete details on School Info.
