@@ -244,7 +244,7 @@ export default function MarksPage() {
                             type="number"
                             inputMode="decimal"
                             min={0}
-                            max={subject?.max_marks ?? 100}
+                            max={(() => { const am = assessCfg.assessments.find(x => x.id === f)?.maxMarks; return am && am !== 100 ? am : subject?.max_marks ?? 100; })()}
                             value={m?.[f] ?? ""}
                             onChange={(e) => setMarkField(l.id, f, e.target.value)}
                             disabled={!examOn(f)}
