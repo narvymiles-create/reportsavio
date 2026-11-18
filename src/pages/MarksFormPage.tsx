@@ -16,7 +16,7 @@ import Papa from "papaparse";
 import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
 import { createMarksheetOutput } from "@/lib/marksheetOutput";
-import skavioLogoUrl from "@/assets/skavio-logo-transparent.png";
+import skavioLogoUrl from "@/assets/skavio-logo.png.asset.json";
 import "./MarksFormPage.css";
 import { useTemplateExams } from "@/hooks/useTemplateExams";
 import { useAssessmentConfig } from "@/hooks/useAssessmentConfig";
@@ -829,7 +829,7 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
             {/* Skavio footer — visible on screen, print and save-as-PDF */}
             <div className="marks-form__footer">
               <img
-                src={skavioLogoUrl}
+                src={skavioLogoUrl.url}
                 alt="Skavio Technologies"
                 className="marks-form__footer-logo"
               />

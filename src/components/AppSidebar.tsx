@@ -35,7 +35,7 @@ import {
 } from "@/components/ui/sidebar";
 import { useReportModule } from "@/hooks/useReportModule";
 import { Button } from "@/components/ui/button";
-import skavioLogo from "@/assets/skavio-logo-transparent.png";
+import skavioLogo from "@/assets/skavio-logo.png.asset.json";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBillingAdmin } from "@/hooks/useBillingAdmin";
 
@@ -119,7 +119,7 @@ export function AppSidebar() {
       <SidebarHeader className="border-b border-sidebar-border">
         <div className="flex items-center gap-2 px-2 py-2">
           <img
-            src={skavioLogo}
+            src={skavioLogo.url}
             alt="Skavio Technologies"
             width={32}
             height={32}

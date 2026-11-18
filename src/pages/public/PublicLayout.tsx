@@ -16,7 +16,7 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
       <header className="border-b bg-card">
         <div className="mx-auto max-w-6xl px-4 py-3 flex flex-wrap items-center gap-4">
           <Link to="/" className="flex items-center gap-2 font-semibold">
-            <img src={logo.url} alt="Skavio EduReports logo" width={72} height={24} className="h-6 w-auto" />
+            <img src={logo.url} alt="Skavio EduReports logo" width={32} height={32} className="h-8 w-auto" />
             <span>Skavio EduReports</span>
           </Link>
           <nav aria-label="Main" className="flex flex-wrap gap-4 text-sm text-muted-foreground">

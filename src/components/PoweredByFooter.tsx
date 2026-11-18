@@ -1,4 +1,4 @@
-import skavioLogo from "@/assets/skavio-logo-transparent.png";
+import skavioLogo from "@/assets/skavio-logo.png.asset.json";
 
 /**
  * Global "Powered by Skavio Technologies" footer.
@@ -22,7 +22,7 @@ export function PoweredByFooter({
       data-skavio-footer="true"
     >
       <img
-        src={skavioLogo}
+        src={skavioLogo.url}
         alt="Skavio Technologies"
         width={dim}
         height={dim}
