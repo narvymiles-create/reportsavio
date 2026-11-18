@@ -70,7 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: sub } = supabase.auth.onAuthStateChange((event, newSession) => {
       const uid = newSession?.user?.id ?? null;
       // Only tokens the server has just issued are compared with the device clock.
-      if ((event === "SIGNED_IN" || event === "TOKEN_REFRESHED") && checkClock(newSession?.access_token)) return;
+      if ((event === "SIGNED_IN" || event === "TOKEN_REFRESHED" || event === "PASSWORD_RECOVERY") && checkClock(newSession?.access_token)) return;
       // Ignore events that don't change who is signed in (token refreshes fire
       // when the tab regains focus). Pushing a new session/user object or
       // flipping loading here would re-render or remount every page and wipe
