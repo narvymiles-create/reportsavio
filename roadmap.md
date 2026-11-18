@@ -1,79 +1,11 @@
-# Roadmap
+# Roadmap — pricing, payments & feature management
 
-## Commercial billing (pricing, subscriptions, licences, IntesaPay)
-- [x] Database: packages snapshots, subscriptions, calendar, payments, webhook events, credits, report-card issues, capacity grace, desktop licences/devices, quotes, notifications, learner status; RLS per school + platform admin.
-- [x] Shared pricing/capacity/licence/IntesaPay modules with unit tests (prices, 8% annual, upgrades, proration, grace, signatures, offline licence).
-- [x] Edge functions: billing-payments (checkout, verify, refund), intesapay-webhook, desktop-licence (activate/deactivate/recover/public key).
-- [x] Report-card billing hooks: Primary generation, Nursery outputs, print routes; free reprints; release on failure.
-- [x] School Billing & Subscription page, warnings banner, receipts, learner status.
-- [x] Platform billing dashboard: profiles, payments, refunds, licences, calendar, reminders, quotes, settings, CSV export.
-- [x] Daily maintenance job: reminders, expiry, capacity grace.
-- [x] Database scenario tests (rolled back) incl. school isolation.
-- [ ] IntesaPay TEST credentials + webhook configuration — blocked: needs merchant API key, account ID and webhook secret from the owner.
-- [ ] Sandbox MTN/Airtel payment tests — blocked on credentials.
-- [ ] Platform administrator account — blocked: owner must say which account to grant (dashboard not yet opened in a browser).
-- [ ] Publish term dates and switch on billing enforcement — waits on the owner after payments work in TEST.
-- [ ] Windows desktop app integration of signed licences — no desktop app exists in this project yet.
-
-## School report appearance
-- [x] Add school-isolated appearance settings, presets, contrast validation and live PDF preview.
-- [x] Apply semantic colours through shared Primary/Nursery and editable uploaded-template output without changing layouts or grading; immutable printed/scanned artwork cannot be recoloured safely.
-- [x] Test two-school provider isolation and both PDF renderers; 119 tests pass. Signed-in Primary save/reload/preview/download/native PDF opening and cross-school/unreadable-write rejection verified; Nursery save/reload/empty preview/download verified. Original colours restored.
-- [ ] Verify saved themes using two live schools — blocked: temporary live-backend test administrator was declined; only the current school is accessible.
-- [ ] Verify Nursery with real learners and native physical printing — blocked: current school has no Nursery learners; headless Chrome cannot verify the native print dialog or physical output.
-
-- [x] Make Test Template automatically preview a suitable real learner in the current school/level, with read-only testing and clear missing-data messages; activation keeps its existing verification flow.
-- [x] Introduce interchangeable online/device report-data and file access, reusing the existing report loaders and PDF engine; future device installation/synchronisation is not part of this change.
-- [x] Verify selection/isolation rules and signed-in Primary/Nursery one-click previews with saved school records; Nursery download checked, no report-data writes during testing, temporary template removed and original section restored. Missing saved photo files are reported rather than replaced.
-
-- [x] Add real-learner pre-activation testing for both levels with matched/missing/unmatched checks, field corrections and saved required/optional choices.
-- [x] Enforce current successful required-association verification before activation in the database; signed-in Primary/Nursery previews, missing-data warnings, optional blanks, required-field corrections, successful activation and stale-check rejection verified; 31 focused tests pass. Temporary uploads removed and original selection restored.
-
-- [x] Expand local template uploads to PDF/scanned PDF/JPG/JPEG/PNG with fixed-PDF image conversion; preserve fields and defaults. User selected local-only handling, so DOC/DOCX must be exported to PDF before upload.
-- [x] Fix school-scoped sidebar persistence, serialize switches and await saved level before uploads; normalize service errors and clean up failed registrations. Signed-in Primary PNG/Nursery JPG uploads, previews and deletion verified; 35 regression tests pass.
-
-- [x] Add level-specific custom field definitions, typed school/learner/period values and simple template associations in Settings.
-- [x] Enforce school/level/admin validation and retain values independently of template associations; signed-in cross-level attempts and invalid percentages rejected, removing associations retains saved values.
-- [x] Populate uploaded templates through the shared PDF output; signed-in learner fillable and static-placement previews/downloads contain saved 95%, Nursery school-wide save verified, 31 focused tests pass. Temporary values/templates removed and test definitions archived; native physical print remains unavailable in headless Chrome.
-
-- [x] Scope template upload and management to the sidebar level and school, with backend upload validation; fixed sidebar persistence for accounts with multiple school memberships.
-- [x] Add default previews and retain uploaded previews; verified signed-in uploads for both levels, previews, cross-level rejection, list isolation and test cleanup. Twenty focused tests pass.
-
-- [x] Add private school PDF template upload, preview, activation, deactivation and deletion for Primary/Nursery.
-- [x] Select active alternatives consistently in preview, download and print; fill supported fields with actual data only and preserve default generation.
-- [x] Verify signed-in upload/preview/activation/deactivation/deletion for both levels, real learner custom previews/downloads, and default restoration; focused report tests pass.
-
-- [x] Separate Terms and Years settings and use the school's current year across system/report outputs.
-- [x] Verify independent year switching with the signed-in account, matching term/report data and Primary report loader; restored the original current year and removed the temporary test year. Fourteen focused tests pass.
-
-- [x] Add Hide remarks to Primary marksheet print/download options (existing Grading Scale remarks).
-- [x] Share row-safe pagination between Primary marksheet print and PDF, repeating the grading scale and placing summaries only on the final page.
-- [x] Test pagination rules: 20 tests pass; visually checked print and downloaded pages with 13/67 sample learners and the 63-row extra-summary-page case; corrected global print visibility conflicts.
-- [ ] Verify Primary marksheet with existing learner records — blocked: the requesting account's available class has no learners; sample output verified without storing sample data.
-
-- [x] Match Primary marksheet summaries to the reference using the configured grading scale; preserve calculations and other outputs.
-- [x] Verify the updated summaries with 13 real learners on screen, print and download; both output files fit one A4 landscape page and 16 report regression tests pass.
-
-- [x] Diagnose and fix Primary PDF loading, readiness and print URL lifetime without changing the download engine.
-- [x] Verify Primary loading failures and print lifecycle with 16 regression tests and Chrome checks.
-
-- [x] Move report sorting beside Generate / Refresh All.
-- [x] Move marks-entry sorting after the optional-subject filter.
-- [x] Add marksheet PDF and Excel CSV downloads.
-- [x] Verify controls and downloads in the browser.
-- [x] Unify Primary preview, single print and bulk print with the existing PDF download output.
-- [x] Validate one A4 page per learner with six regression tests and isolated single/bulk viewer command checks.
-- [x] Verify real learner single and bulk PDF previews, downloads and native tab opening: one A4 page for single, 24 A4 pages for 24 bulk learners, no runtime errors.
-- [ ] Verify Chrome's native print dialog and physical output — blocked: automated headless Chrome does expose no native PDF print dialog; the user confirmed downloaded PDFs print correctly there.
-
-- [x] Show learning-area comments in the configured blue on the Nursery report card across preview, print and download.
-- [x] Verify the colour in the live preview and in a downloaded PDF from a real learner record; two regression tests added, 27 tests pass.
-
-- [x] Uploaded templates: reuse default report data (marks, totals, divisions, comments, dates, teachers), image fields, stamp, watermark and an optional Settings border per level.
-- [x] Settings previews show the active uploaded template; Fields Management follows the active template and is hidden for defaults.
-- [x] Verify filled uploaded templates with real Primary and Nursery learners through pre-activation testing, including saved associations and Settings stamp/watermark; temporary uploads removed and defaults restored.
-
-## Flexible Primary assessments (staged)
-- [x] Stage 1: per-school assessment settings (add/rename/reorder/activate, max marks, weights, report inclusion), final-result methods with validation, table arrangement choice, storage for extra assessments. Default keeps today's calculation.
-- [x] Stage 2: Marks Entry forms generated from active assessments (extra assessments save to new storage); calculations use the school's method.
-- [x] Stage 3: Primary report card renders separate/merged/merged+final tables with automatic fitting and extra pages; same output in preview/print/download/bulk; uploaded templates keep their own tables.
+- [x] Pricing page: Online / Desktop Offline / Pay Per Report cards, termly/annual switch, selection, checkout
+- [x] Permanent 10% Growth Allowance (no countdown), notices + upgrade offers
+- [x] Unpaid preview watermark; Download/Bulk Download/Print/Bulk Print locked and redirected to pricing with selection kept
+- [x] Smart recommendation (termly vs annual vs UGX 500 per card)
+- [x] Lifetime licence unlocks output; prepaid packs 20/50/100/200
+- [x] Feature Management (global + per school, enforced in database)
+- [x] School Billing Dashboard updates
+- [ ] Switch the locks on (Platform Billing → Settings) — waits on IntesaPay credentials and published term dates
+- [ ] Real TEST payments — waits on IntesaPay API key, account ID and webhook secret

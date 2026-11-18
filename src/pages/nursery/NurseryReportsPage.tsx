@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -11,8 +11,16 @@ import { FileText, Save, Eye, Printer, Users, Download, Loader2 } from "lucide-r
 import { NurseryReportSheet } from "@/components/NurseryReportSheet";
 import { NurseryTemplateOutput } from "@/components/NurseryTemplateOutput";
 import { downloadNurseryReportCardPDF, downloadNurseryReportCardsZip, type BulkProgress } from "@/lib/nurseryPdfGenerator";
-import { ReportIssueGate } from "@/components/billing/ReportIssueGate";
-import { billingErrorMessage, withIssuedReportCards } from "@/lib/billing/api";
+import { UnpaidWatermark } from "@/components/billing/UnpaidWatermark";
+import { billingErrorMessage, pricingUrl } from "@/lib/billing/api";
+import { useReportAccess, useReportOutput } from "@/hooks/useReportOutput";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Lock } from "lucide-react";
+
+// Keep the selection when going to the pricing page and back (per browser tab).
+const FILTERS_KEY = "nurseryReports.filters.v1";
+type Saved = { classId?: string; streamId?: string; termId?: string; learnerId?: string };
+const loadSaved = (): Saved => { try { return JSON.parse(sessionStorage.getItem(FILTERS_KEY) ?? "{}") as Saved; } catch { return {}; } };
 
 type Cls = { id: string; name: string };
 type Stream = { id: string; name: string; class_id: string };
@@ -24,10 +32,14 @@ export default function NurseryReportsPage() {
   const [streams, setStreams] = useState<Stream[]>([]);
   const [terms, setTerms] = useState<Term[]>([]);
   const [learners, setLearners] = useState<Learner[]>([]);
-  const [classId, setClassId] = useState("");
-  const [streamId, setStreamId] = useState("");
-  const [termId, setTermId] = useState("");
-  const [learnerId, setLearnerId] = useState("");
+  const [classId, setClassId] = useState(() => loadSaved().classId ?? "");
+  const [streamId, setStreamId] = useState(() => loadSaved().streamId ?? "");
+  const [termId, setTermId] = useState(() => loadSaved().termId ?? "");
+  const [learnerId, setLearnerId] = useState(() => loadSaved().learnerId ?? "");
+  useEffect(() => {
+    try { sessionStorage.setItem(FILTERS_KEY, JSON.stringify({ classId, streamId, termId, learnerId })); } catch { /* best effort */ }
+  }, [classId, streamId, termId, learnerId]);
+  const { run } = useReportOutput();
   const [ctc, setCtc] = useState("");
   const [htc, setHtc] = useState("");
   const [bulkPreview, setBulkPreview] = useState(false);
@@ -45,17 +57,22 @@ export default function NurseryReportsPage() {
       const ts = (t.data as any) ?? [];
       setTerms(ts);
       const cur = ts.find((x: Term) => x.is_current);
-      if (cur) setTermId(cur.id);
+      if (cur) setTermId((prev) => prev || cur.id);
     })();
   }, []);
 
+  const restoring = useRef(true);
   useEffect(() => {
-    if (!classId) { setLearners([]); setLearnerId(""); setStreams([]); setStreamId(""); return; }
+    if (!classId) { setLearners([]); if (!restoring.current) { setLearnerId(""); setStreamId(""); } setStreams([]); restoring.current = false; return; }
+    restoring.current = false;
     supabase.from("nursery_streams" as any).select("id,name,class_id").eq("class_id", classId).order("name").then(({ data }) => setStreams((data as any) ?? []));
     supabase.from("nursery_learners" as any).select("id,full_name,stream_id").eq("class_id", classId).order("full_name").then(({ data }) => setLearners((data as any) ?? []));
   }, [classId]);
 
   const filteredLearners = streamId ? learners.filter(l => l.stream_id === streamId) : learners;
+  const singleAccess = useReportAccess("nursery", termId, learnerId ? [learnerId] : []);
+  const bulkAccess = useReportAccess("nursery", termId, filteredLearners.map((l) => l.id));
+  const outputBase = { level: "nursery" as const, termId, classId, streamId: streamId || undefined, from: "/nursery/reports" };
 
   useEffect(() => {
     if (!learnerId || !termId) { setCtc(""); setHtc(""); return; }
@@ -80,7 +97,7 @@ export default function NurseryReportsPage() {
     const learner = filteredLearners.find(l => l.id === learnerId);
     setSingleDownloading(true);
     try {
-      const done = await withIssuedReportCards("nursery", termId, [learnerId],
+      const done = await run({ ...outputBase, learnerIds: [learnerId], action: "download" },
         () => downloadNurseryReportCardPDF(learnerId, termId, learner?.full_name ?? "nursery-report").then(() => true));
       if (done) toast({ title: "PDF downloaded" });
     } catch (e: any) {
@@ -96,7 +113,7 @@ export default function NurseryReportsPage() {
     setBulkProgress(null);
     try {
       const className = classes.find(c => c.id === classId)?.name ?? "nursery";
-      const result = await withIssuedReportCards("nursery", termId, filteredLearners.map((l) => l.id),
+      const result = await run({ ...outputBase, learnerIds: filteredLearners.map((l) => l.id), action: "bulk_download" },
         () => downloadNurseryReportCardsZip(filteredLearners, termId, `${className}-reports`, (p) => setBulkProgress(p)),
         (r) => filteredLearners.filter((l) => r.failed.some((f) => f.name === l.full_name)).map((l) => l.id));
       if (!result) return;
@@ -124,6 +141,16 @@ export default function NurseryReportsPage() {
           <CardDescription>Pick a learner to edit/preview a single report, or use bulk actions to preview, print, or export an entire class/stream.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {(singleAccess.watermark || bulkAccess.watermark) && termId && (
+            <Alert>
+              <Lock className="h-4 w-4" />
+              <AlertTitle>Unpaid preview</AlertTitle>
+              <AlertDescription className="flex flex-wrap items-center justify-between gap-2">
+                <span>Previewing is free and shows “SKAVIO EDUREPORTS – UNPAID PREVIEW”. Download and printing unlock once a package is paid.</span>
+                <Button asChild size="sm"><Link to={pricingUrl({ ...outputBase, count: learnerId ? 1 : filteredLearners.length })}>See packages</Link></Button>
+              </AlertDescription>
+            </Alert>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
             <div>
               <Label>Class</Label>
@@ -202,9 +229,9 @@ export default function NurseryReportsPage() {
           <CardHeader><CardTitle className="flex items-center gap-2"><Eye className="h-4 w-4" />Live Preview</CardTitle></CardHeader>
           <CardContent>
             <div className="overflow-auto border rounded p-4 bg-muted/20">
-              <ReportIssueGate level="nursery" termId={termId} learnerIds={[learnerId]}>
+              <UnpaidWatermark active={!!singleAccess.watermark}>
                 <NurseryTemplateOutput learnerIds={[learnerId]} termId={termId}><NurseryReportSheet learnerId={learnerId} termId={termId} /></NurseryTemplateOutput>
-              </ReportIssueGate>
+              </UnpaidWatermark>
             </div>
           </CardContent>
         </Card>
@@ -218,14 +245,14 @@ export default function NurseryReportsPage() {
           </CardHeader>
           <CardContent>
             <div className="overflow-auto border rounded p-4 bg-muted/20 space-y-6 max-h-[80vh]">
-              <ReportIssueGate level="nursery" termId={termId} learnerIds={filteredLearners.map(l => l.id)}>
+              <UnpaidWatermark active={!!bulkAccess.watermark}>
               <NurseryTemplateOutput learnerIds={filteredLearners.map(l => l.id)} termId={termId}>{filteredLearners.map((l) => (
                 <div key={l.id}>
                   <div className="text-xs text-muted-foreground mb-2 font-semibold">{l.full_name}</div>
                   <NurseryReportSheet learnerId={l.id} termId={termId} />
                 </div>
               ))}</NurseryTemplateOutput>
-              </ReportIssueGate>
+              </UnpaidWatermark>
             </div>
           </CardContent>
         </Card>

@@ -40,16 +40,16 @@ describe("desktop lifetime licence certificates", () => {
     const token = await signLicence(payload, privateKey);
     expect((await evaluateOfflineLicence({ token, publicKey, deviceId: "other-device", activeLearners: 10 })).valid).toBe(false);
   });
-  it("tracks the 30-day capacity grace locally and ignores clock rollback", async () => {
+  it("keeps the Growth Allowance offline forever and still detects clock rollback", async () => {
     const { privateKey, publicKey } = await keysFromSeed(seed);
     const token = await signLicence(payload, privateKey);
     const first = await evaluateOfflineLicence({ token, publicKey, deviceId: "device-123", activeLearners: 310, now: new Date("2026-03-01T00:00:00Z") });
-    expect(first.capacity?.state).toBe("grace");
+    expect(first.capacity?.state).toBe("allowance");
     const rolledBack = await evaluateOfflineLicence({
       token, publicKey, deviceId: "device-123", activeLearners: 310, now: new Date("2026-03-02T00:00:00Z"),
       state: { lastSeenAt: "2026-04-15T00:00:00Z", overSince: first.nextState.overSince },
     });
     expect(rolledBack.clockRollback).toBe(true);
-    expect(rolledBack.capacity?.state).toBe("upgrade_required");
+    expect(rolledBack.capacity?.state).toBe("allowance");
   });
 });

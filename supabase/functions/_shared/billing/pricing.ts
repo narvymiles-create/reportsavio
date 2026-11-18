@@ -6,12 +6,12 @@
 export const CURRENCY = "UGX";
 export const PER_REPORT_CARD_PRICE = 500;
 export const ANNUAL_DISCOUNT_PERCENT = 8;
+/** Permanent Growth Allowance on online and desktop packages — no time limit or extra charge. */
 export const CAPACITY_GRACE_PERCENT = 10;
-export const CAPACITY_GRACE_DAYS = 30;
 export const SUBSCRIPTION_GRACE_DAYS = 7;
 /** IntesaPay collection floor (BELOW_MINIMUM_AMOUNT below this). */
 export const MIN_GATEWAY_AMOUNT = 500;
-export const CREDIT_PACKS = [20, 50, 100] as const;
+export const CREDIT_PACKS = [20, 50, 100, 200] as const;
 
 export type OnlineTierCode = "online_150" | "online_300" | "online_600" | "online_1000" | "online_1500";
 export type DesktopTierCode = "desktop_300" | "desktop_600" | "desktop_1200" | "desktop_2000";
@@ -42,7 +42,7 @@ export const desktopTier = (code: string) => DESKTOP_TIERS.find((t) => t.code ==
 export const onlineTierFor = (learners: number) => ONLINE_TIERS.find((t) => learners <= t.max) ?? null;
 export const desktopTierFor = (learners: number) => DESKTOP_TIERS.find((t) => learners <= t.max) ?? null;
 
-/** Temporary 10% allowance: 150→165, 300→330, 600→660, 1,000→1,100, 1,500→1,650. Integer maths avoids float drift. */
+/** Permanent 10% Growth Allowance: 150→165, 300→330, 600→660, 1,000→1,100, 1,200→1,320, 1,500→1,650, 2,000→2,200. Integer maths avoids float drift. */
 export function graceLimit(capacity: number, percent: number = CAPACITY_GRACE_PERCENT): number {
   return Math.ceil((capacity * (100 + percent)) / 100);
 }
@@ -107,3 +107,52 @@ export function onlineUpgradeQuote(args: {
 }
 
 export const formatUGX = (amount: number) => `UGX ${Math.round(amount).toLocaleString("en-US")}`;
+
+export type PlanOptionCode = "per_report" | "termly" | "annual";
+export interface PlanOption {
+  code: PlanOptionCode;
+  label: string;
+  /** Amount to pay now (UGX). */
+  payNow: number;
+  /** Cost of covering one term, for a fair comparison (annual = yearly price ÷ 3). */
+  perTerm: number;
+  eligible: boolean;
+  note: string;
+  tier?: OnlineTier;
+}
+export interface PlanRecommendation {
+  options: PlanOption[];
+  recommended: PlanOptionCode | null;
+  /** Already covered by a subscription or lifetime licence — nothing to buy. */
+  covered: boolean;
+  customQuote: boolean;
+}
+
+/**
+ * Compares termly, annual and pay-per-report-card costs for the school's active learners and the
+ * report cards it wants this term, and recommends the cheapest eligible option (ties favour fewer
+ * payments: annual, then termly). Existing Learners balance is used before buying more.
+ */
+export function recommendPlan(args: { activeLearners: number; reportCards: number; learnerBalance?: number; covered?: boolean }): PlanRecommendation {
+  const active = Math.max(0, Math.floor(args.activeLearners));
+  const cards = Math.max(0, Math.floor(args.reportCards));
+  const toBuy = Math.max(0, cards - Math.max(0, args.learnerBalance ?? 0));
+  const tier = ONLINE_TIERS.find((t) => active <= graceLimit(t.max)) ?? null;
+  const customQuote = !tier && active > 0;
+  const perReportCost = creditsAmount(toBuy);
+  const options: PlanOption[] = [
+    { code: "per_report", label: "Pay per report card", payNow: perReportCost, perTerm: perReportCost, eligible: cards > 0,
+      note: toBuy < cards ? `${cards - toBuy} already covered by your Learners balance` : `${cards} report card(s) × UGX 500` },
+  ];
+  if (tier) {
+    const a = annualPrice(tier);
+    options.push(
+      { code: "termly", label: "Termly subscription", payNow: tier.perTerm, perTerm: tier.perTerm, eligible: true, note: tier.label, tier },
+      { code: "annual", label: "Annual subscription", payNow: a.final, perTerm: Math.round(a.final / 3), eligible: true, note: `${tier.label} · 3 terms, 8% off`, tier },
+    );
+  }
+  if (args.covered) return { options, recommended: null, covered: true, customQuote };
+  const order: PlanOptionCode[] = ["annual", "termly", "per_report"];
+  const eligible = options.filter((o) => o.eligible).sort((x, y) => x.perTerm - y.perTerm || order.indexOf(x.code) - order.indexOf(y.code));
+  return { options, recommended: eligible[0]?.code ?? null, covered: false, customQuote };
+}

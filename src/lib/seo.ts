@@ -13,6 +13,8 @@ export const PUBLIC_PAGES: PublicPage[] = [
     description: "Create colourful Nursery report cards with learning areas, grade colours, teacher comments, photos and signatures. Download as PDF or print in bulk." },
   { path: "/primary-report-cards", name: "Primary Reports", title: "Primary School Report Card Generator | Skavio EduReports",
     description: "Primary school report card generator with BOT, MID and EOT assessments, aggregates, divisions, positions and class marksheets for Ugandan schools." },
+  { path: "/pricing", name: "Pricing", title: "Pricing in UGX | Skavio EduReports School Report Card Software",
+    description: "Skavio EduReports prices in UGX: termly or annual online subscriptions, one-time desktop lifetime licences, or UGX 500 per report card, with a permanent 10% Growth Allowance." },
   { path: "/about", name: "About", title: "About Skavio EduReports | Skavio Technologies",
     description: "Skavio EduReports is school report card software developed by Skavio Technologies to simplify learner assessment and reporting for schools." },
 ];

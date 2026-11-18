@@ -1,12 +1,18 @@
-/** Learner-capacity grace evaluation shared by the dashboard and the offline desktop licence check. Mirrors billing__capacity_row in the database. */
-export type CapacityState = "ok" | "approaching" | "grace" | "exceeded" | "upgrade_required";
+/**
+ * Learner-capacity evaluation shared by the dashboard and the offline desktop licence check.
+ * Mirrors billing__capacity_row in the database. The 10% Growth Allowance is PERMANENT:
+ * no countdown, expiry or extra charge — only enrolment above the allowance needs an upgrade.
+ */
+export type CapacityState = "ok" | "approaching" | "allowance" | "exceeded";
 
 export interface CapacityInput {
   activeLearners: number;
   licensed: number;
+  /** Licensed capacity plus the permanent Growth Allowance (e.g. 150 → 165). */
   graceLimit: number;
-  /** When enrolment first went above the licensed capacity (ISO), if still above. */
+  /** When enrolment first went above the licensed capacity (ISO), kept for information only. */
   overSince: string | null;
+  /** Ignored: older licence certificates carry a grace period, but the allowance never expires. */
   graceDays?: number;
   now?: Date;
 }
@@ -14,33 +20,23 @@ export interface CapacityInput {
 export interface CapacityResult {
   state: CapacityState;
   overSince: string | null;
-  graceEndsAt: string | null;
-  remainingGraceDays: number | null;
+  /** Learners above the purchased package (covered by the allowance while state is "allowance"). */
   excess: number;
+  /** Active learners that can still be added before an upgrade is needed. */
+  remaining: number;
 }
 
-const DAY_MS = 86_400_000;
-
-export function evaluateCapacity({ activeLearners, licensed, graceLimit, overSince, graceDays = 30, now = new Date() }: CapacityInput): CapacityResult {
+export function evaluateCapacity({ activeLearners, licensed, graceLimit, overSince, now = new Date() }: CapacityInput): CapacityResult {
   const excess = Math.max(0, activeLearners - licensed);
+  const remaining = Math.max(0, graceLimit - activeLearners);
   if (activeLearners <= licensed) {
-    return {
-      state: activeLearners >= Math.ceil(licensed * 0.9) ? "approaching" : "ok",
-      overSince: null, graceEndsAt: null, remainingGraceDays: null, excess: 0,
-    };
+    return { state: activeLearners >= Math.ceil(licensed * 0.9) ? "approaching" : "ok", overSince: null, excess: 0, remaining };
   }
-  const since = overSince ? new Date(overSince) : now;
-  const ends = new Date(since.getTime() + graceDays * DAY_MS);
-  const remainingGraceDays = Math.max(0, Math.ceil((ends.getTime() - now.getTime()) / DAY_MS));
-  let state: CapacityState;
-  if (activeLearners > graceLimit) state = "exceeded";
-  else if (now.getTime() > ends.getTime()) state = "upgrade_required";
-  else state = "grace";
-  return { state, overSince: since.toISOString(), graceEndsAt: ends.toISOString(), remainingGraceDays, excess };
+  const since = overSince ?? now.toISOString();
+  return { state: activeLearners > graceLimit ? "exceeded" : "allowance", overSince: since, excess, remaining };
 }
 
 /** Whether a new active learner may be added (only blocks new enrolment, never existing records). */
 export function canAddActiveLearner(input: CapacityInput): boolean {
-  const next = evaluateCapacity({ ...input, activeLearners: input.activeLearners + 1 });
-  return next.state !== "exceeded" && next.state !== "upgrade_required";
+  return evaluateCapacity({ ...input, activeLearners: input.activeLearners + 1 }).state !== "exceeded";
 }

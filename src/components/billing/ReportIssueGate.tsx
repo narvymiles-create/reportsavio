@@ -1,80 +1,35 @@
-import { ReactNode, useCallback, useEffect, useState } from "react";
+import { ReactNode, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Loader2, Ticket } from "lucide-react";
+import { Loader2, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { billingErrorMessage, issueReportCards, quoteBlockedText, quoteReportCards, type IssueQuote, type ReportLevel } from "@/lib/billing/api";
-
-interface Props {
-  level: ReportLevel;
-  termId: string;
-  learnerIds: string[];
-  /** When false, only already-generated (or free) report cards are shown — never charges. */
-  allowCharge?: boolean;
-  children: ReactNode;
-}
+import { useReportOutput, type OutputRequest } from "@/hooks/useReportOutput";
 
 /**
- * Shows report output only for report cards that are issued for this term. Already generated
- * cards (reprints/downloads) are always free; new pay-per-report cards ask before using credits.
+ * Print views: shows the printable report cards only after printing is unlocked (paid, covered,
+ * or Learners confirmed). Locked schools are sent to the pricing page with their selection kept.
  */
-export function ReportIssueGate({ level, termId, learnerIds, allowCharge = true, children }: Props) {
-  const key = `${level}|${termId}|${learnerIds.join(",")}`;
-  const [state, setState] = useState<"checking" | "confirm" | "blocked" | "ready" | "error">("checking");
-  const [quote, setQuote] = useState<IssueQuote | null>(null);
-  const [message, setMessage] = useState("");
-  const [busy, setBusy] = useState(false);
+export function ReportOutputGate({ request, children }: { request: OutputRequest; children: ReactNode }) {
+  const { ensure } = useReportOutput();
+  const key = `${request.level}|${request.termId}|${request.action}|${request.learnerIds.join(",")}`;
+  const [state, setState] = useState<"checking" | "ready" | "locked">("checking");
+  const lastKey = useRef("");
 
-  const check = useCallback(async () => {
+  useEffect(() => {
+    if (!request.learnerIds.length || lastKey.current === key) return;
+    lastKey.current = key;
     setState("checking");
-    try {
-      if (!learnerIds.length) { setState("ready"); return; }
-      const q = await quoteReportCards(level, termId, learnerIds);
-      setQuote(q);
-      if (!q.allowed) { setMessage(quoteBlockedText(q)); setState("blocked"); return; }
-      if (q.credits_needed > 0) {
-        if (!allowCharge) { setMessage(quoteBlockedText({ ...q, reason: "not_generated" })); setState("blocked"); return; }
-        setState("confirm"); return;
-      }
-      if (q.new > 0) await issueReportCards(level, termId, learnerIds, false);
-      setState("ready");
-    } catch (e) {
-      setMessage(billingErrorMessage(e));
-      setState("error");
-    }
+    ensure(request).then((q) => setState(q ? "ready" : "locked"));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, allowCharge]);
-
-  useEffect(() => { check(); }, [check]);
-
-  const confirm = async () => {
-    setBusy(true);
-    try { await issueReportCards(level, termId, learnerIds, true); setState("ready"); }
-    catch (e) { setMessage(billingErrorMessage(e)); setState("blocked"); }
-    finally { setBusy(false); }
-  };
+  }, [key]);
 
   if (state === "ready") return <>{children}</>;
   if (state === "checking") return <div className="flex items-center justify-center p-8"><Loader2 className="h-5 w-5 animate-spin" /></div>;
   return (
-    <div className="no-print mx-auto my-6 max-w-lg rounded-md border p-4 text-sm space-y-3">
-      <p className="flex items-center gap-2 font-medium"><Ticket className="h-4 w-4" />{state === "confirm" ? "Generate new report card(s)" : "Report card not available yet"}</p>
-      {state === "confirm" && quote ? (
-        <>
-          <p className="text-muted-foreground">
-            {quote.new} new report card(s) for Term {quote.term_number} {quote.academic_year} will use {quote.credits_needed} learner(s) (UGX {(quote.credits_needed * 500).toLocaleString("en-US")}).
-            You have {quote.balance} learner(s) left. {quote.already_issued > 0 && `${quote.already_issued} card(s) are already generated and stay free.`}
-          </p>
-          <Button onClick={confirm} disabled={busy}>{busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Generate and use {quote.credits_needed} learner(s)</Button>
-        </>
-      ) : (
-        <>
-          <p className="text-muted-foreground">{message}</p>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={check}>Try again</Button>
-            <Button asChild size="sm"><Link to="/billing">Billing & Subscription</Link></Button>
-          </div>
-        </>
-      )}
+    <div className="no-print mx-auto my-10 max-w-md space-y-3 rounded-md border p-5 text-center text-sm">
+      <Lock className="mx-auto h-6 w-6 text-muted-foreground" />
+      <p className="font-medium">Printing is locked</p>
+      <p className="text-muted-foreground">You can still preview report cards for free. Choose a package to unlock printing and downloads.</p>
+      <Button asChild size="sm"><Link to="/pricing">See packages</Link></Button>
     </div>
   );
 }

@@ -3,7 +3,7 @@ import { useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 import { PrimaryPdfViewer } from "@/components/PrimaryPdfViewer";
-import { ReportIssueGate } from "@/components/billing/ReportIssueGate";
+import { useReportAccess, useReportOutput } from "@/hooks/useReportOutput";
 
 type Learner = { id: string; full_name: string };
 
@@ -13,6 +13,9 @@ export default function BulkReportCardsPage() {
   const [learners, setLearners] = useState<Learner[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
+  const ids = learners.map(learner => learner.id);
+  const access = useReportAccess("primary", termId, ids);
+  const { ensure } = useReportOutput();
 
   useEffect(() => {
     let cancelled = false;
@@ -44,9 +47,10 @@ export default function BulkReportCardsPage() {
   if (loading) return <div className="flex items-center justify-center p-12"><Loader2 className="h-6 w-6 animate-spin" /></div>;
   if (errorMsg) return <div role="alert" className="p-8 text-center text-destructive">{errorMsg}</div>;
   if (!learners.length) return <div className="p-8 text-center text-muted-foreground">No generated report cards found for this class &amp; term.</div>;
+  if (access.watermark === null) return <div className="flex items-center justify-center p-12"><Loader2 className="h-6 w-6 animate-spin" /></div>;
   return (
-    <ReportIssueGate level="primary" termId={termId} learnerIds={learners.map(learner => learner.id)} allowCharge={false}>
-      <PrimaryPdfViewer learnerIds={learners.map(learner => learner.id)} termId={termId} autoPrint={params.get("mode") === "print"} filename="report-cards" />
-    </ReportIssueGate>
+    <PrimaryPdfViewer learnerIds={ids} termId={termId} autoPrint={params.get("mode") === "print" && !access.watermark} filename="report-cards"
+      watermark={access.watermark}
+      beforeOutput={(action) => ensure({ level: "primary", termId, learnerIds: ids, action: action === "print" ? "bulk_print" : "bulk_download", classId, from: "/report-cards" }).then(Boolean)} />
   );
 }

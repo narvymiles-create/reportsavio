@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   ONLINE_TIERS, DESKTOP_TIERS, annualPrice, creditsAmount, desktopTier, desktopUpgradeAmount, graceLimit,
-  onlineTier, onlineTierFor, desktopTierFor, onlineUpgradeQuote, PER_REPORT_CARD_PRICE,
+  onlineTier, onlineTierFor, desktopTierFor, onlineUpgradeQuote, PER_REPORT_CARD_PRICE, CREDIT_PACKS, recommendPlan,
 } from "../../supabase/functions/_shared/billing/pricing";
 
 describe("online subscription prices (UGX)", () => {
@@ -64,5 +64,39 @@ describe("prorated online upgrades", () => {
   });
   it("rejects downgrades", () => {
     expect(() => onlineUpgradeQuote({ plan: "termly", from: onlineTier("online_300")!, to: onlineTier("online_150")!, periodStart: "2026-01-01", periodEnd: "2026-01-10", today: "2026-01-02" })).toThrow();
+  });
+});
+
+describe("Growth Allowance and Learner packs", () => {
+  it("adds a permanent 10% allowance to every package size", () => {
+    expect([150, 300, 600, 1000, 1200, 1500, 2000].map((c) => graceLimit(c))).toEqual([165, 330, 660, 1100, 1320, 1650, 2200]);
+  });
+  it("offers 20, 50, 100 and 200 prepaid Learners", () => {
+    expect([...CREDIT_PACKS]).toEqual([20, 50, 100, 200]);
+    expect(CREDIT_PACKS.map(creditsAmount)).toEqual([10000, 25000, 50000, 100000]);
+  });
+});
+
+describe("smart plan recommendation", () => {
+  it("recommends pay per report card when few cards are needed", () => {
+    const r = recommendPlan({ activeLearners: 120, reportCards: 40 });
+    expect(r.recommended).toBe("per_report");
+    expect(r.options.find((o) => o.code === "per_report")?.payNow).toBe(20000);
+  });
+  it("recommends the annual plan when it is cheapest per term", () => {
+    // 150 cards = UGX 75,000; termly 65,000; annual 179,400 / 3 = 59,800 per term
+    expect(recommendPlan({ activeLearners: 150, reportCards: 150 }).recommended).toBe("annual");
+  });
+  it("uses the Growth Allowance when choosing the package (160 learners fit the 150 package)", () => {
+    expect(recommendPlan({ activeLearners: 160, reportCards: 160 }).options.find((o) => o.code === "termly")?.tier?.code).toBe("online_150");
+    expect(recommendPlan({ activeLearners: 166, reportCards: 0 }).options.find((o) => o.code === "termly")?.tier?.code).toBe("online_300");
+  });
+  it("spends the existing Learners balance first", () => {
+    const r = recommendPlan({ activeLearners: 100, reportCards: 30, learnerBalance: 20 });
+    expect(r.options.find((o) => o.code === "per_report")?.payNow).toBe(5000);
+  });
+  it("asks for a custom quote above 1,650 learners and recommends nothing when already covered", () => {
+    expect(recommendPlan({ activeLearners: 1651, reportCards: 10 }).customQuote).toBe(true);
+    expect(recommendPlan({ activeLearners: 100, reportCards: 100, covered: true }).recommended).toBeNull();
   });
 });

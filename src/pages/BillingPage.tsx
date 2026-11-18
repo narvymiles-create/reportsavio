@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBillingAdmin } from "@/hooks/useBillingAdmin";
@@ -15,7 +15,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "@/hooks/use-toast";
-import { AlertTriangle, CreditCard, Download, Loader2, MonitorDown, Receipt, RefreshCw, ShieldCheck, Ticket, Users } from "lucide-react";
+import { AlertTriangle, CreditCard, Download, Loader2, MonitorDown, Receipt, RefreshCw, ShieldCheck, Tags, Ticket, Users } from "lucide-react";
+import { desktopPackageName, onlinePackageName } from "@/components/billing/PricingCards";
 import { CheckoutDialog, type CheckoutRequest } from "@/components/billing/CheckoutDialog";
 import {
   ONLINE_TIERS, DESKTOP_TIERS, CREDIT_PACKS, annualPrice, creditsAmount, desktopTier, desktopUpgradeAmount, formatUGX, graceLimit,
@@ -155,12 +156,9 @@ export default function BillingPage() {
   if (current?.state === "grace") warnings.push({ title: "Subscription in renewal grace period", body: `It expired on ${dateText(current.expires_on)}. Renew within ${derived.grace} days of expiry to avoid interruption.`, critical: true });
   for (const c of [online, desktop].filter(Boolean) as Row[]) {
     const label = c.edition === "online" ? "Online" : "Desktop";
-    if (c.state === "approaching") warnings.push({ title: `${label} capacity almost full`, body: `${c.active_learners} of ${c.licensed} learners are active.` });
-    if (c.state === "grace") {
-      const left = c.grace_ends_at ? Math.max(0, Math.ceil((Date.parse(c.grace_ends_at) - Date.now()) / 86_400_000)) : 0;
-      warnings.push({ title: `${label} capacity grace allowance in use`, body: `${c.active_learners} active learners against ${c.licensed} (temporary limit ${c.grace_limit}). ${left} day(s) left to reduce enrolment or upgrade.`, critical: left <= 7 });
-    }
-    if (c.state === "exceeded" || c.state === "upgrade_required") warnings.push({ title: `${label} package upgrade needed`, body: `${c.active_learners} active learners exceed the ${c.licensed}-learner package${c.state === "exceeded" ? ` and its temporary limit of ${c.grace_limit}` : " after the 30-day grace period"}. Existing learners and records are not affected.`, critical: true });
+    if (c.state === "approaching") warnings.push({ title: `${label} package almost full`, body: `${c.active_learners} of ${c.licensed} learners are active. Your permanent Growth Allowance covers up to ${c.grace_limit}.` });
+    if (c.state === "allowance") warnings.push({ title: `${label} Growth Allowance in use`, body: `${c.active_learners} active learners against your ${c.licensed}-learner package. The permanent Growth Allowance covers up to ${c.grace_limit} learners at no extra cost — it never expires.` });
+    if (c.state === "exceeded") warnings.push({ title: `${label} upgrade available`, body: `${c.active_learners} active learners are above your ${c.licensed}-learner package and its Growth Allowance of ${c.grace_limit}. Upgrade to add more active learners. Nothing is charged automatically and existing learners and records are not affected.`, critical: true });
   }
   if (lowCredits) warnings.push({ title: "Learners are running low", body: `${balance} learner(s) remain.` });
 
@@ -175,7 +173,10 @@ export default function BillingPage() {
           <h1 className="text-2xl font-semibold">Billing & Subscription</h1>
           <p className="text-muted-foreground">{data.school?.name} · School ID {data.school?.id.slice(0, 8)}</p>
         </div>
-        <Button variant="outline" size="sm" onClick={load}><RefreshCw className="mr-2 h-4 w-4" />Refresh</Button>
+        <div className="flex gap-2">
+          <Button asChild size="sm"><Link to="/pricing"><Tags className="mr-2 h-4 w-4" />Pricing & packages</Link></Button>
+          <Button variant="outline" size="sm" onClick={load}><RefreshCw className="mr-2 h-4 w-4" />Refresh</Button>
+        </div>
       </div>
 
       {gatewayNotice && <Alert><ShieldCheck className="h-4 w-4" /><AlertDescription>{gatewayNotice}</AlertDescription></Alert>}
@@ -195,21 +196,25 @@ export default function BillingPage() {
         <TabsContent value="overview" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <Card>
-              <CardHeader className="pb-2"><CardDescription>Current edition & package</CardDescription><CardTitle className="text-lg">{current ? `Online ${current.plan === "annual" ? "annual" : "termly"}` : licence ? "Desktop lifetime" : data.profile?.default_method === "per_report" ? "Pay per report card" : "No plan yet"}</CardTitle></CardHeader>
+              <CardHeader className="pb-2"><CardDescription>Current edition & package</CardDescription><CardTitle className="text-lg">{current ? `Online ${current.plan === "annual" ? "annual" : "termly"}` : licence ? "Desktop lifetime" : data.profile?.default_method === "per_report" ? "Pay per report card" : data.settings?.enforcement_enabled ? "Unpaid preview" : "No package yet"}</CardTitle></CardHeader>
               <CardContent className="text-sm text-muted-foreground space-y-1">
-                {current && <p>{onlineTier(current.tier)?.label ?? `Custom ${current.capacity} learners`}</p>}
+                {!current && !licence && data.profile?.default_method !== "per_report" && (data.settings?.enforcement_enabled
+                  ? <p>Previews are free. <Link to="/pricing" className="underline">Choose a package</Link> to download and print.</p>
+                  : <p>Downloading and printing are free for now while Skavio sets up payments. <Link to="/pricing" className="underline">See packages</Link></p>)}
+                {current && <p>{onlineTier(current.tier) ? `${onlinePackageName(current.tier)} · ${onlineTier(current.tier)!.label}` : `Custom ${current.capacity} learners`}</p>}
                 {current && <Badge variant={stateBadge[current.state].variant}>{stateBadge[current.state].label}</Badge>}
-                {licence && <p>Desktop: {desktopTier(licence.tier)?.label ?? `${licence.capacity} learners`}</p>}
+                {licence && <p>{desktopTier(licence.tier) ? `${desktopPackageName(licence.tier)} · ${desktopTier(licence.tier)!.label}` : `Desktop ${licence.capacity} learners`} · never expires</p>}
               </CardContent>
             </Card>
             <Card>
               <CardHeader className="pb-2"><CardDescription>Learner capacity</CardDescription><CardTitle className="text-lg flex items-center gap-2"><Users className="h-4 w-4" />{data.activeLearners} active</CardTitle></CardHeader>
               <CardContent className="text-sm text-muted-foreground space-y-2">
-                {online ? (<>
-                  <Progress value={Math.min(100, (online.active_learners / online.licensed) * 100)} />
-                  <p>Licensed {online.licensed} · Temporary limit {online.grace_limit}</p>
-                  {online.grace_ends_at && <p>Grace ends {dateText(online.grace_ends_at)}</p>}
-                </>) : <p>Capacity applies to subscriptions and desktop licences. Archived, withdrawn and graduated learners never count.</p>}
+                {(online ?? desktop) ? (() => { const c = (online ?? desktop) as Row; return (<>
+                  <Progress value={Math.min(100, (c.active_learners / c.grace_limit) * 100)} />
+                  <p>Purchased capacity {c.licensed}</p>
+                  <p>Growth Allowance up to {c.grace_limit} · permanent, no expiry</p>
+                  <p className="font-medium text-foreground">{Math.max(0, c.grace_limit - c.active_learners)} more active learner(s) can be added</p>
+                </>); })() : <p>Capacity applies to subscriptions and desktop licences. Archived, withdrawn and graduated learners never count. Pay per report card has no capacity limit or allowance.</p>}
               </CardContent>
             </Card>
             <Card>
@@ -398,7 +403,7 @@ function CreditsTab({ data, derived, openCheckout, onChanged }: { data: BillingD
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2"><Ticket className="h-4 w-4" />UGX 500 per report card</CardTitle>
-          <CardDescription>For schools that prefer not to subscribe. One learner is used the first time a learner's report card is generated for a term. Reprints, downloads and regenerating after corrections are free. A term is billed either by subscription or per report card — never both.</CardDescription>
+          <CardDescription>For schools that prefer not to subscribe. One learner is used the first time a learner's report card is downloaded or printed for a term (previews are free). Reprints, re-downloads and regenerating after corrections are free. A term is billed either by subscription or per report card — never both.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-wrap items-center gap-3">
@@ -434,7 +439,7 @@ function CreditsTab({ data, derived, openCheckout, onChanged }: { data: BillingD
           <CardContent className="max-h-96 overflow-auto">
             {data.issues.length === 0 ? <p className="text-sm text-muted-foreground">None yet.</p> : (
               <Table><TableHeader><TableRow><TableHead>Date</TableHead><TableHead>Level</TableHead><TableHead>Period</TableHead><TableHead>Billing</TableHead></TableRow></TableHeader>
-                <TableBody>{data.issues.map((i) => <TableRow key={i.id} className={i.released_at ? "opacity-50" : ""}><TableCell>{dateText(i.issued_at)}</TableCell><TableCell className="capitalize">{i.level}</TableCell><TableCell>{i.term_number ? `Term ${i.term_number} ${i.academic_year}` : i.academic_year}</TableCell><TableCell>{({ subscription: "Subscription", per_report: "1 learner", unbilled: "Free (setup period)", legacy: "Before billing" } as Record<string, string>)[i.method]}{i.released_at ? " · returned" : ""}</TableCell></TableRow>)}</TableBody></Table>
+                <TableBody>{data.issues.map((i) => <TableRow key={i.id} className={i.released_at ? "opacity-50" : ""}><TableCell>{dateText(i.issued_at)}</TableCell><TableCell className="capitalize">{i.level}</TableCell><TableCell>{i.term_number ? `Term ${i.term_number} ${i.academic_year}` : i.academic_year}</TableCell><TableCell>{({ subscription: "Subscription", per_report: "1 learner", licence: "Lifetime licence", unbilled: "Free (setup period)", legacy: "Before billing" } as Record<string, string>)[i.method]}{i.released_at ? " · returned" : ""}</TableCell></TableRow>)}</TableBody></Table>
             )}
           </CardContent>
         </Card>
@@ -471,7 +476,7 @@ function DesktopTab({ data, licence, openCheckout, onChanged }: { data: BillingD
             <div className="space-y-3 text-sm">
               <div className="grid gap-2 sm:grid-cols-2">
                 <p><span className="text-muted-foreground">Licence key:</span> <span className="font-mono">{licence.licence_key}</span></p>
-                <p><span className="text-muted-foreground">Capacity:</span> {licence.capacity} learners (temporary limit {licence.grace_limit})</p>
+                <p><span className="text-muted-foreground">Capacity:</span> {licence.capacity} learners · Growth Allowance up to {licence.grace_limit} (permanent)</p>
                 <p><span className="text-muted-foreground">Issued:</span> {dateText(licence.issued_at)} · version {licence.version}</p>
                 <p><span className="text-muted-foreground">Maintenance:</span> {licence.maintenance_until ? `until ${dateText(licence.maintenance_until)}` : "not purchased (optional)"}</p>
               </div>

@@ -18,6 +18,8 @@ import {
   Shapes,
   Wallet,
   ShieldCheck,
+  Tags,
+  ToggleRight,
 } from "lucide-react";
 import {
   Sidebar,
@@ -98,14 +100,19 @@ export function AppSidebar() {
   const billingAdmin = useBillingAdmin();
   const baseGroups = module === "nursery" ? nurseryGroups : primaryGroups;
   // Billing is only shown to school administrators; the platform dashboard only to Skavio administrators.
-  const groups = baseGroups.map((g) => g.label !== "System" ? g : {
-    ...g,
-    items: [
-      ...g.items,
-      ...(billingAdmin ? [{ title: "Billing & Subscription", url: "/billing", icon: Wallet }] : []),
-      ...(isSuperAdmin ? [{ title: "Platform Billing", url: "/platform/billing", icon: ShieldCheck }] : []),
-    ],
-  });
+  const groups = [
+    ...baseGroups.map((g) => g.label !== "System" ? g : {
+      ...g,
+      items: [
+        ...g.items,
+        ...(billingAdmin ? [{ title: "Billing & Subscription", url: "/billing", icon: Wallet }, { title: "Pricing & Packages", url: "/pricing", icon: Tags }] : []),
+      ],
+    }),
+    ...(isSuperAdmin ? [{ label: "System Admin", items: [
+      { title: "Platform Billing", url: "/platform/billing", icon: ShieldCheck },
+      { title: "Feature Management", url: "/platform/features", icon: ToggleRight },
+    ] }] : []),
+  ];
 
   return (
     <Sidebar collapsible="icon">

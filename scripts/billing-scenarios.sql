@@ -5,7 +5,7 @@ DO $$
 DECLARE
   a uuid := '733a3d5a-abff-411f-a4ee-5a9e6e9b1e9d';  -- school under test
   b uuid; t1 uuid; t3 uuid; ls uuid[]; lb uuid; r jsonb; p1 uuid; p2 uuid; p3 uuid; ok boolean; n integer; bal integer;
-  log text := ''; v_year integer; st record;
+  log text := ''; v_year integer; st record; c integer; u uuid;
 BEGIN
   SELECT id, year INTO t1, v_year FROM terms WHERE school_id = a AND name = 'Term 1' LIMIT 1;
   SELECT id INTO t3 FROM terms WHERE school_id = a AND name = 'Term 3' LIMIT 1;
@@ -17,7 +17,7 @@ BEGIN
 
   -- S1 no plan under enforcement -> blocked, nothing charged
   r := billing__issue(a, 'primary', t1, ls[1:1], true, NULL, true);
-  IF (r->>'reason') <> 'plan_required' THEN RAISE EXCEPTION 'FAIL S1 %', r; END IF;
+  IF (r->>'reason') <> 'plan_required' OR (r->>'paid')::boolean THEN RAISE EXCEPTION 'FAIL S1 %', r; END IF;
   log := log || 'S1 ok; ';
 
   -- S2 credit purchase is fulfilled once even if the webhook repeats
@@ -87,6 +87,46 @@ BEGIN
   EXCEPTION WHEN OTHERS THEN ok := SQLERRM LIKE 'BILLING_CAPACITY_UPGRADE_REQUIRED%'; END;
   IF NOT ok THEN RAISE EXCEPTION 'FAIL S8 guard'; END IF;
   log := log || 'S8 ok; ';
+
+  -- S10 Growth Allowance is permanent: within the allowance there is no countdown, even months later
+  c := billing_active_learner_count(a);
+  IF c < 2 THEN RAISE EXCEPTION 'FAIL S10 needs at least 2 active learners'; END IF;
+  UPDATE school_billing_profiles SET custom_capacity = c - 1, custom_grace_limit = c + 5 WHERE school_id = a;
+  PERFORM billing_refresh_capacity(a);
+  UPDATE school_capacity_status SET over_since = now() - interval '120 days' WHERE school_id = a;
+  PERFORM billing_refresh_capacity(a);
+  SELECT * INTO st FROM school_capacity_status WHERE school_id = a AND edition = 'online';
+  IF st.state <> 'allowance' OR st.grace_ends_at IS NOT NULL THEN RAISE EXCEPTION 'FAIL S10 state % %', st.state, st.grace_ends_at; END IF;
+  UPDATE learners SET status = 'active' WHERE id = ls[1];  -- still inside the allowance: allowed
+  log := log || 'S10 ok; ';
+
+  -- S11 a desktop lifetime licence unlocks output without using Learners
+  INSERT INTO desktop_licences (school_id, licence_key, tier, capacity, grace_limit, version, status, max_devices)
+  VALUES (a, 'TEST-S11-' || gen_random_uuid(), 'desktop_300', 300, 330, 1, 'active', 1);
+  SELECT used INTO n FROM report_credit_accounts WHERE school_id = a;
+  r := billing__issue(a, 'primary', t1, ls[4:4], true, NULL, false);
+  IF (r->>'method') <> 'licence' OR (r->>'charged')::int <> 0 OR NOT (r->>'paid')::boolean THEN RAISE EXCEPTION 'FAIL S11 %', r; END IF;
+  log := log || 'S11 ok; ';
+
+  -- S12 feature switches: a school override wins over the global default and blocks in the database
+  SELECT m.user_id INTO u FROM school_members m JOIN user_roles ur ON ur.user_id = m.user_id AND ur.role = 'admin'
+   WHERE m.school_id = a LIMIT 1;
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', u, 'role', 'authenticated')::text, true);
+  INSERT INTO school_feature_overrides (school_id, feature_key, enabled) VALUES (a, 'download', false);
+  ok := false;
+  BEGIN PERFORM billing_unlock_report_output('primary', t1, ls[4:4], 'download');
+  EXCEPTION WHEN OTHERS THEN ok := SQLERRM LIKE 'FEATURE_DISABLED: Download is turned off%'; END;
+  IF NOT ok THEN RAISE EXCEPTION 'FAIL S12 download'; END IF;
+  r := billing_unlock_report_output('primary', t1, ls[4:4], 'print');  -- print still allowed
+  UPDATE platform_features SET enabled = false WHERE key = 'learner_editing';
+  ok := false;
+  BEGIN UPDATE learners SET full_name = full_name WHERE id = ls[2];
+  EXCEPTION WHEN OTHERS THEN ok := SQLERRM LIKE 'FEATURE_DISABLED%'; END;
+  IF NOT ok THEN RAISE EXCEPTION 'FAIL S12 global'; END IF;
+  INSERT INTO school_feature_overrides (school_id, feature_key, enabled) VALUES (a, 'learner_editing', true);
+  UPDATE learners SET full_name = full_name WHERE id = ls[2];  -- school override wins
+  PERFORM set_config('request.jwt.claims', '', true);
+  log := log || 'S12 ok; ';
 
   -- S9 school isolation: another school's learner can never be issued under this school
   ok := false;

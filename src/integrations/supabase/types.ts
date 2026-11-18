@@ -1424,6 +1424,39 @@ export type Database = {
           },
         ]
       }
+      platform_features: {
+        Row: {
+          category: string
+          description: string
+          enabled: boolean
+          key: string
+          label: string
+          sort_order: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          category: string
+          description?: string
+          enabled?: boolean
+          key: string
+          label: string
+          sort_order?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          category?: string
+          description?: string
+          enabled?: boolean
+          key?: string
+          label?: string
+          sort_order?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -1972,6 +2005,45 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "school_capacity_status_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      school_feature_overrides: {
+        Row: {
+          enabled: boolean
+          feature_key: string
+          school_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          enabled: boolean
+          feature_key: string
+          school_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          enabled?: boolean
+          feature_key?: string
+          school_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "school_feature_overrides_feature_key_fkey"
+            columns: ["feature_key"]
+            isOneToOne: false
+            referencedRelation: "platform_features"
+            referencedColumns: ["key"]
+          },
+          {
+            foreignKeyName: "school_feature_overrides_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
             referencedRelation: "schools"
@@ -2839,6 +2911,15 @@ export type Database = {
         Returns: string
       }
       billing_today: { Args: never; Returns: string }
+      billing_unlock_report_output: {
+        Args: {
+          _action: string
+          _learner_ids: string[]
+          _level: string
+          _term_id: string
+        }
+        Returns: Json
+      }
       create_school_for_current_user: {
         Args: {
           _address: string
@@ -2849,6 +2930,11 @@ export type Database = {
         Returns: string
       }
       current_user_school_id: { Args: never; Returns: string }
+      feature__raise: { Args: { _key: string }; Returns: undefined }
+      feature_enabled: {
+        Args: { _key: string; _school: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -2858,6 +2944,7 @@ export type Database = {
       }
       is_school_billing_admin: { Args: { _school: string }; Returns: boolean }
       is_super_admin: { Args: never; Returns: boolean }
+      my_school_features: { Args: never; Returns: Json }
       record_template_verification: {
         Args: {
           _academic_year: number

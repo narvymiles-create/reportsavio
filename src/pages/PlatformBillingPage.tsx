@@ -116,7 +116,7 @@ function SchoolsTab({ d, reload }: { d: AllData; reload: () => void }) {
   const shown = rows.filter((r) => (!q || `${r.name} ${r.id}`.toLowerCase().includes(q.toLowerCase())) && (
     filter === "all" || (filter === "expiring" && r.subscription_status === "active" && (r.days_to_expiry ?? 99) <= 14)
     || (filter === "grace" && r.subscription_status === "grace") || (filter === "expired" && r.subscription_status === "expired")
-    || (filter === "capacity" && ["approaching", "grace", "exceeded", "upgrade_required"].includes(String(r.capacity_state)))
+    || (filter === "capacity" && ["approaching", "allowance", "exceeded"].includes(String(r.capacity_state)))
     || (filter === "per_report" && r.method === "pay per report card") || (filter === "desktop" && r.edition.includes("desktop"))));
   return (
     <Card>
@@ -174,7 +174,7 @@ function SchoolDetail({ d, schoolId, onClose, reload }: { d: AllData; schoolId: 
           <div><Label>Edition</Label><Select value={form.edition} onValueChange={(v) => setForm({ ...form, edition: v })}><SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent><SelectItem value="online">Online</SelectItem><SelectItem value="desktop">Desktop</SelectItem><SelectItem value="both">Both</SelectItem></SelectContent></Select></div>
           <div><Label>Custom capacity (above 1,500)</Label><Input type="number" value={form.custom_capacity} onChange={(e) => setForm({ ...form, custom_capacity: e.target.value })} /></div>
-          <div><Label>Custom grace limit</Label><Input type="number" placeholder={form.custom_capacity ? String(graceLimit(Number(form.custom_capacity))) : ""} value={form.custom_grace_limit} onChange={(e) => setForm({ ...form, custom_grace_limit: e.target.value })} /></div>
+          <div><Label>Custom Growth Allowance limit</Label><Input type="number" placeholder={form.custom_capacity ? String(graceLimit(Number(form.custom_capacity))) : ""} value={form.custom_grace_limit} onChange={(e) => setForm({ ...form, custom_grace_limit: e.target.value })} /></div>
         </div>
         <div><Label>Internal notes</Label><Textarea value={form.notes} maxLength={2000} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
         <Button onClick={save}>Save profile</Button>
@@ -387,7 +387,7 @@ function SettingsTab({ d, reload }: { d: AllData; reload: () => void }) {
     if (form.payment_mode === "LIVE" && s.payment_mode !== "LIVE" && !window.confirm("Switch to LIVE payments? Only do this after IntesaPay merchant verification, LIVE credentials are installed and a live test succeeded.")) return;
     const { error } = await supabase.from("billing_settings").update({
       enforcement_enabled: form.enforcement_enabled, payment_mode: form.payment_mode, subscription_grace_days: Number(form.subscription_grace_days),
-      capacity_grace_days: Number(form.capacity_grace_days), capacity_grace_percent: Number(form.capacity_grace_percent), reminder_days: ints(form.reminder_days),
+      capacity_grace_percent: Number(form.capacity_grace_percent), reminder_days: ints(form.reminder_days),
       grace_reminder_days: ints(form.grace_reminder_days), low_credit_threshold: Number(form.low_credit_threshold), default_max_devices: Number(form.default_max_devices),
     }).eq("id", 1);
     if (error) return toast({ title: "Save failed", description: error.message, variant: "destructive" });
@@ -398,14 +398,13 @@ function SettingsTab({ d, reload }: { d: AllData; reload: () => void }) {
     <Card>
       <CardHeader><CardTitle className="text-base">Billing settings</CardTitle></CardHeader>
       <CardContent className="space-y-4">
-        <Alert><AlertDescription>While enforcement is off, schools see warnings and can pay, but nothing is blocked. Turn it on only when the academic calendar is published and payments work.</AlertDescription></Alert>
-        <div className="flex items-center gap-3"><Switch checked={form.enforcement_enabled} onCheckedChange={(v) => setForm({ ...form, enforcement_enabled: v })} /><Label>Enforce plans and capacity limits</Label></div>
+        <Alert><AlertDescription>While this is off, every school can download and print freely; schools still see prices and can pay. When it is on, unpaid schools keep free previews (with the “SKAVIO EDUREPORTS – UNPAID PREVIEW” watermark) but Download, Bulk Download, Print and Bulk Print stay locked until they pay. Turn it on only after the academic calendar is published and payments work.</AlertDescription></Alert>
+        <div className="flex items-center gap-3"><Switch id="enforce" checked={form.enforcement_enabled} onCheckedChange={(v) => setForm({ ...form, enforcement_enabled: v })} /><Label htmlFor="enforce">Lock downloads and printing for unpaid schools (and enforce learner limits)</Label></div>
         <div className="grid gap-3 sm:grid-cols-3">
           <div><Label>Payment mode</Label><Select value={form.payment_mode} onValueChange={(v) => setForm({ ...form, payment_mode: v })}><SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent><SelectItem value="TEST">TEST (sandbox)</SelectItem><SelectItem value="LIVE">LIVE</SelectItem></SelectContent></Select></div>
           <div><Label>Renewal grace (days)</Label><Input type="number" {...num("subscription_grace_days")} /></div>
-          <div><Label>Capacity grace period (days)</Label><Input type="number" {...num("capacity_grace_days")} /></div>
-          <div><Label>Capacity allowance (%)</Label><Input type="number" {...num("capacity_grace_percent")} /></div>
+          <div><Label>Growth Allowance (%, permanent)</Label><Input type="number" {...num("capacity_grace_percent")} /></div>
           <div><Label>Reminders before expiry (days)</Label><Input {...num("reminder_days")} /></div>
           <div><Label>Reminders during grace (days after expiry)</Label><Input {...num("grace_reminder_days")} /></div>
           <div><Label>Low-learners warning at</Label><Input type="number" {...num("low_credit_threshold")} /></div>

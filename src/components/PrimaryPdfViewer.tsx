@@ -8,6 +8,7 @@ import { createPrimaryPdfSession } from "@/lib/pdf/primaryPdfSession";
 import { PrimaryPdfPages } from "@/components/PrimaryPdfPages";
 import { toast } from "@/hooks/use-toast";
 import { APPEARANCE_CHANGED } from "@/lib/reportAppearance";
+import { watermarkUnpaidPdf } from "@/lib/pdf/unpaidWatermark";
 
 type Props = {
   learnerIds: string[];
@@ -16,10 +17,16 @@ type Props = {
   filename?: string;
   generate?: typeof generatePrimaryOutput;
   toolbar?: ReactNode;
+  /** Unpaid preview: the on-screen pages carry the watermark; output stays on the clean bytes. */
+  watermark?: boolean;
+  /** Called before Download / Print; resolve false to cancel (e.g. locked and sent to pricing). */
+  beforeOutput?: (action: "download" | "print") => Promise<boolean>;
 };
 
 /** PDF.js reads the download bytes for preview; Chrome prints those bytes directly. */
-export function PrimaryPdfViewer({ learnerIds, termId, autoPrint = false, filename = "report-card", generate = generatePrimaryOutput, toolbar }: Props) {
+export function PrimaryPdfViewer({ learnerIds, termId, autoPrint = false, filename = "report-card", generate = generatePrimaryOutput, toolbar, watermark = false, beforeOutput }: Props) {
+  const unlocked = useRef(new Set<string>());
+  const [busy, setBusy] = useState(false);
   const printRef = useRef<HTMLButtonElement>(null);
   const [output, setOutput] = useState<{ key: string; blob: Blob; document: PDFDocumentProxy; session: ReturnType<typeof createPrimaryPdfSession> } | null>(null);
   const rendered = useRef(new Set<number>());
@@ -28,7 +35,7 @@ export function PrimaryPdfViewer({ learnerIds, termId, autoPrint = false, filena
   const [done, setDone] = useState(0);
   const [retry, setRetry] = useState(0);
   useEffect(() => { const changed = () => setRetry(v => v + 1); window.addEventListener(APPEARANCE_CHANGED, changed); return () => window.removeEventListener(APPEARANCE_CHANGED, changed); }, []);
-  const key = JSON.stringify([learnerIds, termId, retry]);
+  const key = JSON.stringify([learnerIds, termId, retry, watermark]);
   const currentKey = useRef(key);
   currentKey.current = key;
 
@@ -41,7 +48,8 @@ export function PrimaryPdfViewer({ learnerIds, termId, autoPrint = false, filena
     rendered.current.clear();
     setError("");
     setDone(0);
-    const [ids, selectedTerm] = JSON.parse(key) as [string[], string, number];
+    const [ids, selectedTerm, , marked] = JSON.parse(key) as [string[], string, number, boolean];
+    unlocked.current.clear();
     generate(ids, selectedTerm, (count) => {
       if (!cancelled) setDone(count);
     }).then(async (generated) => {
@@ -51,7 +59,8 @@ export function PrimaryPdfViewer({ learnerIds, termId, autoPrint = false, filena
       const [pdfjs, worker] = await Promise.all([import("pdfjs-dist"), import("pdfjs-dist/build/pdf.worker.min.mjs?url")]);
       if (cancelled) return;
       pdfjs.GlobalWorkerOptions.workerSrc = worker.default;
-      const data = new Uint8Array(await blob.arrayBuffer());
+      const clean = new Uint8Array(await blob.arrayBuffer());
+      const data = marked ? await watermarkUnpaidPdf(clean.slice()) : clean;
       if (cancelled) return;
       task = pdfjs.getDocument({ data, isEvalSupported: false });
       const document = await task.promise;
@@ -69,8 +78,25 @@ export function PrimaryPdfViewer({ learnerIds, termId, autoPrint = false, filena
     };
   }, [key, generate]);
 
-  const open = (printing: boolean) => {
+  /** Download/print always go through the unlock check once per action for this preview. */
+  const allowed = async (action: "download" | "print") => {
+    if (!beforeOutput || unlocked.current.has(action)) return true;
+    setBusy(true);
+    try {
+      const ok = await beforeOutput(action);
+      if (ok) unlocked.current.add(action);
+      return ok;
+    } finally { setBusy(false); }
+  };
+  const download = async () => {
+    if (!output || output.key !== key) return;
+    if (beforeOutput && !unlocked.current.has("download") && !(await allowed("download"))) return;
+    triggerBlobDownload(output.blob, `${safeFilename(filename)}.pdf`);
+  };
+  const open = async (printing: boolean) => {
     if (!output || output.key !== key || !ready) return;
+    // Without a pending check the tab opens synchronously, keeping the click's popup permission.
+    if (beforeOutput && !unlocked.current.has("print") && !(await allowed("print"))) return;
     try {
       output.session.open();
       if (printing) toast({ title: "PDF opened for printing", description: "Use Chrome’s PDF Print button or Ctrl+P in the new tab." });
@@ -104,13 +130,13 @@ export function PrimaryPdfViewer({ learnerIds, termId, autoPrint = false, filena
       <div className="flex flex-wrap items-center justify-between gap-3 border-b bg-background p-3">
         {toolbar ?? <span role="status" className="text-sm">{learnerIds.length} report card(s) · {output.document.numPages} page(s) · {ready ? "Ready" : "Loading PDF pages…"}</span>}
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={() => open(false)} disabled={!ready}>
+          <Button variant="outline" onClick={() => open(false)} disabled={!ready || busy}>
             <ExternalLink className="mr-2 h-4 w-4" /> Open PDF
           </Button>
-          <Button variant="outline" onClick={() => triggerBlobDownload(output.blob, `${safeFilename(filename)}.pdf`)}>
+          <Button variant="outline" onClick={download} disabled={busy}>
             <Download className="mr-2 h-4 w-4" /> Download PDF
           </Button>
-          <Button ref={printRef} onClick={() => open(true)} disabled={!ready}><Printer className="mr-2 h-4 w-4" /> Print / Save as PDF <ExternalLink className="ml-2 h-3 w-3" /></Button>
+          <Button ref={printRef} onClick={() => open(true)} disabled={!ready || busy}><Printer className="mr-2 h-4 w-4" /> Print / Save as PDF <ExternalLink className="ml-2 h-3 w-3" /></Button>
         </div>
       </div>
       <PrimaryPdfPages key={key} document={output.document} onReady={pageReady} onError={pageError} />

@@ -6,7 +6,9 @@ export { evaluateCapacity } from "../../../supabase/functions/_shared/billing/ca
 export type ReportLevel = "primary" | "nursery";
 
 export interface IssueQuote {
-  method: "subscription" | "per_report" | "unbilled" | "none";
+  method: "subscription" | "per_report" | "unbilled" | "licence" | "none";
+  /** True when output needs no payment (subscription, lifetime licence, already issued, or locks switched off). */
+  paid: boolean;
   requested: number;
   new: number;
   already_issued: number;
@@ -23,7 +25,7 @@ export interface IssueQuote {
 /** Turns database billing errors (e.g. "BILLING_INSUFFICIENT_CREDITS: …") into the readable sentence. */
 export function billingErrorMessage(error: unknown): string {
   const raw = error instanceof Error ? error.message : typeof error === "object" && error && "message" in error ? String((error as { message: unknown }).message) : String(error ?? "Unknown error");
-  return raw.replace(/^BILLING_[A-Z_]+:\s*/, "");
+  return raw.replace(/^(BILLING_[A-Z_]+|FEATURE_DISABLED):\s*/, "");
 }
 
 export const isBillingError = (error: unknown) => /BILLING_[A-Z_]+/.test(error instanceof Error ? error.message : String((error as { message?: string })?.message ?? error));
@@ -57,23 +59,27 @@ export function quoteBlockedText(q: IssueQuote): string {
   return `No subscription or pay-per-report-card plan covers Term ${q.term_number} of ${q.academic_year}. Choose one in Billing & Subscription.`;
 }
 
-/**
- * Makes sure the given learners' report cards are issued (charging credits once, after confirmation),
- * then runs the output. Failed outputs give the credits back.
- */
-export async function withIssuedReportCards<T>(level: ReportLevel, termId: string, learnerIds: string[], run: () => Promise<T>, failedIds?: (result: T) => string[]): Promise<T | null> {
-  const q = await quoteReportCards(level, termId, learnerIds);
-  if (!q.allowed) throw new Error(quoteBlockedText(q));
-  if (q.credits_needed > 0 && !window.confirm(chargeConfirmText(q))) return null;
-  const issued = await issueReportCards(level, termId, learnerIds, true);
-  try {
-    const result = await run();
-    if (failedIds && (issued.charged ?? 0) > 0) await releaseReportCards(level, termId, failedIds(result));
-    return result;
-  } catch (e) {
-    if ((issued.charged ?? 0) > 0) await releaseReportCards(level, termId, learnerIds);
-    throw e;
-  }
+export type OutputAction = "download" | "bulk_download" | "print" | "bulk_print";
+
+/** Unlocks download/print for these learners (checks feature switches, charges Learners once when pay-per-report). */
+export async function unlockReportOutput(level: ReportLevel, termId: string, learnerIds: string[], action: OutputAction): Promise<IssueQuote> {
+  const { data, error } = await supabase.rpc("billing_unlock_report_output", { _level: level, _term_id: termId, _learner_ids: learnerIds, _action: action });
+  if (error) throw error;
+  return data as unknown as IssueQuote;
+}
+
+/** Turns "FEATURE_DISABLED: …" / "BILLING_…: …" database errors into the readable sentence. */
+export const isFeatureDisabledError = (error: unknown) => /FEATURE_DISABLED/.test(error instanceof Error ? error.message : String((error as { message?: string })?.message ?? error));
+
+export interface PricingReturn { level: ReportLevel; termId: string; count: number; classId?: string; streamId?: string; from: string; reason?: string }
+
+/** Pricing page link that remembers where the school came from (class/stream/term/learners stay selected on return). */
+export function pricingUrl(r: PricingReturn): string {
+  const q = new URLSearchParams({ from: r.from, level: r.level, term: r.termId, count: String(r.count) });
+  if (r.classId) q.set("class", r.classId);
+  if (r.streamId) q.set("stream", r.streamId);
+  if (r.reason) q.set("reason", r.reason);
+  return `/pricing?${q.toString()}`;
 }
 
 export async function invokeBilling<T = Record<string, unknown>>(body: Record<string, unknown>): Promise<T> {
@@ -95,6 +101,7 @@ export const PRODUCT_LABELS: Record<string, string> = {
   online_annual: "Annual subscription",
   online_upgrade: "Capacity upgrade",
   report_credits: "Learners (pay per report card)",
+  quote: "Custom quotation",
   desktop_licence: "Desktop lifetime licence",
   desktop_upgrade: "Desktop licence upgrade",
 };

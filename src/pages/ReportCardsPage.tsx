@@ -14,7 +14,10 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { generateClassReports } from "@/lib/reportCards";
-import { billingErrorMessage, chargeConfirmText, quoteBlockedText, quoteReportCards } from "@/lib/billing/api";
+import { billingErrorMessage, pricingUrl } from "@/lib/billing/api";
+import { useReportAccess, useReportOutput, type OutputRequest } from "@/hooks/useReportOutput";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Lock } from "lucide-react";
 import { calculateDivision } from "@/lib/grading";
 import { PrimaryPdfViewer } from "@/components/PrimaryPdfViewer";
 import { downloadReportCardPDF, downloadReportCardsZip, type BulkProgress } from "@/lib/pdfGenerator";
@@ -113,14 +116,16 @@ function IconAction({ icon: Icon, label, onClick, asChild, href, target, variant
   );
 }
 
-function ReportJobRunner({ job, termId, onDone }: { job: ReportJob; termId: string; onDone: () => void }) {
+function ReportJobRunner({ job, termId, onDone, beforeDownload }: { job: ReportJob; termId: string; onDone: () => void; beforeDownload: () => Promise<boolean> }) {
   return (
     <div role="dialog" aria-label={job.label} className="fixed inset-0 z-50 overflow-auto bg-background">
       <div className="flex items-center justify-between gap-3 border-b p-3">
         <h2 className="font-semibold">{job.label}</h2>
         <Button variant="outline" onClick={onDone}>Close</Button>
       </div>
-      <PrimaryPdfViewer key={job.id} learnerIds={job.learners.map(learner => learner.id)} termId={termId} autoPrint filename={job.label} />
+      {/* Printing was unlocked before this opened; Download still checks its own switch/payment. */}
+      <PrimaryPdfViewer key={job.id} learnerIds={job.learners.map(learner => learner.id)} termId={termId} autoPrint filename={job.label}
+        beforeOutput={(action) => action === "print" ? Promise.resolve(true) : beforeDownload()} />
     </div>
   );
 }
@@ -206,21 +211,18 @@ export default function ReportCardsPage() {
     });
   }, [learners, streamId, sortBy, reports]);
 
-  /** Pay-per-report-card schools confirm before new cards use credits; reprints and regeneration stay free. */
-  const confirmBilling = async () => {
-    const q = await quoteReportCards("primary", termId, learners.map((l) => l.id));
-    if (!q.allowed) {
-      toast({ title: "Billing", description: quoteBlockedText(q), variant: "destructive" });
-      return false;
-    }
-    return q.credits_needed > 0 ? window.confirm(chargeConfirmText(q)) : true;
-  };
+  const { ensure, run } = useReportOutput();
+  const outputRequest = (ids: string[], action: OutputRequest["action"]): OutputRequest => ({
+    level: "primary", termId, learnerIds: ids, action, classId, streamId: streamId === "all" ? undefined : streamId, from: "/report-cards",
+  });
+  const generatedIds = useMemo(() => filtered.filter(l => reports[l.id]).map(l => l.id), [filtered, reports]);
+  const access = useReportAccess("primary", termId, generatedIds);
 
   const generate = async () => {
     if (!termId || !classId) return toast({ title: "Pick a term and class", variant: "destructive" });
     setGenerating(true);
     try {
-      if (!(await confirmBilling())) return;
+      // Generating and previewing is always free; Learners are only used when a card is first downloaded or printed.
       const rows = await generateClassReports(termId, classId);
       toast({ title: `Generated ${rows.length} report card(s)` });
       loadReports();
@@ -237,7 +239,6 @@ export default function ReportCardsPage() {
     }
     setGeneratingOne(singleLearnerId);
     try {
-      if (!(await confirmBilling())) return;
       // Generation runs class-wide (positions need the whole class), then we open the chosen learner
       await generateClassReports(termId, classId);
       await loadReports();
@@ -257,7 +258,7 @@ export default function ReportCardsPage() {
     loadReports();
   };
 
-  const startReportJob = (selectedLearners?: Learner[], label?: string) => {
+  const startReportJob = async (selectedLearners?: Learner[], label?: string) => {
     if (!termId || !classId) return toast({ title: "Pick a term and class", variant: "destructive" });
     const pool = selectedLearners ?? filtered;
     const readyLearners = pool.filter(l => reports[l.id]);
@@ -270,6 +271,8 @@ export default function ReportCardsPage() {
         description: `${pool.length - readyLearners.length} learner(s) have no generated report card. Click "Generate / Refresh All" first.`,
       });
     }
+    const single = !!selectedLearners && selectedLearners.length === 1;
+    if (!(await ensure(outputRequest(readyLearners.map(l => l.id), single ? "print" : "bulk_print")))) return;
     setReportJob({ id: ++jobCounterRef.current, learners: readyLearners, label: label ?? "Bulk print" });
   };
 
@@ -278,8 +281,8 @@ export default function ReportCardsPage() {
     if (!reports[learner.id]) return toast({ title: "Generate the report card first", variant: "destructive" });
     setDownloadingId(learner.id);
     try {
-      await downloadReportCardPDF(learner.id, termId, learner.full_name);
-      toast({ title: "Downloaded", description: `${learner.full_name}.pdf` });
+      const done = await run(outputRequest([learner.id], "download"), () => downloadReportCardPDF(learner.id, termId, learner.full_name).then(() => true));
+      if (done) toast({ title: "Downloaded", description: `${learner.full_name}.pdf` });
     } catch (e: unknown) {
       toast({ title: "Download failed", description: errorMessage(e), variant: "destructive" });
     } finally {
@@ -294,14 +297,13 @@ export default function ReportCardsPage() {
     const cls = classes.find(c => c.id === classId)?.name ?? "class";
     const term = terms.find(t => t.id === termId);
     const zipName = `report-cards_${cls}_${term?.name ?? ""}_${term?.year ?? ""}`;
-    setBulkDownload({ done: 0, total: ready.length, current: "", failed: [] });
     try {
-      const { failed } = await downloadReportCardsZip(
-        ready.map(l => ({ id: l.id, full_name: l.full_name })),
-        termId,
-        zipName,
-        (p) => setBulkDownload(p),
-      );
+      const result = await run(outputRequest(ready.map(l => l.id), "bulk_download"), () => {
+        setBulkDownload({ done: 0, total: ready.length, current: "", failed: [] });
+        return downloadReportCardsZip(ready.map(l => ({ id: l.id, full_name: l.full_name })), termId, zipName, (p) => setBulkDownload(p));
+      }, (r) => ready.filter(l => r.failed.some(f => f.name === l.full_name)).map(l => l.id));
+      if (!result) return;
+      const { failed } = result;
       if (failed.length === 0) {
         toast({ title: `Downloaded ${ready.length} report card(s)` });
       } else {
@@ -324,7 +326,8 @@ export default function ReportCardsPage() {
 
   return (
     <div className="space-y-6">
-      {reportJob && <ReportJobRunner job={reportJob} termId={termId} onDone={() => setReportJob(null)} />}
+      {reportJob && <ReportJobRunner job={reportJob} termId={termId} onDone={() => setReportJob(null)}
+        beforeDownload={() => ensure(outputRequest(reportJob.learners.map(l => l.id), reportJob.learners.length === 1 ? "download" : "bulk_download")).then(Boolean)} />}
 
       {bulkDownload && (
         <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm p-6 flex items-center justify-center">
@@ -353,6 +356,17 @@ export default function ReportCardsPage() {
         <h1 className="text-3xl font-bold">Report Cards</h1>
         <p className="text-muted-foreground">Generate, preview, print and bulk-export report cards.</p>
       </div>
+
+      {access.watermark && (
+        <Alert>
+          <Lock className="h-4 w-4" />
+          <AlertTitle>Unpaid preview</AlertTitle>
+          <AlertDescription className="flex flex-wrap items-center justify-between gap-2">
+            <span>Generating and previewing is free. Previews show “SKAVIO EDUREPORTS – UNPAID PREVIEW”. Download and printing unlock once a package is paid.</span>
+            <Button asChild size="sm"><Link to={pricingUrl({ level: "primary", termId, count: generatedIds.length, classId, streamId: streamId === "all" ? undefined : streamId, from: "/report-cards" })}>See packages</Link></Button>
+          </AlertDescription>
+        </Alert>
+      )}
 
       <Card>
         <CardHeader><CardTitle>Selection</CardTitle></CardHeader>

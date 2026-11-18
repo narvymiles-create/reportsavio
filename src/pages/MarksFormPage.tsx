@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useFeatures } from "@/contexts/FeaturesContext";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { toast } from "@/hooks/use-toast";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -42,6 +43,9 @@ const LEGACY_TITLES: Record<string, string> = {
 };
 
 export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
+  const { enabled: featureOn } = useFeatures();
+  const marksheetOutput = featureOn("marksheet_output");
+  const marksEntry = featureOn("marks_entry");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -390,7 +394,7 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
     toast({ title: `Saved ${payload.length} record(s)` });
   };
 
-  const handlePrint = () => window.print();
+  const handlePrint = () => { if (marksheetOutput) window.print(); };
 
   const exportFilename = () => {
     const examName = exam.toUpperCase();
@@ -566,15 +570,15 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
 
         {/* Action toolbar */}
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={handlePrint} disabled={!classId || filteredLearners.length === 0}>
+          <Button variant="outline" onClick={handlePrint} disabled={!classId || filteredLearners.length === 0 || !marksheetOutput} title={marksheetOutput ? undefined : "Turned off by Skavio"}>
             <Printer className="mr-2 h-4 w-4" /> Print
           </Button>
-          <Button variant="outline" onClick={() => setImportOpen(true)} disabled={!classId || subjects.length === 0}>
+          <Button variant="outline" onClick={() => setImportOpen(true)} disabled={!classId || subjects.length === 0 || !marksEntry}>
             <Upload className="mr-2 h-4 w-4" /> Import Marks (CSV)
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" disabled={!classId || displayLearners.length === 0 || exporting}>
+              <Button variant="outline" disabled={!classId || displayLearners.length === 0 || exporting || !marksheetOutput}>
                 {exporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />} Download
               </Button>
             </DropdownMenuTrigger>
