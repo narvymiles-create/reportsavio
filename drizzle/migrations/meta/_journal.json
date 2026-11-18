@@ -85,6 +85,20 @@
       "when": 1794700296106,
       "tag": "0011_school_report_appearance_validation",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1794986857755,
+      "tag": "0012_billing_licensing_system",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1794987067173,
+      "tag": "0013_billing_tighten_privileges",
+      "breakpoints": true
     }
   ]
 }

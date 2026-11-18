@@ -1,5 +1,18 @@
 # Roadmap
 
+## Commercial billing (pricing, subscriptions, licences, IntesaPay)
+- [ ] Database: packages snapshots, subscriptions, calendar, payments, webhook events, credits, report-card issues, capacity grace, desktop licences/devices, quotes, notifications, learner status; RLS per school + platform admin.
+- [ ] Shared pricing/capacity/licence/IntesaPay modules with unit tests (prices, 8% annual, upgrades, proration, grace, signatures, offline licence).
+- [ ] Edge functions: billing-payments (checkout, verify, refund), intesapay-webhook, desktop-licence (activate/deactivate/recover/public key).
+- [ ] Report-card billing hooks: Primary generation, Nursery outputs, print routes; free reprints; release on failure.
+- [ ] School Billing & Subscription page, warnings banner, receipts, learner status.
+- [ ] Platform billing dashboard: profiles, payments, refunds, licences, calendar, reminders, quotes, settings, CSV export.
+- [ ] Daily maintenance job: reminders, expiry, capacity grace.
+- [ ] Database scenario tests (rolled back) incl. school isolation.
+- [ ] IntesaPay TEST credentials + webhook configuration — blocked: needs merchant API key, account ID and webhook secret from the owner.
+- [ ] Sandbox MTN/Airtel payment tests — blocked on credentials.
+- [ ] Platform administrator account — blocked: owner must say which account to grant.
+
 ## School report appearance
 - [x] Add school-isolated appearance settings, presets, contrast validation and live PDF preview.
 - [x] Apply semantic colours through shared Primary/Nursery and editable uploaded-template output without changing layouts or grading; immutable printed/scanned artwork cannot be recoloured safely.
