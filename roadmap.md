@@ -19,3 +19,7 @@
 - [ ] Every preview with learner data watermarked unless entitled; Open PDF/Download/Print visibly locked → pricing/activation
 - [ ] Unpaid previews never keep an unwatermarked copy; stored report files readable only by entitled schools
 - [ ] Tests + end-to-end check including bypass attempts
+- [ ] One pending package request per school (blocked until approved/rejected/cancelled; school can cancel its own) — enforced in database
+- [ ] One active package per school: block conflicting purchases/activations; Learner packs stay top-ups for pay-per-report schools only
+- [ ] Redeeming a key unlocks immediately (entitlement + per-card quotes refresh, watermark removed, Open/Download/Print work)
+- [ ] Reconcile existing records (duplicate pending orders, activated schools) without deleting data or payment history

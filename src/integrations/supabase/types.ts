@@ -2948,6 +2948,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      billing__active_year_subscription: {
+        Args: { _school: string; _year: number }
+        Returns: string
+      }
       billing__audit: {
         Args: {
           _action: string
@@ -2988,10 +2992,18 @@ export type Database = {
         Args: { _days?: number; _payment_id: string }
         Returns: Json
       }
+      billing__package_conflict: {
+        Args: { _details: Json; _product: string; _school: string }
+        Returns: string
+      }
       billing_activate_key: { Args: { _key: string }; Returns: Json }
       billing_active_learner_count: {
         Args: { _school: string }
         Returns: number
+      }
+      billing_admin_cancel_order: {
+        Args: { _note?: string; _payment_id: string }
+        Returns: Json
       }
       billing_admin_reissue_key: {
         Args: { _payment_id: string }
@@ -3026,6 +3038,10 @@ export type Database = {
           _level: string
           _term_id: string
         }
+        Returns: Json
+      }
+      billing_manual_cancel_order: {
+        Args: { _payment_id: string }
         Returns: Json
       }
       billing_manual_submit_proof: {

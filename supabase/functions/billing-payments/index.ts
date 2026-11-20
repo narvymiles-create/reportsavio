@@ -190,6 +190,24 @@ function reference() {
   return `SER-${d}-${rand}`;
 }
 
+const OPEN_REQUEST_MESSAGE = "Your school already has a package request in progress. Finish it (send the payment proof or enter the activation key) or cancel it under Activate Package before choosing another package.";
+
+/** One package request at a time: an unreviewed request, or an approved one whose key has not been used yet, blocks new ones. */
+async function assertNoOpenRequest(admin: SupabaseClient, schoolId: string) {
+  const { data, error } = await admin.from("billing_payments").select("id")
+    .eq("school_id", schoolId).eq("channel", "manual").eq("status", "pending")
+    .in("review_status", ["awaiting_proof", "submitted", "approved"]).limit(1);
+  if (error) throw new Error(error.message);
+  if (data?.length) throw new UserError(OPEN_REQUEST_MESSAGE);
+}
+
+/** One active package at a time; the same database rule runs again at approval and activation. */
+async function assertNoConflict(admin: SupabaseClient, schoolId: string, priced: Priced) {
+  const { data, error } = await admin.rpc("billing__package_conflict", { _school: schoolId, _product: priced.product, _details: priced.details ?? {} });
+  if (error) throw new Error(error.message);
+  if (typeof data === "string" && data) throw new UserError(data);
+}
+
 /** Short, easy-to-type order reference for manual payments (no 0/O or 1/I confusion). */
 function manualReference() {
   const alphabet = "23456789ABCDEFGHJKMNPQRSTUVWXYZ";
@@ -263,8 +281,10 @@ Deno.serve(async (req) => {
     if (body.channel === "manual") {
       const { data: existing } = await admin.from("billing_payments").select("*").eq("school_id", caller.schoolId).eq("client_request_id", body.client_request_id).maybeSingle();
       if (existing) return json({ payment_id: existing.id, reference: existing.reference, status: existing.status, amount: existing.amount, description: existing.description, reused: true });
+      await assertNoOpenRequest(admin, caller.schoolId);
       const priced = await price(admin, caller, body);
       if (priced.amount <= 0) throw new UserError("Nothing to pay for this package.");
+      await assertNoConflict(admin, caller.schoolId, priced);
       const ref = manualReference();
       const { data: row, error: insErr } = await admin.from("billing_payments").insert({
         school_id: caller.schoolId, reference: ref, client_request_id: body.client_request_id, product: priced.product,
@@ -272,6 +292,9 @@ Deno.serve(async (req) => {
         review_status: "awaiting_proof", details: priced.details, created_by: caller.userId,
       }).select("*").single();
       if (insErr) {
+        if (insErr.code === "23505" && insErr.message.includes("one_open_request")) {
+          throw new UserError(OPEN_REQUEST_MESSAGE);
+        }
         if (insErr.code === "23505") {
           const { data: again } = await admin.from("billing_payments").select("*").eq("school_id", caller.schoolId).eq("client_request_id", body.client_request_id).single();
           return json({ payment_id: again?.id, reference: again?.reference, status: again?.status, amount: again?.amount, description: again?.description, reused: true });
@@ -301,6 +324,7 @@ Deno.serve(async (req) => {
     }
     const priced = await price(admin, caller, body);
     if (priced.amount < MIN_GATEWAY_AMOUNT) throw new UserError(`The minimum payment is ${formatUGX(MIN_GATEWAY_AMOUNT)}.`);
+    await assertNoConflict(admin, caller.schoolId, priced);
 
     const ref = reference();
     const { data: inserted, error: insErr } = await admin.from("billing_payments").insert({

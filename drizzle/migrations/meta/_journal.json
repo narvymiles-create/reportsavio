@@ -141,6 +141,13 @@
       "when": 1795037234407,
       "tag": "0019_manual_payments_activation_keys",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1795161941018,
+      "tag": "0020_one_request_one_package",
+      "breakpoints": true
     }
   ]
 }
