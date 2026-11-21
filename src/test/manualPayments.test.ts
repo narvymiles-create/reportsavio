@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  SKAVIO_PAYMENT_NUMBER, SKAVIO_WHATSAPP, activationKeyText, looksLikeActivationKey, normaliseActivationKey, paymentConfirmationText,
+  CANCELLABLE_REVIEW_STATUSES, ENTITLEMENT_CHANGED, OPEN_REVIEW_STATUSES, SKAVIO_PAYMENT_NUMBER, SKAVIO_WHATSAPP, announceEntitlementChange, activationKeyText, looksLikeActivationKey, normaliseActivationKey, paymentConfirmationText,
   toWhatsAppNumber, validateProofFile, whatsappLink,
 } from "@/lib/billing/manual";
 import { resolvePreviewLock } from "@/lib/billing/previewLock";
@@ -72,5 +72,23 @@ describe("unpaid preview lock", () => {
   it("unlocks only after the database allowed output, and never locks blank template artwork", () => {
     expect(resolvePreviewLock({ watermark: true, entitled: false, cleared: true })).toBe(false);
     expect(resolvePreviewLock({ sampleOnly: true, entitled: false })).toBe(false);
+  });
+
+  it("one request at a time: an unreviewed or approved-but-unused request blocks a new one; only unreviewed ones can be cancelled by the school", () => {
+    expect([...OPEN_REVIEW_STATUSES].sort()).toEqual(["approved", "awaiting_proof", "submitted"]);
+    expect([...CANCELLABLE_REVIEW_STATUSES].sort()).toEqual(["awaiting_proof", "submitted"]);
+    expect(OPEN_REVIEW_STATUSES).not.toContain("activated");
+    expect(OPEN_REVIEW_STATUSES).not.toContain("rejected");
+    expect(OPEN_REVIEW_STATUSES).not.toContain("cancelled");
+  });
+
+  it("activating a package refreshes locks in this tab and tells other tabs", () => {
+    let fired = 0;
+    const on = () => { fired += 1; };
+    window.addEventListener(ENTITLEMENT_CHANGED, on);
+    announceEntitlementChange();
+    window.removeEventListener(ENTITLEMENT_CHANGED, on);
+    expect(fired).toBe(1);
+    expect(window.localStorage.getItem("skavio:entitlement-changed-at")).not.toBeNull();
   });
 });

@@ -8,13 +8,18 @@ export const PROOF_MAX_BYTES = 5 * 1024 * 1024;
 export const PROOF_TYPES = ["image/png", "image/jpeg", "image/webp", "application/pdf"];
 export const ENTITLEMENT_CHANGED = "skavio:entitlement-changed";
 
-export type ReviewStatus = "awaiting_proof" | "submitted" | "approved" | "rejected" | "activated";
+export type ReviewStatus = "awaiting_proof" | "submitted" | "approved" | "rejected" | "activated" | "cancelled";
+/** Requests that still block a new one: one package request per school at a time. */
+export const OPEN_REVIEW_STATUSES: ReviewStatus[] = ["awaiting_proof", "submitted", "approved"];
+/** Requests the school may still cancel itself (not yet reviewed by Skavio). */
+export const CANCELLABLE_REVIEW_STATUSES: ReviewStatus[] = ["awaiting_proof", "submitted"];
 export const REVIEW_LABELS: Record<ReviewStatus, string> = {
   awaiting_proof: "Waiting for your payment proof",
   submitted: "Proof received · being verified",
   approved: "Verified · enter your activation key",
   rejected: "Not verified",
   activated: "Activated",
+  cancelled: "Cancelled",
 };
 
 /** Ugandan numbers to WhatsApp's international form: 0772 123456 / +256 772 123456 → 256772123456. */
@@ -88,8 +93,34 @@ export async function activateKey(key: string): Promise<ActivationResult> {
   const { data, error } = await supabase.rpc("billing_activate_key", { _key: key });
   if (error) return { ok: false, error: error.message };
   const r = data as unknown as ActivationResult;
-  if (r.ok) window.dispatchEvent(new Event(ENTITLEMENT_CHANGED));
+  if (r.ok) announceEntitlementChange();
   return r;
+}
+
+const ENTITLEMENT_STORAGE_KEY = "skavio:entitlement-changed-at";
+
+/** Refreshes package status and report locks in this tab and every other open tab of the app. */
+export function announceEntitlementChange() {
+  window.dispatchEvent(new Event(ENTITLEMENT_CHANGED));
+  try { window.localStorage.setItem(ENTITLEMENT_STORAGE_KEY, String(Date.now())); } catch { /* private mode */ }
+}
+if (typeof window !== "undefined") {
+  window.addEventListener("storage", (e) => { if (e.key === ENTITLEMENT_STORAGE_KEY) window.dispatchEvent(new Event(ENTITLEMENT_CHANGED)); });
+}
+
+export interface OpenOrder { id: string; reference: string; description: string; amount: number; review_status: ReviewStatus }
+
+/** The school's package request still in progress, if any. */
+export async function fetchOpenOrder(schoolId: string): Promise<OpenOrder | null> {
+  const { data } = await supabase.from("billing_payments").select("id,reference,description,amount,review_status")
+    .eq("school_id", schoolId).eq("channel", "manual").eq("status", "pending").in("review_status", OPEN_REVIEW_STATUSES)
+    .order("created_at", { ascending: false }).limit(1).maybeSingle();
+  return data ? { ...(data as unknown as OpenOrder), amount: Number((data as { amount: number }).amount) } : null;
+}
+
+export async function cancelOrder(paymentId: string) {
+  const { error } = await supabase.rpc("billing_manual_cancel_order", { _payment_id: paymentId });
+  if (error) throw new Error(error.message);
 }
 
 export interface Entitlement {

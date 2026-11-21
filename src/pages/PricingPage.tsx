@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, KeyRound, Lightbulb, Loader2, Sparkles } from "lucide-react";
-import { SKAVIO_PAYMENT_NUMBER } from "@/lib/billing/manual";
+import { REVIEW_LABELS, SKAVIO_PAYMENT_NUMBER, fetchOpenOrder, type OpenOrder } from "@/lib/billing/manual";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -46,6 +46,7 @@ export default function PricingPage({ signedIn = true }: { signedIn?: boolean })
   const [loading, setLoading] = useState(signedIn);
   const [year, setYear] = useState<number | null>(null);
   const [termNo, setTermNo] = useState<number | null>(null);
+  const [openOrder, setOpenOrder] = useState<OpenOrder | null>(null);
   const [checkout, setCheckout] = useState<{ title: string; amount: number; lines: { label: string; value: string }[]; request: CheckoutRequest } | null>(null);
   const today = kampalaToday();
 
@@ -63,6 +64,7 @@ export default function PricingPage({ signedIn = true }: { signedIn?: boolean })
       supabase.from("learners").select("id", { count: "exact", head: true }).eq("school_id", schoolId).eq("status", "active").then((r) => r.count ?? 0),
       supabase.from("nursery_learners").select("id", { count: "exact", head: true }).eq("school_id", schoolId).eq("status", "active").then((r) => r.count ?? 0),
     ]);
+    setOpenOrder(await fetchOpenOrder(schoolId));
     let gateway: Snapshot["gateway"] = null;
     try { gateway = await invokeBilling({ action: "status" }); } catch { gateway = null; }
     const t = term as Row | null;
@@ -108,10 +110,19 @@ export default function PricingPage({ signedIn = true }: { signedIn?: boolean })
     navigate("/billing");
   };
 
+  /** One package request at a time (the server enforces this too). */
+  const blockedByOpenOrder = () => {
+    if (!openOrder) return false;
+    toast({ title: "A package request is already in progress", description: `Finish or cancel ${openOrder.reference} under Activate Package before choosing another package.` });
+    navigate("/activate");
+    return true;
+  };
+
   const chooseOnline = (code: string) => {
     setSelected(code);
     if (code === "custom") return quotation();
     if (!signedIn) return requireSignIn();
+    if (blockedByOpenOrder()) return;
     const t = onlineTier(code)!;
     const current = subs.find((s) => s.state === "active" || s.state === "grace");
     if (current && current.capacity < t.max && covers(year, termNo)) {
@@ -134,6 +145,7 @@ export default function PricingPage({ signedIn = true }: { signedIn?: boolean })
     setSelected(code);
     if (code === "custom") return quotation();
     if (!signedIn) return requireSignIn();
+    if (blockedByOpenOrder()) return;
     const t = desktopTier(code)!;
     const lic = snap?.licence; const cur = lic ? desktopTier(lic.tier) : null;
     if (cur) {
@@ -148,6 +160,7 @@ export default function PricingPage({ signedIn = true }: { signedIn?: boolean })
   const choosePack = (n: string) => {
     setSelected(n);
     if (!signedIn) return requireSignIn();
+    if (blockedByOpenOrder()) return;
     const qty = Number(n);
     setCheckout({ title: `${qty} Learners`, amount: creditsAmount(qty), request: { product: "report_credits", quantity: qty },
       lines: [{ label: "Learners", value: String(qty) }, { label: "Price each", value: "UGX 500" }] });
@@ -188,6 +201,13 @@ export default function PricingPage({ signedIn = true }: { signedIn?: boolean })
         <Alert><KeyRound className="h-4 w-4" /><AlertDescription className="flex flex-wrap items-center justify-between gap-2">
           <span>Choose a package, pay by mobile money to <strong>{SKAVIO_PAYMENT_NUMBER}</strong>, send your proof, then enter the activation key Skavio sends you. Downloads and printing unlock only after activation.</span>
           <Button asChild size="sm" variant="outline"><Link to="/activate">I have an activation key</Link></Button>
+        </AlertDescription></Alert>
+      )}
+
+      {signedIn && openOrder && (
+        <Alert variant="destructive"><KeyRound className="h-4 w-4" /><AlertDescription className="flex flex-wrap items-center justify-between gap-2">
+          <span>Request <strong className="font-mono">{openOrder.reference}</strong> ({openOrder.description}, {formatUGX(openOrder.amount)}) is in progress: {REVIEW_LABELS[openOrder.review_status]}. Only one package request is allowed at a time.</span>
+          <Button asChild size="sm" variant="outline"><Link to="/activate">Continue or cancel it</Link></Button>
         </AlertDescription></Alert>
       )}
 

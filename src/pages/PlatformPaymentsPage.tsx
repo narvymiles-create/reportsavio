@@ -22,6 +22,7 @@ const ACTION_LABELS: Record<string, string> = {
   order_created: "Order created", proof_submitted: "Proof submitted", payment_approved: "Payment approved", payment_rejected: "Payment rejected",
   key_generated: "Key generated", key_reissued: "Key reissued", key_revoked: "Key revoked", key_expired: "Key expired",
   package_activated: "Package activated", activation_failed: "Failed activation attempt", key_used_by_other_school: "Key tried by another school",
+  activation_blocked: "Activation blocked (school already has this package)", order_cancelled: "Order cancelled", reconciled_duplicate: "Duplicate order cancelled automatically",
 };
 type Filter = "review" | "approved" | "activated" | "rejected" | "all";
 const inFilter = (p: Row, f: Filter) => f === "all" || (f === "review" ? ["awaiting_proof", "submitted"].includes(p.review_status) : p.review_status === f);
@@ -101,6 +102,15 @@ export default function PlatformPaymentsPage() {
     showKey(payment, r); void load();
   };
 
+  const cancelOrder = async (payment: Row) => {
+    if (!confirm(`Cancel order ${payment.reference}? Its activation key stops working. The record stays in the history.`)) return;
+    setBusy(payment.id);
+    const { error } = await supabase.rpc("billing_admin_cancel_order", { _payment_id: payment.id, _note: "Cancelled by Skavio" });
+    setBusy(null);
+    if (error) return toast({ title: "Not cancelled", description: error.message, variant: "destructive" });
+    toast({ title: "Order cancelled" }); void load();
+  };
+
   const revoke = async (payment: Row) => {
     const k = liveKey(payment.id);
     if (!k || !confirm("Revoke this key? It will no longer activate anything. You can issue a new one later.")) return;
@@ -171,6 +181,7 @@ export default function PlatformPaymentsPage() {
                             {p.review_status === "approved" && <>
                               <Button size="sm" variant="outline" disabled={busy === p.id} onClick={() => reissue(p)}><KeyRound className="mr-1 h-4 w-4" />New key</Button>
                               {k && <Button size="sm" variant="ghost" disabled={busy === p.id} onClick={() => revoke(p)}><Ban className="mr-1 h-4 w-4" />Revoke</Button>}
+                              <Button size="sm" variant="ghost" disabled={busy === p.id} onClick={() => cancelOrder(p)}><XCircle className="mr-1 h-4 w-4" />Cancel order</Button>
                             </>}
                           </div>
                         </TableCell>

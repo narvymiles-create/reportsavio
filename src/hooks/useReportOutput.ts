@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 import { useFeatures } from "@/contexts/FeaturesContext";
 import { featureOffText, type FeatureKey } from "@/lib/features";
+import { ENTITLEMENT_CHANGED } from "@/lib/billing/manual";
 import {
   billingErrorMessage, chargeConfirmText, isBillingError, isFeatureDisabledError, pricingUrl, quoteReportCards, releaseReportCards,
   unlockReportOutput, type IssueQuote, type OutputAction, type ReportLevel,
@@ -74,6 +75,12 @@ export function useReportAccess(level: ReportLevel, termId: string | undefined, 
   const key = `${level}|${termId}|${learnerIds.join(",")}`;
   const [state, setState] = useState<{ key: string; quote: IssueQuote | null; watermark: boolean | null }>({ key: "", quote: null, watermark: null });
   const [tick, setTick] = useState(0);
+  // Activating a package (here or in another tab) re-checks the lock straight away.
+  useEffect(() => {
+    const bump = () => setTick((t) => t + 1);
+    window.addEventListener(ENTITLEMENT_CHANGED, bump);
+    return () => window.removeEventListener(ENTITLEMENT_CHANGED, bump);
+  }, []);
   useEffect(() => {
     let cancelled = false;
     if (!termId || !learnerIds.length) { setState({ key, quote: null, watermark: false }); return; }

@@ -13,7 +13,8 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ManualPaymentPanel, type ManualOrder } from "@/components/billing/ManualPaymentPanel";
 import { formatUGX } from "@/lib/billing/api";
-import { REVIEW_LABELS, activateKey, looksLikeActivationKey, type ReviewStatus } from "@/lib/billing/manual";
+import { CANCELLABLE_REVIEW_STATUSES, OPEN_REVIEW_STATUSES, REVIEW_LABELS, activateKey, cancelOrder, looksLikeActivationKey, type ReviewStatus } from "@/lib/billing/manual";
+import { toast } from "@/hooks/use-toast";
 
 type OrderRow = ManualOrder & { created_at: string; status: string };
 const dateText = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
@@ -47,11 +48,20 @@ export default function ActivatePage() {
     setBusy(true); setResult(null);
     const r = await activateKey(key);
     setBusy(false);
-    if (r.ok) { setKey(""); setResult({ ok: true, text: `${r.description ?? "Your package"} is now active. Downloads and printing covered by it are unlocked.` }); void load(); }
+    if (r.ok) { setKey(""); setResult({ ok: true, text: `${r.description ?? "Your package"} is now active. Open PDF, Download, Bulk Download, Print and Bulk Print are unlocked for the report cards it covers, without the unpaid watermark.` }); void load(); }
     else setResult({ ok: false, text: r.error ?? "Activation failed." });
   };
 
   if (billingAdmin === false) return <Alert><Lock className="h-4 w-4" /><AlertDescription>Only school administrators can activate packages.</AlertDescription></Alert>;
+
+  const cancel = async (o: OrderRow) => {
+    if (!confirm(`Cancel request ${o.reference}? If you have already paid for it, contact Skavio Technologies instead.`)) return;
+    setBusy(true);
+    try { await cancelOrder(o.id); toast({ title: "Request cancelled", description: "You can now choose another package." }); }
+    catch (e) { toast({ title: "Not cancelled", description: e instanceof Error ? e.message : String(e), variant: "destructive" }); }
+    setBusy(false); void load();
+  };
+  const openOrder = orders?.find((o) => o.status === "pending" && OPEN_REVIEW_STATUSES.includes(o.review_status as ReviewStatus));
 
   const sub = entitlement?.subscription; const lic = entitlement?.licence;
   return (
@@ -102,7 +112,9 @@ export default function ActivatePage() {
 
       <Card>
         <CardHeader className="pb-3"><CardTitle className="text-base">Your mobile money orders</CardTitle>
-          <CardDescription>Choose a package on the <Link to="/pricing" className="underline">Pricing</Link> page to create an order with its own reference.</CardDescription></CardHeader>
+          <CardDescription>{openOrder
+            ? <>Request <span className="font-mono">{openOrder.reference}</span> is in progress. Only one package request is allowed at a time, so finish or cancel it before choosing another package.</>
+            : <>Choose a package on the <Link to="/pricing" className="underline">Pricing</Link> page to create an order with its own reference.</>}</CardDescription></CardHeader>
         <CardContent className="space-y-3">
           {orders === null ? <Loader2 className="h-4 w-4 animate-spin" /> : orders.length === 0 ? <p className="text-sm text-muted-foreground">No orders yet.</p> : orders.map((o) => (
             <div key={o.id} className="rounded-md border p-3">
@@ -113,10 +125,13 @@ export default function ActivatePage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge variant={o.review_status === "activated" ? "default" : o.review_status === "rejected" ? "destructive" : "outline"}>{o.review_status ? REVIEW_LABELS[o.review_status as ReviewStatus] : o.status}</Badge>
-                  {(o.review_status === "awaiting_proof" || o.review_status === "submitted") && <Button size="sm" variant="ghost" onClick={() => setOpen(open === o.id ? null : o.id)}>{open === o.id ? "Hide" : "Pay / send proof"}</Button>}
+                  {o.status === "pending" && CANCELLABLE_REVIEW_STATUSES.includes(o.review_status as ReviewStatus) && <>
+                    <Button size="sm" variant="ghost" onClick={() => setOpen(open === o.id ? null : o.id)}>{open === o.id ? "Hide" : "Pay / send proof"}</Button>
+                    <Button size="sm" variant="ghost" disabled={busy} onClick={() => cancel(o)}>Cancel request</Button>
+                  </>}
                 </div>
               </div>
-              {o.review_status === "rejected" && o.review_note && <p className="mt-2 text-sm text-destructive">Reason: {o.review_note}</p>}
+              {(o.review_status === "rejected" || o.review_status === "cancelled") && o.review_note && <p className={`mt-2 text-sm ${o.review_status === "rejected" ? "text-destructive" : "text-muted-foreground"}`}>{o.review_status === "rejected" ? "Reason" : "Note"}: {o.review_note}</p>}
               {open === o.id && <div className="mt-3 border-t pt-3"><ManualPaymentPanel order={o} schoolName={schoolName} onSubmitted={load} /></div>}
             </div>
           ))}

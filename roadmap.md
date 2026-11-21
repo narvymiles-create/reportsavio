@@ -23,3 +23,4 @@
 - [ ] One active package per school: block conflicting purchases/activations; Learner packs stay top-ups for pay-per-report schools only
 - [ ] Redeeming a key unlocks immediately (entitlement + per-card quotes refresh, watermark removed, Open/Download/Print work)
 - [ ] Reconcile existing records (duplicate pending orders, activated schools) without deleting data or payment history
+- [ ] Per-term entitlements: a package unlocks only the term/year it bought (replaces whole-year coverage); every paid term stays unlocked forever after expiry; new payments never lock paid terms or unlock unpaid ones — one verified record per school, year and term, used for open/download/print
