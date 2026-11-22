@@ -2444,6 +2444,67 @@ export type Database = {
           },
         ]
       }
+      school_term_entitlements: {
+        Row: {
+          academic_year: number
+          granted_at: string
+          id: string
+          payment_id: string | null
+          revoked_at: string | null
+          revoked_reason: string | null
+          school_id: string
+          source: string
+          subscription_id: string | null
+          term_number: number
+        }
+        Insert: {
+          academic_year: number
+          granted_at?: string
+          id?: string
+          payment_id?: string | null
+          revoked_at?: string | null
+          revoked_reason?: string | null
+          school_id: string
+          source?: string
+          subscription_id?: string | null
+          term_number: number
+        }
+        Update: {
+          academic_year?: number
+          granted_at?: string
+          id?: string
+          payment_id?: string | null
+          revoked_at?: string | null
+          revoked_reason?: string | null
+          school_id?: string
+          source?: string
+          subscription_id?: string | null
+          term_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "school_term_entitlements_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "billing_payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "school_term_entitlements_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "school_term_entitlements_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "school_subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       schools: {
         Row: {
           address: string | null

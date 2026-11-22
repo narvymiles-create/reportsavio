@@ -148,6 +148,13 @@
       "when": 1795161941018,
       "tag": "0020_one_request_one_package",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1795330780747,
+      "tag": "0021_per_term_paid_entitlements",
+      "breakpoints": true
     }
   ]
 }
