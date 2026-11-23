@@ -48,7 +48,7 @@ export default function ActivatePage() {
     setBusy(true); setResult(null);
     const r = await activateKey(key);
     setBusy(false);
-    if (r.ok) { setKey(""); setResult({ ok: true, text: `${r.description ?? "Your package"} is now active. Open PDF, Download, Bulk Download, Print and Bulk Print are unlocked for the report cards it covers, without the unpaid watermark.` }); void load(); }
+    if (r.ok) { setKey(""); setResult({ ok: true, text: `${r.description ?? "Your package"} is now active. Open PDF, Download, Bulk Download, Print and Bulk Print are unlocked for the term(s) it was bought for, without the unpaid watermark. Paid terms stay unlocked even after the package ends.` }); void load(); }
     else setResult({ ok: false, text: r.error ?? "Activation failed." });
   };
 
@@ -76,16 +76,25 @@ export default function ActivatePage() {
         <CardContent className="space-y-1 text-sm">
           {active === null ? <Loader2 className="h-4 w-4 animate-spin" /> : active ? (
             <>
-              <p className="font-medium text-success">Active — report cards can be downloaded and printed.</p>
+              <p className="font-medium text-success">Active — report cards for the term(s) this package covers can be opened, downloaded and printed.</p>
               {sub && <p>{sub.plan === "annual" ? `Annual subscription ${sub.academic_year}` : `Term ${sub.term_number} ${sub.academic_year} subscription`} · up to {sub.capacity.toLocaleString("en-US")} learners · ends {dateText(sub.expires_on)}{sub.state === "grace" ? " (renewal grace)" : ""}</p>}
               {lic && <p>Desktop lifetime licence · up to {lic.capacity.toLocaleString("en-US")} learners</p>}
             </>
           ) : (
             <>
-              <p className="font-medium">No active package — previews carry the “SKAVIO EDUREPORTS – UNPAID PREVIEW” watermark and download and printing are locked.</p>
+              <p className="font-medium">{entitlement?.paid_terms.length
+                ? "No active package right now. Report cards for your paid terms below stay unlocked; other terms carry the “SKAVIO EDUREPORTS – UNPAID PREVIEW” watermark and download and printing are locked."
+                : "No active package — previews carry the “SKAVIO EDUREPORTS – UNPAID PREVIEW” watermark and download and printing are locked."}</p>
               {!!entitlement?.learner_balance && <p>{entitlement.learner_balance} prepaid Learner(s) available for pay-per-report-card printing.</p>}
               <Button asChild size="sm" variant="outline" className="mt-2"><Link to="/pricing"><Tags className="mr-2 h-4 w-4" />Choose a package</Link></Button>
             </>
+          )}
+          {!!entitlement?.paid_terms.length && (
+            <div className="pt-2">
+              <p className="font-medium">Paid terms (always unlocked)</p>
+              <div className="mt-1 flex flex-wrap gap-1">{entitlement.paid_terms.map((t) => <Badge key={`${t.academic_year}-${t.term_number}`} variant="secondary">Term {t.term_number} {t.academic_year}</Badge>)}</div>
+              <p className="mt-1 text-xs text-muted-foreground">A package unlocks only the term it was bought for. Name your terms “Term 1”, “Term 2” and “Term 3” so report cards match.</p>
+            </div>
           )}
         </CardContent>
       </Card>

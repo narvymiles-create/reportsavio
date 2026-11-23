@@ -128,11 +128,13 @@ export interface Entitlement {
   subscription: { plan: string; tier: string; capacity: number; expires_on: string; state: string; academic_year: number; term_number: number | null } | null;
   licence: { tier: string; capacity: number } | null;
   learner_balance: number;
+  /** Every term the school has paid for; these stay unlocked even after the package expires. */
+  paid_terms: { academic_year: number; term_number: number }[];
 }
 
 export async function fetchEntitlement(): Promise<Entitlement> {
   const { data, error } = await supabase.rpc("billing_my_entitlement");
   if (error) throw error;
   const e = (data ?? {}) as Partial<Entitlement>;
-  return { active: !!e.active, subscription: e.subscription ?? null, licence: e.licence ?? null, learner_balance: Number(e.learner_balance ?? 0) };
+  return { active: !!e.active, subscription: e.subscription ?? null, licence: e.licence ?? null, learner_balance: Number(e.learner_balance ?? 0), paid_terms: Array.isArray(e.paid_terms) ? e.paid_terms : [] };
 }
