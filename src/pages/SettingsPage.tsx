@@ -150,7 +150,7 @@ export default function SettingsPage() {
 
       {schoolId && !moduleLoading && module === "primary" && <AssessmentSettings key={schoolId} schoolId={schoolId} />}
       {/* SECTION A: HOUSES */}
-      {schoolId && !moduleLoading && <ReportFieldsManagement key={`${schoolId}:${module}`} schoolId={schoolId} level={module} />}
+      {schoolId && !moduleLoading && <ReportFieldsManagement key={`fields:${schoolId}:${module}`} schoolId={schoolId} level={module} />}
       <Card>
         <CardHeader className="flex flex-row items-start justify-between gap-2">
           <div>
@@ -311,7 +311,7 @@ export default function SettingsPage() {
 
       {/* SECTION D: BORDER TEMPLATE PICKER */}
       <BorderTemplatePicker />
-      {schoolId && !moduleLoading && <UploadedTemplateBorderToggle key={`${schoolId}:${module}`} schoolId={schoolId} level={module} />}
+      {schoolId && !moduleLoading && <UploadedTemplateBorderToggle key={`border:${schoolId}:${module}`} schoolId={schoolId} level={module} />}
 
       {/* SECTION E: NURSERY FONT STYLE */}
       <NurseryFontStylePicker />
