@@ -169,6 +169,13 @@
       "when": 1795504830302,
       "tag": "0023_admin_only_result_updates",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1795548767717,
+      "tag": "0024_restrict_has_role_to_self",
+      "breakpoints": true
     }
   ]
 }
