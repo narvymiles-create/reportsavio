@@ -162,6 +162,13 @@
       "when": 1795503799754,
       "tag": "0022_restrict_platform_features_read",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1795504830302,
+      "tag": "0023_admin_only_result_updates",
+      "breakpoints": true
     }
   ]
 }
