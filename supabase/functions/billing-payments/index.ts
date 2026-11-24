@@ -1,4 +1,4 @@
-import { z } from "npm:zod@3.23.8";
+import { z } from "npm:zod@4.6.7";
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 import {
   annualPrice, creditsAmount, desktopTier, desktopUpgradeAmount, graceLimit, kampalaToday, addDays, onlineTier, onlineUpgradeQuote,

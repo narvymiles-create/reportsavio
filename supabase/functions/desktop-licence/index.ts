@@ -1,6 +1,6 @@
 // Desktop edition licensing: public key for offline verification, controlled device
 // activation/refresh (delivers upgraded certificates), and deactivation for transfer.
-import { z } from "npm:zod@3.23.8";
+import { z } from "npm:zod@4.6.7";
 import { adminClient, corsHeaders, ensureLicenceCertificate, getCaller, json, licencePublicKey, signDeviceCertificate } from "../_shared/billing/server.ts";
 
 const Body = z.discriminatedUnion("action", [
