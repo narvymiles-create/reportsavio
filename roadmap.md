@@ -1,5 +1,7 @@
 # Roadmap — pricing, payments & feature management
 
+- [x] Compact Powered by footer and show school name, current package and status in the top navigation; verified signed-in desktop/mobile.
+
 - [x] Pricing page: Online / Desktop Offline / Pay Per Report cards, termly/annual switch, selection, checkout
 - [x] Permanent 10% Growth Allowance (no countdown), notices + upgrade offers
 - [x] Unpaid preview watermark; Download/Bulk Download/Print/Bulk Print locked and redirected to pricing with selection kept

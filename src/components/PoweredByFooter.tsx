@@ -11,14 +11,14 @@ export function PoweredByFooter({
   size = "md",
 }: {
   className?: string;
-  /** md = default (40px), lg = larger (56px) */
+  /** md = compact (28px), lg = larger (56px) */
   size?: "md" | "lg";
 }) {
-  const dim = size === "lg" ? 56 : 40;
+  const dim = size === "lg" ? 56 : 28;
 
   return (
     <div
-      className={`flex items-center justify-center gap-3 py-4 text-sm text-muted-foreground ${className}`}
+      className={`flex items-center justify-center gap-2 py-1.5 text-xs text-muted-foreground ${className}`}
       data-skavio-footer="true"
     >
       <img
