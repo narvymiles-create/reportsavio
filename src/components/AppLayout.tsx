@@ -11,10 +11,26 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSchoolEntitlement } from "@/hooks/useSchoolEntitlement";
 import { onlinePackageName, desktopPackageName } from "@/components/billing/PricingCards";
 import { Badge } from "@/components/ui/badge";
+import { evaluateCapacity, graceLimit } from "@/lib/billing/api";
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const { schoolId, signOut } = useAuth();
   const { entitlement, active } = useSchoolEntitlement();
+  const { data: totalLearners } = useQuery({
+    queryKey: ["navigation-active-learners", schoolId],
+    enabled: !!schoolId,
+    refetchInterval: 30_000,
+    queryFn: async () => {
+      if (!schoolId) return null;
+      const [primary, nursery] = await Promise.all([
+        supabase.from("learners").select("id", { count: "exact", head: true }).eq("school_id", schoolId).eq("status", "active"),
+        supabase.from("nursery_learners").select("id", { count: "exact", head: true }).eq("school_id", schoolId).eq("status", "active"),
+      ]);
+      if (primary.error) throw primary.error;
+      if (nursery.error) throw nursery.error;
+      return (primary.count ?? 0) + (nursery.count ?? 0);
+    },
+  });
   const { data: schoolName } = useQuery({
     queryKey: ["navigation-school-name", schoolId],
     enabled: !!schoolId,
@@ -40,6 +56,11 @@ export function AppLayout({ children }: { children: ReactNode }) {
     : "No active package";
   const packageStatus = subscription ? (subscription.state === "grace" ? "Renewal grace" : "Active")
     : licence || (entitlement && entitlement.learner_balance > 0) ? "Active" : "Unpaid";
+  const capacityPackage = subscription ?? licence;
+  const allowance = capacityPackage ? capacityPackage.grace_limit ?? graceLimit(capacityPackage.capacity) : null;
+  const remaining = capacityPackage && allowance !== null && totalLearners != null
+    ? evaluateCapacity({ activeLearners: totalLearners, licensed: capacityPackage.capacity, graceLimit: allowance, overSince: null }).remaining
+    : entitlement?.learner_balance ?? null;
 
   return (
     <SidebarProvider>
@@ -49,7 +70,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
           <header className="min-h-14 border-b bg-card flex items-center justify-between gap-2 px-3 py-2 sticky top-0 z-10">
             <div className="flex items-center gap-2 min-w-0">
               <SidebarTrigger />
-              <span className="text-sm text-muted-foreground hidden xl:inline shrink-0">
+              <span className="text-sm text-muted-foreground hidden 2xl:inline shrink-0">
                 School Report Card Management
               </span>
             </div>
@@ -62,6 +83,9 @@ export function AppLayout({ children }: { children: ReactNode }) {
                   </span>
                   {entitlement && <Badge variant={packageStatus === "Active" ? "secondary" : "outline"} className="shrink-0 text-[10px] px-1.5 py-0">{packageStatus}</Badge>}
                 </div>
+                <p className="text-xs text-muted-foreground" aria-label="Package learner counts" title={allowance !== null ? `Includes permanent Growth Allowance up to ${allowance} active learners` : undefined}>
+                  Total learners: {totalLearners ?? "—"} · Learners left: {remaining ?? "—"}
+                </p>
               </div>
               <Button variant="ghost" size="sm" onClick={signOut} className="shrink-0" aria-label="Sign out" title="Sign out">
                 <LogOut className="h-4 w-4 sm:mr-1" />

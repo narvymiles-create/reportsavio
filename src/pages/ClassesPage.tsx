@@ -9,7 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
-import { Loader2, Plus, Pencil, Trash2, X } from "lucide-react";
+import { Loader2, Plus, Pencil, Trash2, X, LayoutGrid, List } from "lucide-react";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -43,6 +44,7 @@ export default function ClassesPage() {
   const [editing, setEditing] = useState<ClassRow | null>(null);
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [view, setView] = useState<"grid" | "list">("grid");
 
   const load = async () => {
     setLoading(true);
@@ -210,31 +212,36 @@ export default function ClassesPage() {
         </Dialog>
       </div>
 
+      <ToggleGroup type="single" value={view} onValueChange={(v) => { if (v === "grid" || v === "list") setView(v); }} variant="outline" size="sm" className="justify-start" aria-label="Class view">
+        <ToggleGroupItem value="grid" aria-label="Grid view" title="Grid view"><LayoutGrid className="h-4 w-4 mr-2" />Grid</ToggleGroupItem>
+        <ToggleGroupItem value="list" aria-label="List view" title="List view"><List className="h-4 w-4 mr-2" />List</ToggleGroupItem>
+      </ToggleGroup>
+
       {loading ? (
         <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
       ) : classes.length === 0 ? (
         <Card><CardContent className="py-12 text-center text-sm text-muted-foreground">No classes yet. Add your first class (e.g. P1).</CardContent></Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className={view === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" : "space-y-3"}>
           {classes.map((c) => {
             const myStreams = streams.filter((s) => s.class_id === c.id);
             return (
-              <Card key={c.id}>
+              <Card key={c.id} className={view === "list" ? "md:grid md:grid-cols-[minmax(180px,1fr)_2fr]" : ""}>
                 <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
                   <div>
                     <CardTitle className="text-xl">{c.name}</CardTitle>
                     {c.level && <p className="text-xs text-muted-foreground">{c.level}</p>}
                   </div>
                   <div className="flex gap-1">
-                    <Button size="icon" variant="ghost" onClick={() => { setEditing(c); setOpen(true); }}>
+                    <Button size="icon" variant="ghost" aria-label={`Edit ${c.name}`} title="Edit class" onClick={() => { setEditing(c); setOpen(true); }}>
                       <Pencil className="h-4 w-4" />
                     </Button>
-                    <Button size="icon" variant="ghost" onClick={() => handleDelete(c.id)}>
+                    <Button size="icon" variant="ghost" aria-label={`Delete ${c.name}`} title="Delete class" onClick={() => handleDelete(c.id)}>
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   </div>
                 </CardHeader>
-                <CardContent className="space-y-3">
+                <CardContent className={view === "list" ? "space-y-3 md:space-y-0 md:grid md:grid-cols-[minmax(120px,1fr)_2fr] md:gap-6 md:pt-6" : "space-y-3"}>
                   <div>
                     <div className="text-xs text-muted-foreground mb-1">Class teacher</div>
                     <div className="text-sm">{teacherName(c.class_teacher_id)}</div>
@@ -248,9 +255,9 @@ export default function ClassesPage() {
                       {myStreams.map((s) => (
                         <Badge key={s.id} variant="secondary" className="gap-1">
                           {s.name}
-                          <button onClick={() => removeStream(s.id)} className="hover:text-destructive">
+                          <Button size="icon" variant="ghost" aria-label={`Remove stream ${s.name} from ${c.name}`} title="Remove stream" onClick={() => removeStream(s.id)} className="h-4 w-4 hover:text-destructive">
                             <X className="h-3 w-3" />
-                          </button>
+                          </Button>
                         </Badge>
                       ))}
                     </div>
@@ -263,8 +270,8 @@ export default function ClassesPage() {
                         e.currentTarget.reset();
                       }}
                     >
-                      <Input name="stream" placeholder="Stream name (e.g. A)" maxLength={30} className="h-8 text-sm" />
-                      <Button type="submit" size="sm" variant="outline">Add</Button>
+                      <Input name="stream" aria-label={`New stream for ${c.name}`} placeholder="Stream name (e.g. A)" maxLength={30} className="h-8 text-sm min-w-0" />
+                      <Button type="submit" size="sm" variant="outline" aria-label={`Add stream to ${c.name}`}>Add</Button>
                     </form>
                   </div>
                 </CardContent>

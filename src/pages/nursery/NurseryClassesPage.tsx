@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
-import { Trash2, Plus } from "lucide-react";
+import { Trash2, Plus, LayoutGrid, List } from "lucide-react";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 type Cls = { id: string; name: string; level: string | null; sort_order: number; class_teacher_id: string | null };
 type Stream = { id: string; class_id: string; name: string };
@@ -18,6 +19,7 @@ export default function NurseryClassesPage() {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [name, setName] = useState("");
   const [level, setLevel] = useState("");
+  const [view, setView] = useState<"grid" | "list">("list");
 
   const load = async () => {
     const c = await supabase.from("nursery_classes" as any).select("*").order("sort_order");
@@ -68,7 +70,11 @@ export default function NurseryClassesPage() {
             <div><Label>Level</Label><Input value={level} onChange={(e) => setLevel(e.target.value)} placeholder="e.g. Top" /></div>
             <Button onClick={addClass}><Plus className="h-4 w-4 mr-1" />Add Class</Button>
           </div>
-          <div className="space-y-3">
+          <ToggleGroup type="single" value={view} onValueChange={(v) => { if (v === "grid" || v === "list") setView(v); }} variant="outline" size="sm" className="justify-start" aria-label="Class view">
+            <ToggleGroupItem value="grid" aria-label="Grid view" title="Grid view"><LayoutGrid className="h-4 w-4 mr-2" />Grid</ToggleGroupItem>
+            <ToggleGroupItem value="list" aria-label="List view" title="List view"><List className="h-4 w-4 mr-2" />List</ToggleGroupItem>
+          </ToggleGroup>
+          <div className={view === "grid" ? "grid grid-cols-1 lg:grid-cols-2 gap-3" : "space-y-3"}>
             {classes.map((c) => (
               <ClassRow
                 key={c.id}
@@ -99,31 +105,31 @@ function ClassRow({ cls, streams, teachers, onDelete, onAddStream, onDelStream, 
     <div className="border rounded-md p-3">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div><span className="font-semibold">{cls.name}</span> {cls.level && <span className="text-xs text-muted-foreground ml-2">({cls.level})</span>}</div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap min-w-0">
           <Label className="text-xs">Class Teacher:</Label>
           <Select
             value={cls.class_teacher_id ?? "none"}
             onValueChange={(v) => onSetTeacher(v === "none" ? null : v)}
           >
-            <SelectTrigger className="h-8 w-56"><SelectValue placeholder="Assign teacher" /></SelectTrigger>
+            <SelectTrigger className="h-8 w-48 max-w-full" aria-label={`Teacher for ${cls.name}`}><SelectValue placeholder="Assign teacher" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="none">— None —</SelectItem>
               {teachers.map((t) => (<SelectItem key={t.id} value={t.id}>{t.full_name}</SelectItem>))}
             </SelectContent>
           </Select>
-          <Button size="sm" variant="ghost" onClick={onDelete}><Trash2 className="h-4 w-4" /></Button>
+          <Button size="sm" variant="ghost" aria-label={`Delete ${cls.name}`} title="Delete class" onClick={onDelete}><Trash2 className="h-4 w-4" /></Button>
         </div>
       </div>
       <div className="mt-2 flex flex-wrap gap-2">
         {streams.map((st) => (
           <div key={st.id} className="flex items-center gap-1 bg-muted px-2 py-1 rounded text-sm">
             {st.name}
-            <button onClick={() => onDelStream(st.id)} className="text-muted-foreground hover:text-destructive"><Trash2 className="h-3 w-3" /></button>
+            <Button size="icon" variant="ghost" aria-label={`Remove stream ${st.name} from ${cls.name}`} title="Remove stream" onClick={() => onDelStream(st.id)} className="h-4 w-4 text-muted-foreground hover:text-destructive"><Trash2 className="h-3 w-3" /></Button>
           </div>
         ))}
         <div className="flex gap-1">
-          <Input value={s} onChange={(e) => setS(e.target.value)} placeholder="New stream" className="h-8 w-32" />
-          <Button size="sm" onClick={() => { onAddStream(s); setS(""); }}>Add</Button>
+          <Input value={s} onChange={(e) => setS(e.target.value)} aria-label={`New stream for ${cls.name}`} placeholder="New stream" className="h-8 w-32" />
+          <Button size="sm" aria-label={`Add stream to ${cls.name}`} onClick={() => { onAddStream(s); setS(""); }}>Add</Button>
         </div>
       </div>
     </div>

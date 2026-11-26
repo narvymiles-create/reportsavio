@@ -125,8 +125,8 @@ export async function cancelOrder(paymentId: string) {
 
 export interface Entitlement {
   active: boolean;
-  subscription: { plan: string; tier: string; capacity: number; expires_on: string; state: string; academic_year: number; term_number: number | null } | null;
-  licence: { tier: string; capacity: number } | null;
+  subscription: { plan: string; tier: string; capacity: number; grace_limit?: number; expires_on: string; state: string; academic_year: number; term_number: number | null } | null;
+  licence: { tier: string; capacity: number; grace_limit?: number } | null;
   learner_balance: number;
   /** Every term the school has paid for; these stay unlocked even after the package expires. */
   paid_terms: { academic_year: number; term_number: number }[];

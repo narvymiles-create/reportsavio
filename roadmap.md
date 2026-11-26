@@ -1,5 +1,8 @@
 # Roadmap — pricing, payments & feature management
 
+- [x] Show total active learners and remaining package allowance in navigation; verified 118 active / 212 remaining including Growth Allowance.
+- [x] Add grid/list choices sharing every existing action for Primary and Nursery classes and streams; verified Primary edit dialogs and stream creation/removal in both sections/views, then removed temporary test records.
+
 - [x] Compact Powered by footer and show school name, current package and status in the top navigation; verified signed-in desktop/mobile.
 
 - [x] Pricing page: Online / Desktop Offline / Pay Per Report cards, termly/annual switch, selection, checkout
