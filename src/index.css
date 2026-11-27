@@ -103,3 +103,17 @@
     @apply tracking-tight;
   }
 }
+
+/* Compact application pages on phones without affecting report output or printing. */
+@media screen and (max-width: 639px) {
+  main h1.text-3xl {
+    font-size: 1.5rem;
+    line-height: 2rem;
+  }
+  main .space-y-6 > :not([hidden]) ~ :not([hidden]) {
+    margin-top: 1rem;
+  }
+  main .grid > * {
+    min-width: 0;
+  }
+}

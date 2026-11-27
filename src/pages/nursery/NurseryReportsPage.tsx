@@ -137,7 +137,7 @@ export default function NurseryReportsPage() {
   const bulkBase = classId && termId ? `/print/nursery-bulk/${termId}/${classId}${streamId ? `?stream=${streamId}` : ""}` : "";
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-4 p-0 sm:space-y-6 sm:p-6">
       <Card>
         <CardHeader>
           <CardTitle>Nursery Report Cards</CardTitle>
@@ -216,7 +216,7 @@ export default function NurseryReportsPage() {
                 <div><Label>Class Teacher Comment</Label><Textarea rows={3} value={ctc} onChange={(e) => setCtc(e.target.value)} /></div>
                 <div><Label>Head Teacher Comment</Label><Textarea rows={3} value={htc} onChange={(e) => setHtc(e.target.value)} /></div>
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <Button onClick={saveComments}><Save className="h-4 w-4 mr-1" />Save Comments</Button>
                 {singleLocked ? (
                   <Button variant="outline" onClick={() => ensure({ ...outputBase, learnerIds: [learnerId], action: "print" }).then((q) => { if (q) window.open(`/print/nursery/${learnerId}/${termId}`, "_blank"); })}>{lockedIcon(true, FileText)}Open Print View</Button>

@@ -91,20 +91,20 @@ export default function CommentsPage() {
   if (loading) return <div className="flex items-center justify-center p-12"><Loader2 className="h-6 w-6 animate-spin" /></div>;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+        <div className="min-w-0">
           <h1 className="text-3xl font-bold">Comment Templates</h1>
-          <p className="text-muted-foreground">Comments are picked at random from the band matching the learner's average. Use <code className="text-xs bg-muted px-1 rounded">{"{name}"}</code> as a placeholder.</p>
+          <p className="text-sm text-muted-foreground sm:text-base">Comments are picked at random from the band matching the learner's average. Use <code className="text-xs bg-muted px-1 rounded">{"{name}"}</code> as a placeholder.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {items.length === 0 && (
             <Button variant="outline" onClick={seed} disabled={busy}>
               <Sparkles className="mr-2 h-4 w-4" /> Seed defaults
             </Button>
           )}
           <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setEdit(null); }}>
-            <DialogTrigger asChild><Button><Plus className="mr-2 h-4 w-4" /> Add Comment</Button></DialogTrigger>
+            <DialogTrigger asChild><Button className="w-full sm:w-auto"><Plus className="mr-2 h-4 w-4" /> Add Comment</Button></DialogTrigger>
             <DialogContent>
               <DialogHeader><DialogTitle>{edit ? "Edit" : "Add"} Comment</DialogTitle></DialogHeader>
               <form onSubmit={submit} className="space-y-3">
@@ -134,9 +134,9 @@ export default function CommentsPage() {
       </div>
 
       <Card>
-        <CardContent className="pt-6">
+        <CardContent className="pt-4 sm:pt-6">
           <Tabs value={tab} onValueChange={(v) => setTab(v as Audience)}>
-            <TabsList>
+            <TabsList className="grid w-full grid-cols-2 sm:inline-flex sm:w-auto">
               <TabsTrigger value="class_teacher">Class Teacher</TabsTrigger>
               <TabsTrigger value="head_teacher">Head Teacher</TabsTrigger>
             </TabsList>
@@ -144,21 +144,39 @@ export default function CommentsPage() {
               {filtered.length === 0 ? (
                 <p className="text-sm text-muted-foreground py-6 text-center">No comments yet for this audience.</p>
               ) : (
-                <Table>
-                  <TableHeader><TableRow><TableHead>Range</TableHead><TableHead>Comment</TableHead><TableHead className="w-24"></TableHead></TableRow></TableHeader>
-                  <TableBody>
+                <>
+                  <div className="space-y-2 sm:hidden">
                     {filtered.map(c => (
-                      <TableRow key={c.id}>
-                        <TableCell><Badge variant="secondary">{c.min_average} – {c.max_average}</Badge></TableCell>
-                        <TableCell className="text-sm">{c.text}</TableCell>
-                        <TableCell className="flex gap-1">
-                          <Button size="icon" variant="ghost" onClick={() => { setEdit(c); setOpen(true); }}><Pencil className="h-4 w-4" /></Button>
-                          <Button size="icon" variant="ghost" onClick={() => remove(c.id)}><Trash2 className="h-4 w-4" /></Button>
-                        </TableCell>
-                      </TableRow>
+                      <article key={c.id} className="rounded-md border p-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <Badge variant="secondary">Average: {c.min_average} – {c.max_average}</Badge>
+                          <div className="flex gap-1">
+                            <Button aria-label="Edit comment" size="icon" variant="ghost" onClick={() => { setEdit(c); setOpen(true); }}><Pencil className="h-4 w-4" /></Button>
+                            <Button aria-label="Delete comment" size="icon" variant="ghost" onClick={() => remove(c.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                          </div>
+                        </div>
+                        <p className="mt-2 text-sm leading-relaxed">{c.text}</p>
+                      </article>
                     ))}
-                  </TableBody>
-                </Table>
+                  </div>
+                  <div className="hidden sm:block">
+                    <Table>
+                      <TableHeader><TableRow><TableHead>Range</TableHead><TableHead>Comment</TableHead><TableHead className="w-24"></TableHead></TableRow></TableHeader>
+                      <TableBody>
+                        {filtered.map(c => (
+                          <TableRow key={c.id}>
+                            <TableCell><Badge variant="secondary">{c.min_average} – {c.max_average}</Badge></TableCell>
+                            <TableCell className="text-sm">{c.text}</TableCell>
+                            <TableCell className="flex gap-1">
+                              <Button aria-label="Edit comment" size="icon" variant="ghost" onClick={() => { setEdit(c); setOpen(true); }}><Pencil className="h-4 w-4" /></Button>
+                              <Button aria-label="Delete comment" size="icon" variant="ghost" onClick={() => remove(c.id)}><Trash2 className="h-4 w-4" /></Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </>
               )}
             </TabsContent>
           </Tabs>

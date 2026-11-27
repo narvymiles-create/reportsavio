@@ -534,7 +534,7 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
           <h1 className="text-3xl font-bold">{formTitle}</h1>
           <p className="text-muted-foreground">Enter marks; grade, totals, position and division compute live.</p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-4 border rounded-md bg-card">
+        <div className="grid grid-cols-1 gap-2 rounded-md border bg-card p-3 sm:grid-cols-3 sm:gap-3 sm:p-4">
           <div>
             <Label>Term</Label>
             <Select value={termId} onValueChange={setTermId}>
@@ -569,16 +569,16 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
         </div>
 
         {/* Action toolbar */}
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={handlePrint} disabled={!classId || filteredLearners.length === 0 || !marksheetOutput} title={marksheetOutput ? undefined : "Turned off by Skavio"}>
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+          <Button className="w-full px-3 sm:w-auto" variant="outline" onClick={handlePrint} disabled={!classId || filteredLearners.length === 0 || !marksheetOutput} title={marksheetOutput ? undefined : "Turned off by Skavio"}>
             <Printer className="mr-2 h-4 w-4" /> Print
           </Button>
-          <Button variant="outline" onClick={() => setImportOpen(true)} disabled={!classId || subjects.length === 0 || !marksEntry}>
+          <Button className="w-full px-3 sm:w-auto" variant="outline" onClick={() => setImportOpen(true)} disabled={!classId || subjects.length === 0 || !marksEntry}>
             <Upload className="mr-2 h-4 w-4" /> Import Marks (CSV)
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" disabled={!classId || displayLearners.length === 0 || exporting || !marksheetOutput}>
+              <Button className="col-span-2 w-full sm:col-span-1 sm:w-auto" variant="outline" disabled={!classId || displayLearners.length === 0 || exporting || !marksheetOutput}>
                 {exporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />} Download
               </Button>
             </DropdownMenuTrigger>
@@ -594,7 +594,7 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
         </div>
 
         {/* Print / download options */}
-        <div className="flex flex-wrap items-center gap-6 rounded-md border bg-card p-3 text-sm">
+        <div className="grid grid-cols-1 items-center gap-3 rounded-md border bg-card p-3 text-sm sm:flex sm:flex-wrap sm:gap-4">
           <span className="font-medium">Print / download options:</span>
           <label className="flex items-center gap-2 cursor-pointer">
             <Checkbox checked={hidePosition} onCheckedChange={(v) => setHidePosition(v === true)} />
@@ -608,10 +608,10 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
             <Checkbox checked={hideRemarks} onCheckedChange={(v) => setHideRemarks(v === true)} />
             Hide remarks
           </label>
-          <div className="flex items-center gap-2">
-            <Label className="whitespace-nowrap">Sort learners</Label>
+          <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center">
+            <Label className="sm:whitespace-nowrap">Sort learners</Label>
             <Select value={sortBy} onValueChange={(v) => setSortBy(v as "name" | "position")}>
-              <SelectTrigger className="w-[230px]" aria-label="Sort learners"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-full sm:w-[230px]" aria-label="Sort learners"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="name">Alphabetical (A–Z)</SelectItem>
                 <SelectItem value="position">Position, then alphabetical</SelectItem>
@@ -665,6 +665,8 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {classId && <p className="no-print text-xs text-muted-foreground sm:hidden">Swipe the register sideways to see every subject and total.</p>}
 
       {/* Printable area */}
       <div ref={marksheetRef} className="marks-form">
@@ -844,7 +846,7 @@ export default function MarksFormPage({ exam }: { exam: ExamColumn }) {
         <Button
           onClick={saveAll}
           disabled={saving || !termId || !classId || filteredLearners.length === 0 || !isDirty}
-          className="min-w-40"
+          className="w-full sm:w-auto sm:min-w-40"
           title={!isDirty ? "No new changes made" : "Save changes"}
         >
           {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}

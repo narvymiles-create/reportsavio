@@ -175,6 +175,18 @@
 .marks-form__optional-note { font-weight: 400; }
 
 @media screen and (max-width: 640px) {
+  .marks-form:not(.marks-form--pdf-export) {
+    padding: 10px;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+  }
+  .marks-form:not(.marks-form--pdf-export) .marks-form__meta {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 4px 12px;
+  }
+  .marks-form:not(.marks-form--pdf-export) .marks-form__table { min-width: 720px; }
+  .marks-form:not(.marks-form--pdf-export) .marks-form__analysis { min-width: 640px; }
   .marks-form__summary-grid { grid-template-columns: minmax(0, 1fr); }
 }
 

@@ -63,26 +63,26 @@ export default function NurseryLearningAreasPage() {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-4 p-0 sm:space-y-6 sm:p-6">
       <Card>
         <CardHeader>
           <CardTitle>Nursery Learning Areas</CardTitle>
           <CardDescription>Create learning areas, upload images, and arrange display order.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex gap-2 items-end">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
             <div className="flex-1"><Label>Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Social Development" /></div>
-            <Button onClick={add}>Add Area</Button>
+            <Button className="w-full sm:w-auto" onClick={add}>Add Area</Button>
           </div>
           <div className="space-y-2">
             {areas.map((a, i) => {
               const url = imageUrls[a.id] ?? null;
               return (
-                <div key={a.id} className="flex items-center gap-3 border rounded-md p-2">
+                <div key={a.id} className="flex flex-wrap items-center gap-2 rounded-md border p-2 sm:flex-nowrap sm:gap-3">
                   <div className="w-14 h-14 bg-muted rounded overflow-hidden flex items-center justify-center text-xs text-muted-foreground">
                     {url ? <img src={url} alt={a.name} className="w-full h-full object-cover" /> : "No image"}
                   </div>
-                  <div className="flex-1 font-medium">{a.name}</div>
+                  <div className="min-w-0 flex-1 break-words font-medium">{a.name}</div>
                   <input ref={(el) => (fileRefs.current[a.id] = el)} type="file" accept="image/*" hidden onChange={(e) => e.target.files?.[0] && upload(a.id, e.target.files[0])} />
                   <Button size="sm" variant="outline" disabled={busyId === a.id} onClick={() => fileRefs.current[a.id]?.click()}>
                     <Upload className="h-3 w-3 mr-1" />{busyId === a.id ? "Uploading..." : url ? "Change" : "Upload"}

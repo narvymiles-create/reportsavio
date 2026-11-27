@@ -82,7 +82,7 @@ export default function NurseryAssessmentPage() {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-4 p-0 sm:space-y-6 sm:p-6">
       <Card>
         <CardHeader>
           <CardTitle>Nursery Assessment Entry</CardTitle>
@@ -125,7 +125,7 @@ export default function NurseryAssessmentPage() {
                       onChange={(e) => setRow(a.id, { comment: e.target.value })}
                       className="flex-1"
                     />
-                    <div className="flex gap-1">
+                    <div className="flex flex-wrap gap-1">
                       {colors.map((g) => (
                         <button
                           key={g.id}
@@ -142,7 +142,7 @@ export default function NurseryAssessmentPage() {
                   </div>
                 ))}
               </div>
-              <Button onClick={save} disabled={saving}><Save className="h-4 w-4 mr-1" />{saving ? "Saving..." : "Save Assessment"}</Button>
+              <Button className="w-full sm:w-auto" onClick={save} disabled={saving}><Save className="h-4 w-4 mr-1" />{saving ? "Saving..." : "Save Assessment"}</Button>
             </>
           )}
         </CardContent>

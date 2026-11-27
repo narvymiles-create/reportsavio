@@ -149,13 +149,13 @@ export default function TermsPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between gap-3 flex-wrap">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
         <h1 className="text-3xl font-bold">Terms & Years</h1>
         {currentYear && <Badge variant="secondary">Current year: {currentYear.year}</Badge>}
       </div>
-      <Tabs defaultValue="terms" className="space-y-4">
-        <TabsList><TabsTrigger value="terms">Terms</TabsTrigger><TabsTrigger value="years">Years</TabsTrigger></TabsList>
+      <Tabs defaultValue="terms" className="space-y-3 sm:space-y-4">
+        <TabsList className="grid w-full grid-cols-2 sm:inline-flex sm:w-auto"><TabsTrigger value="terms">Terms</TabsTrigger><TabsTrigger value="years">Years</TabsTrigger></TabsList>
         <TabsContent value="terms" className="space-y-4">
       <div className="flex items-end justify-between gap-2 flex-wrap">
         <div>
@@ -168,13 +168,13 @@ export default function TermsPage() {
           <DialogContent>
             <DialogHeader><DialogTitle>{editing ? "Edit term" : "Add term"}</DialogTitle></DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div className="space-y-1.5">
                   <Label htmlFor="name">Name *</Label>
                   <Input id="name" name="name" defaultValue={editing?.name ?? "Term 1"} required maxLength={50} />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div className="space-y-1.5">
                   <Label htmlFor="start_date">Start date</Label>
                   <Input id="start_date" name="start_date" type="date" defaultValue={editing?.start_date ?? ""} />
@@ -184,7 +184,7 @@ export default function TermsPage() {
                   <Input id="end_date" name="end_date" type="date" defaultValue={editing?.end_date ?? ""} />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div className="space-y-1.5">
                   <Label htmlFor="next_begins_on">Next term begins</Label>
                   <Input id="next_begins_on" name="next_begins_on" type="date" defaultValue={editing?.next_begins_on ?? ""} />
@@ -213,34 +213,16 @@ export default function TermsPage() {
           ) : terms.length === 0 ? (
             <p className="text-sm text-muted-foreground py-8 text-center">No terms yet.</p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Term</TableHead>
-                  <TableHead>Dates</TableHead>
-                  <TableHead>Next begins / ends</TableHead>
-                  <TableHead>Current</TableHead>
-                  <TableHead className="w-24" />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <>
+              <div className="space-y-2 sm:hidden">
                 {terms.map((t) => (
-                  <TableRow key={t.id}>
-                    <TableCell className="font-medium">{t.name}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {t.start_date || "—"} → {t.end_date || "—"}
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {t.next_begins_on || "—"} → {t.ends_on || "—"}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Switch aria-label={`Set ${t.name} as current term`} disabled={!canManage} checked={t.is_current} onCheckedChange={(v) => setCurrent(t.id, v)} />
+                  <article key={t.id} className="rounded-md border p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <h3 className="truncate font-medium">{t.name}</h3>
                         {t.is_current && <Badge>Current</Badge>}
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-1">
+                      <div className="flex shrink-0 gap-1">
                         <Button aria-label={`Edit ${t.name}`} disabled={!canManage} size="icon" variant="ghost" onClick={() => { setEditing(t); setOpen(true); }}>
                           <Pencil className="h-4 w-4" />
                         </Button>
@@ -248,17 +230,75 @@ export default function TermsPage() {
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                       </div>
-                    </TableCell>
-                  </TableRow>
+                    </div>
+                    <dl className="mt-2 grid grid-cols-2 gap-3 text-xs">
+                      <div>
+                        <dt className="font-medium text-muted-foreground">Term dates</dt>
+                        <dd className="mt-1">{t.start_date || "—"}</dd>
+                        <dd>to {t.end_date || "—"}</dd>
+                      </div>
+                      <div>
+                        <dt className="font-medium text-muted-foreground">Next term</dt>
+                        <dd className="mt-1">{t.next_begins_on || "—"}</dd>
+                        <dd>to {t.ends_on || "—"}</dd>
+                      </div>
+                    </dl>
+                    <div className="mt-3 flex items-center justify-between border-t pt-2">
+                      <span className="text-sm">Current term</span>
+                      <Switch aria-label={`Set ${t.name} as current term`} disabled={!canManage} checked={t.is_current} onCheckedChange={(v) => setCurrent(t.id, v)} />
+                    </div>
+                  </article>
                 ))}
-              </TableBody>
-            </Table>
+              </div>
+              <div className="hidden sm:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Term</TableHead>
+                      <TableHead>Dates</TableHead>
+                      <TableHead>Next begins / ends</TableHead>
+                      <TableHead>Current</TableHead>
+                      <TableHead className="w-24" />
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {terms.map((t) => (
+                      <TableRow key={t.id}>
+                        <TableCell className="font-medium">{t.name}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {t.start_date || "—"} → {t.end_date || "—"}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {t.next_begins_on || "—"} → {t.ends_on || "—"}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Switch aria-label={`Set ${t.name} as current term`} disabled={!canManage} checked={t.is_current} onCheckedChange={(v) => setCurrent(t.id, v)} />
+                            {t.is_current && <Badge>Current</Badge>}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-1">
+                            <Button aria-label={`Edit ${t.name}`} disabled={!canManage} size="icon" variant="ghost" onClick={() => { setEditing(t); setOpen(true); }}>
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button aria-label={`Delete ${t.name}`} disabled={!canManage} size="icon" variant="ghost" onClick={() => handleDelete(t.id)}>
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
         </TabsContent>
         <TabsContent value="years" className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-xl font-semibold">Years</h2>
             <Dialog open={yearOpen} onOpenChange={setYearOpen}>
               <DialogTrigger asChild><Button disabled={!canManage}><Plus className="h-4 w-4 mr-1" />Add year</Button></DialogTrigger>

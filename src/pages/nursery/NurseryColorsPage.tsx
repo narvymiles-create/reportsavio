@@ -35,7 +35,7 @@ export default function NurseryColorsPage() {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-4 p-0 sm:space-y-6 sm:p-6">
       <Card>
         <CardHeader>
           <CardTitle>Color Key System</CardTitle>
@@ -50,10 +50,10 @@ export default function NurseryColorsPage() {
           </div>
           <div className="space-y-2">
             {list.map((g) => (
-              <div key={g.id} className="flex items-center gap-3 border rounded-md p-2">
+              <div key={g.id} className="flex flex-wrap items-center gap-2 rounded-md border p-2 sm:flex-nowrap sm:gap-3">
                 <div className="w-10 h-10 rounded font-bold flex items-center justify-center text-white" style={{ background: g.color }}>{g.grade}</div>
                 <Input value={g.grade} onChange={(e) => update(g.id, { grade: e.target.value.toUpperCase() })} className="w-20" />
-                <Input value={g.label} onChange={(e) => update(g.id, { label: e.target.value })} className="flex-1" />
+                <Input value={g.label} onChange={(e) => update(g.id, { label: e.target.value })} className="min-w-0 flex-1" />
                 <input type="color" value={g.color} onChange={(e) => update(g.id, { color: e.target.value })} className="h-10 w-16 rounded border" />
                 <Button size="sm" variant="ghost" onClick={() => del(g.id)}><Trash2 className="h-4 w-4" /></Button>
               </div>

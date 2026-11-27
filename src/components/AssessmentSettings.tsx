@@ -50,19 +50,34 @@ export function AssessmentSettings({ schoolId }: { schoolId: string }) {
         <CardTitle>Primary Assessments</CardTitle>
         <CardDescription>Choose the assessments your school gives, what appears on the report card, and how final results are worked out. Saved marks are never deleted when an assessment is turned off.</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-4 sm:space-y-6">
         <div className="space-y-2">
-          <div className="grid grid-cols-[1fr_90px_90px_70px_70px_110px] gap-2 text-xs font-medium text-muted-foreground">
+          <div className="hidden grid-cols-[1fr_90px_90px_70px_70px_110px] gap-2 text-xs font-medium text-muted-foreground sm:grid">
             <span>Name</span><span>Max marks</span><span>Weight %</span><span>Active</span><span>On report</span><span />
           </div>
           {cfg.assessments.map((a, i) => (
-            <div key={a.id} className="grid grid-cols-[1fr_90px_90px_70px_70px_110px] items-center gap-2">
-              <Input value={a.name} onChange={e => setA(i, { name: e.target.value })} aria-label="Assessment name" />
-              <Input type="number" min={1} value={a.maxMarks} onChange={e => setA(i, { maxMarks: Number(e.target.value) })} aria-label="Maximum marks" />
-              <Input type="number" min={0} max={100} value={a.weight ?? ""} disabled={cfg.method !== "weighted"} onChange={e => setA(i, { weight: e.target.value === "" ? null : Number(e.target.value) })} aria-label="Weight" />
-              <Switch checked={a.active} onCheckedChange={v => setA(i, { active: v })} aria-label="Active" />
-              <Switch checked={a.onReport} disabled={!a.active} onCheckedChange={v => setA(i, { onReport: v })} aria-label="On report" />
-              <div className="flex gap-1">
+            <div key={a.id} className="grid grid-cols-2 items-end gap-3 rounded-md border p-3 sm:grid-cols-[1fr_90px_90px_70px_70px_110px] sm:items-center sm:gap-2 sm:rounded-none sm:border-0 sm:p-0">
+              <label className="col-span-2 space-y-1 sm:col-span-1 sm:space-y-0">
+                <span className="text-xs font-medium text-muted-foreground sm:hidden">Name</span>
+                <Input value={a.name} onChange={e => setA(i, { name: e.target.value })} aria-label="Assessment name" />
+              </label>
+              <label className="space-y-1 sm:space-y-0">
+                <span className="text-xs font-medium text-muted-foreground sm:hidden">Max marks</span>
+                <Input type="number" min={1} value={a.maxMarks} onChange={e => setA(i, { maxMarks: Number(e.target.value) })} aria-label="Maximum marks" />
+              </label>
+              <label className="space-y-1 sm:space-y-0">
+                <span className="text-xs font-medium text-muted-foreground sm:hidden">Weight %</span>
+                <Input type="number" min={0} max={100} value={a.weight ?? ""} disabled={cfg.method !== "weighted"} onChange={e => setA(i, { weight: e.target.value === "" ? null : Number(e.target.value) })} aria-label="Weight" />
+              </label>
+              <label className="flex items-center justify-between gap-2 sm:block">
+                <span className="text-xs font-medium text-muted-foreground sm:hidden">Active</span>
+                <Switch checked={a.active} onCheckedChange={v => setA(i, { active: v })} aria-label="Active" />
+              </label>
+              <label className="flex items-center justify-between gap-2 sm:block">
+                <span className="text-xs font-medium text-muted-foreground sm:hidden">On report</span>
+                <Switch checked={a.onReport} disabled={!a.active} onCheckedChange={v => setA(i, { onReport: v })} aria-label="On report" />
+              </label>
+              <div className="col-span-2 flex justify-end gap-1 sm:col-span-1 sm:justify-start">
                 <Button size="icon" variant="ghost" onClick={() => move(i, -1)} aria-label="Move up"><ArrowUp className="h-4 w-4" /></Button>
                 <Button size="icon" variant="ghost" onClick={() => move(i, 1)} aria-label="Move down"><ArrowDown className="h-4 w-4" /></Button>
                 {!isLegacy(a.id) && <Button size="icon" variant="ghost" onClick={() => remove(i)} aria-label="Remove"><Trash2 className="h-4 w-4" /></Button>}
@@ -132,7 +147,7 @@ export function AssessmentSettings({ schoolId }: { schoolId: string }) {
         )}
 
         {errors.length > 0 && <ul className="text-sm text-destructive list-disc pl-5">{errors.map(e => <li key={e}>{e}</li>)}</ul>}
-        <Button onClick={save} disabled={saving || errors.length > 0}>{saving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}Save assessment settings</Button>
+        <Button className="w-full sm:w-auto" onClick={save} disabled={saving || errors.length > 0}>{saving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}Save assessment settings</Button>
       </CardContent>
     </Card>
   );

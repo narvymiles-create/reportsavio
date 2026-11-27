@@ -202,9 +202,9 @@ export default function MarksPage() {
       </Card>
 
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader className="flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle>Learners ({filteredLearners.length})</CardTitle>
-          <Button onClick={saveAll} disabled={saving || !termId || !subjectId || filteredLearners.length === 0}>
+          <Button className="w-full sm:w-auto" onClick={saveAll} disabled={saving || !termId || !subjectId || filteredLearners.length === 0}>
             {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
             Save Marks
           </Button>

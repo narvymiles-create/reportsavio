@@ -67,7 +67,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
       <div className="min-h-screen flex w-full bg-background">
         <AppSidebar />
         <div className="flex-1 flex flex-col min-w-0">
-          <header className="min-h-14 border-b bg-card flex items-center justify-between gap-2 px-3 py-2 sticky top-0 z-10">
+          <header className="min-h-12 border-b bg-card flex items-center justify-between gap-2 px-2.5 py-1.5 sticky top-0 z-10 sm:min-h-14 sm:px-3 sm:py-2">
             <div className="flex items-center gap-2 min-w-0">
               <SidebarTrigger />
               <span className="text-sm text-muted-foreground hidden 2xl:inline shrink-0">
@@ -76,24 +76,24 @@ export function AppLayout({ children }: { children: ReactNode }) {
             </div>
             <div className="flex items-center justify-end gap-2 sm:gap-3 min-w-0">
               <div className="min-w-0 text-right" aria-label="School and package">
-                <p className="text-sm font-semibold truncate" title={schoolName ?? undefined}>{schoolName ?? "My School"}</p>
-                <div className="flex items-center justify-end gap-1.5">
+                <p className="max-w-[calc(100vw-7.5rem)] text-sm font-semibold truncate sm:max-w-none" title={schoolName ?? undefined}>{schoolName ?? "My School"}</p>
+                <div className="hidden sm:flex items-center justify-end gap-1.5">
                   <span className="text-xs text-muted-foreground truncate" title={packageName}>
                     {entitlement ? packageName : active === null ? "Checking package…" : "Package unavailable"}
                   </span>
                   {entitlement && <Badge variant={packageStatus === "Active" ? "secondary" : "outline"} className="shrink-0 text-[10px] px-1.5 py-0">{packageStatus}</Badge>}
                 </div>
-                <p className="text-xs text-muted-foreground" aria-label="Package learner counts" title={allowance !== null ? `Includes permanent Growth Allowance up to ${allowance} active learners` : undefined}>
+                <p className="hidden sm:block text-xs text-muted-foreground" aria-label="Package learner counts" title={allowance !== null ? `Includes permanent Growth Allowance up to ${allowance} active learners` : undefined}>
                   Total learners: {totalLearners ?? "—"} · Learners left: {remaining ?? "—"}
                 </p>
               </div>
-              <Button variant="ghost" size="sm" onClick={signOut} className="shrink-0" aria-label="Sign out" title="Sign out">
+              <Button variant="ghost" size="sm" onClick={signOut} className="shrink-0 px-2 sm:px-3" aria-label="Sign out" title="Sign out">
                 <LogOut className="h-4 w-4 sm:mr-1" />
                 <span className="hidden sm:inline">Sign out</span>
               </Button>
             </div>
           </header>
-          <main className="flex-1 p-4 md:p-6 overflow-x-hidden"><BillingBanner />{children}</main>
+          <main className="flex-1 p-3 sm:p-4 md:p-6 overflow-x-hidden"><BillingBanner />{children}</main>
           <PoweredByFooter className="border-t bg-card" />
         </div>
       </div>

@@ -58,7 +58,7 @@ export default function NurseryClassesPage() {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-4 p-0 sm:space-y-6 sm:p-6">
       <Card>
         <CardHeader>
           <CardTitle>Nursery Classes & Streams</CardTitle>

@@ -338,7 +338,7 @@ export default function LearnersPage() {
                 )}
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 sm:grid-cols-3">
                 <div className="space-y-1.5">
                   <Label htmlFor="dob">Date of birth</Label>
                   <Input id="dob" name="dob" type="date" value={dob} onChange={(e) => setDob(e.target.value)} />
@@ -374,7 +374,7 @@ export default function LearnersPage() {
                 <p className="text-xs text-muted-foreground">Only active learners count towards your package capacity. Records are never deleted.</p>
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 sm:grid-cols-3">
                 {flags.section && (
                   <div className="space-y-1.5">
                     <Label htmlFor="section">Section</Label>
@@ -428,7 +428,7 @@ export default function LearnersPage() {
                     </div>
                   ))}
                 </div>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 sm:grid-cols-3">
                   <div className="space-y-1.5">
                     <Label htmlFor="index_no">Index Number</Label>
                     <Input id="index_no" value={indexNo} onChange={(e) => setIndexNo(e.target.value)} disabled={!regTypes.includes("INDEX")} maxLength={50} />
@@ -488,17 +488,17 @@ export default function LearnersPage() {
       </div>
 
       <Card>
-        <CardContent className="pt-6 flex gap-2 flex-wrap">
-          <Input placeholder="Search by name…" value={search} onChange={(e) => setSearch(e.target.value)} className="max-w-xs" />
+        <CardContent className="grid grid-cols-2 gap-2 pt-4 sm:flex sm:flex-wrap sm:pt-6">
+          <Input placeholder="Search by name…" value={search} onChange={(e) => setSearch(e.target.value)} className="col-span-2 w-full max-w-xs sm:col-span-1" />
           <Select value={filterClass} onValueChange={(v) => { setFilterClass(v); setFilterStream("all"); }}>
-            <SelectTrigger className="w-40"><SelectValue placeholder="Class" /></SelectTrigger>
+            <SelectTrigger className="w-full sm:w-40"><SelectValue placeholder="Class" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All classes</SelectItem>
               {classes.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
             </SelectContent>
           </Select>
           <Select value={filterStream} onValueChange={setFilterStream} disabled={filterClass === "all"}>
-            <SelectTrigger className="w-40"><SelectValue placeholder="Stream" /></SelectTrigger>
+            <SelectTrigger className="w-full sm:w-40"><SelectValue placeholder="Stream" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All streams</SelectItem>
               {streams.filter((s) => s.class_id === filterClass).map((s) => (
@@ -506,7 +506,7 @@ export default function LearnersPage() {
               ))}
             </SelectContent>
           </Select>
-          <div className="ml-auto text-sm text-muted-foreground self-center">
+          <div className="col-span-2 ml-auto self-center text-sm text-muted-foreground sm:col-span-1">
             {filtered.length} of {learners.length}
           </div>
         </CardContent>
@@ -522,56 +522,88 @@ export default function LearnersPage() {
               {learners.length === 0 ? "No learners yet. Add the first one." : "No learners match the filters."}
             </p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-12">Photo</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Sex</TableHead>
-                  <TableHead>Class / Stream</TableHead>
-                  <TableHead>Age</TableHead>
-                  <TableHead>Reg.</TableHead>
-                  {flags.pay_code && <TableHead>Pay code</TableHead>}
-                  {flags.house && <TableHead>House</TableHead>}
-                  {custom.fields.map((f) => <TableHead key={f.id}>{f.label}</TableHead>)}
-                  <TableHead className="w-32" />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <>
+              <div className="space-y-2 sm:hidden">
                 {filtered.map((l) => {
                   const types = (l.active_reg_types?.length ? l.active_reg_types : l.active_reg_type ? [l.active_reg_type] : []);
                   const regLabel = types.map((t) => t === "INDEX" ? `INDEX: ${l.index_no ?? ""}` : t === "LIN" ? `LIN: ${l.lin_no ?? ""}` : `REG: ${l.reg_no ?? ""}`).join(" · ") || "—";
                   return (
-                    <TableRow key={l.id}>
-                      <TableCell>
-                        <Avatar className="h-10 w-10">
+                    <article key={l.id} className="rounded-md border p-3">
+                      <div className="flex items-start gap-3">
+                        <Avatar className="h-10 w-10 shrink-0">
                           {photoUrls[l.id] ? <AvatarImage src={photoUrls[l.id]} alt={l.full_name} /> : null}
                           <AvatarFallback className="text-xs"><User className="h-4 w-4" /></AvatarFallback>
                         </Avatar>
-                      </TableCell>
-                      <TableCell className="font-medium">{l.full_name}{l.status && l.status !== "active" && <span className="ml-2 rounded border px-1.5 py-0.5 text-xs font-normal capitalize text-muted-foreground">{l.status}</span>}</TableCell>
-                      <TableCell>{l.sex ?? "—"}</TableCell>
-                      <TableCell className="text-sm">{className(l.class_id)} / {streamName(l.stream_id)}</TableCell>
-                      <TableCell>{l.age ?? "—"}</TableCell>
-                      <TableCell className="text-sm">{regLabel}</TableCell>
-                      {flags.pay_code && <TableCell className="text-sm">{l.pay_code ?? "—"}</TableCell>}
-                      {flags.house && <TableCell className="text-sm">{l.house ?? "—"}</TableCell>}
-                      {custom.fields.map((f) => <TableCell key={f.id} className="text-sm">{custom.values.find((v) => v.definition_id === f.id && v.learner_id === l.id)?.value || "—"}</TableCell>)}
-                      <TableCell>
-                        <div className="flex gap-1">
-                          <Button size="icon" variant="ghost" onClick={() => { setEditing(l); setOpen(true); }}>
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button size="icon" variant="ghost" onClick={() => handleDelete(l.id)}>
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
+                        <div className="min-w-0 flex-1">
+                          <h3 className="break-words font-medium">{l.full_name}</h3>
+                          {l.status && l.status !== "active" && <span className="mt-1 inline-block rounded border px-1.5 py-0.5 text-xs capitalize text-muted-foreground">{l.status}</span>}
                         </div>
-                      </TableCell>
-                    </TableRow>
+                        <div className="flex shrink-0 gap-1">
+                          <Button aria-label={`Edit ${l.full_name}`} size="icon" variant="ghost" onClick={() => { setEditing(l); setOpen(true); }}><Pencil className="h-4 w-4" /></Button>
+                          <Button aria-label={`Delete ${l.full_name}`} size="icon" variant="ghost" onClick={() => handleDelete(l.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                        </div>
+                      </div>
+                      <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 border-t pt-2 text-xs">
+                        <div><dt className="text-muted-foreground">Class / Stream</dt><dd className="mt-0.5 font-medium">{className(l.class_id)} / {streamName(l.stream_id)}</dd></div>
+                        <div><dt className="text-muted-foreground">Sex / Age</dt><dd className="mt-0.5 font-medium">{l.sex ?? "—"} / {l.age ?? "—"}</dd></div>
+                        <div className="col-span-2"><dt className="text-muted-foreground">Registration</dt><dd className="mt-0.5 break-words font-medium">{regLabel}</dd></div>
+                        {flags.pay_code && <div><dt className="text-muted-foreground">Pay code</dt><dd className="mt-0.5 font-medium">{l.pay_code ?? "—"}</dd></div>}
+                        {flags.house && <div><dt className="text-muted-foreground">House</dt><dd className="mt-0.5 font-medium">{l.house ?? "—"}</dd></div>}
+                        {custom.fields.map((f) => <div key={f.id}><dt className="text-muted-foreground">{f.label}</dt><dd className="mt-0.5 break-words font-medium">{custom.values.find((v) => v.definition_id === f.id && v.learner_id === l.id)?.value || "—"}</dd></div>)}
+                      </dl>
+                    </article>
                   );
                 })}
-              </TableBody>
-            </Table>
+              </div>
+              <div className="hidden sm:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-12">Photo</TableHead>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Sex</TableHead>
+                      <TableHead>Class / Stream</TableHead>
+                      <TableHead>Age</TableHead>
+                      <TableHead>Reg.</TableHead>
+                      {flags.pay_code && <TableHead>Pay code</TableHead>}
+                      {flags.house && <TableHead>House</TableHead>}
+                      {custom.fields.map((f) => <TableHead key={f.id}>{f.label}</TableHead>)}
+                      <TableHead className="w-32" />
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filtered.map((l) => {
+                      const types = (l.active_reg_types?.length ? l.active_reg_types : l.active_reg_type ? [l.active_reg_type] : []);
+                      const regLabel = types.map((t) => t === "INDEX" ? `INDEX: ${l.index_no ?? ""}` : t === "LIN" ? `LIN: ${l.lin_no ?? ""}` : `REG: ${l.reg_no ?? ""}`).join(" · ") || "—";
+                      return (
+                        <TableRow key={l.id}>
+                          <TableCell>
+                            <Avatar className="h-10 w-10">
+                              {photoUrls[l.id] ? <AvatarImage src={photoUrls[l.id]} alt={l.full_name} /> : null}
+                              <AvatarFallback className="text-xs"><User className="h-4 w-4" /></AvatarFallback>
+                            </Avatar>
+                          </TableCell>
+                          <TableCell className="font-medium">{l.full_name}{l.status && l.status !== "active" && <span className="ml-2 rounded border px-1.5 py-0.5 text-xs font-normal capitalize text-muted-foreground">{l.status}</span>}</TableCell>
+                          <TableCell>{l.sex ?? "—"}</TableCell>
+                          <TableCell className="text-sm">{className(l.class_id)} / {streamName(l.stream_id)}</TableCell>
+                          <TableCell>{l.age ?? "—"}</TableCell>
+                          <TableCell className="text-sm">{regLabel}</TableCell>
+                          {flags.pay_code && <TableCell className="text-sm">{l.pay_code ?? "—"}</TableCell>}
+                          {flags.house && <TableCell className="text-sm">{l.house ?? "—"}</TableCell>}
+                          {custom.fields.map((f) => <TableCell key={f.id} className="text-sm">{custom.values.find((v) => v.definition_id === f.id && v.learner_id === l.id)?.value || "—"}</TableCell>)}
+                          <TableCell>
+                            <div className="flex gap-1">
+                              <Button aria-label={`Edit ${l.full_name}`} size="icon" variant="ghost" onClick={() => { setEditing(l); setOpen(true); }}><Pencil className="h-4 w-4" /></Button>
+                              <Button aria-label={`Delete ${l.full_name}`} size="icon" variant="ghost" onClick={() => handleDelete(l.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

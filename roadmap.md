@@ -1,5 +1,9 @@
 # Roadmap — pricing, payments & feature management
 
+- [x] Make the app shell compact on phones; show only the school name in the mobile top bar.
+- [x] Give Terms and Comments phone-friendly card layouts; compact shared cards, tables, tabs and dialogs.
+- [x] Make Marks Entry forms and other wide tables usable without clipping; verify key pages at 394px.
+
 - [x] Show total active learners and remaining package allowance in navigation; verified 118 active / 212 remaining including Growth Allowance.
 - [x] Add grid/list choices sharing every existing action for Primary and Nursery classes and streams; verified Primary edit dialogs and stream creation/removal in both sections/views, then removed temporary test records.
 

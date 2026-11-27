@@ -77,7 +77,7 @@ export default function NurseryLearnersPage() {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-4 p-0 sm:space-y-6 sm:p-6">
       <Card>
         <CardHeader>
           <CardTitle>Nursery Learners</CardTitle>
@@ -109,19 +109,19 @@ export default function NurseryLearnersPage() {
               </Select>
             </div>
           </div>
-          <Button onClick={add}>Add Learner</Button>
+          <Button className="w-full sm:w-auto" onClick={add}>Add Learner</Button>
           <div className="space-y-2">
             {learners.map((l) => {
               const url = photoUrls[l.id] ?? null;
               const cls = classes.find((c) => c.id === l.class_id);
               const st = streams.find((s) => s.id === l.stream_id);
               return (
-                <div key={l.id} className="flex items-center gap-3 border rounded-md p-2">
+                <div key={l.id} className="flex flex-wrap items-center gap-2 rounded-md border p-2 sm:flex-nowrap sm:gap-3">
                   <div className="w-12 h-12 rounded-full bg-muted overflow-hidden flex items-center justify-center text-xs text-muted-foreground">
                     {url ? <img src={url} alt={l.full_name} className="w-full h-full object-cover" /> : "?"}
                   </div>
-                  <div className="flex-1">
-                    <div className="font-medium">{l.full_name}</div>
+                  <div className="min-w-0 flex-1">
+                    <div className="break-words font-medium">{l.full_name}</div>
                     <div className="text-xs text-muted-foreground">{cls?.name ?? "—"} {st && `· ${st.name}`} {l.age ? `· ${l.age}y` : ""}</div>
                   </div>
                   <Select value={l.status ?? "active"} onValueChange={(v) => setStatus(l.id, v)}>
