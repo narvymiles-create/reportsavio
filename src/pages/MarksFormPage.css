@@ -63,6 +63,8 @@
 }
 .marks-form__table .col-sub {
   width: auto;
+  padding-left: 2px;
+  padding-right: 2px;
 }
 .marks-form__table tbody tr.pad-row td {
   color: transparent;
@@ -101,17 +103,19 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 2px;
 }
 .mark-cell input {
-  width: 38px;
+  flex: 0 1 32px;
+  width: 32px;
+  min-width: 0;
   border: none;
   outline: none;
   background: transparent;
   text-align: center;
   font: inherit;
   color: inherit;
-  padding: 2px;
+  padding: 2px 0;
   -moz-appearance: textfield;
 }
 .mark-cell input::-webkit-outer-spin-button,
@@ -124,10 +128,12 @@
   outline: 1px solid #0a2472;
 }
 .mark-grade {
+  flex: 0 0 auto;
   font-size: 11px;
   font-weight: 600;
-  min-width: 22px;
+  min-width: 20px;
   text-align: left;
+  white-space: nowrap;
 }
 
 /* Primary marksheet analysis: configured scale above 80/20 summaries. */
@@ -185,7 +191,7 @@
     justify-content: center;
     gap: 4px 12px;
   }
-  .marks-form:not(.marks-form--pdf-export) .marks-form__table { min-width: 720px; }
+  .marks-form:not(.marks-form--pdf-export) .marks-form__table { min-width: 760px; }
   .marks-form:not(.marks-form--pdf-export) .marks-form__analysis { min-width: 640px; }
   .marks-form__summary-grid { grid-template-columns: minmax(0, 1fr); }
 }

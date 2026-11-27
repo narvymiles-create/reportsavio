@@ -3,6 +3,8 @@
 - [x] Make the app shell compact on phones; show only the school name in the mobile top bar.
 - [x] Give Terms and Comments phone-friendly card layouts; compact shared cards, tables, tabs and dialogs.
 - [x] Make Marks Entry forms and other wide tables usable without clipping; verify key pages at 394px.
+- [x] Give subject mark/grade pairs compact, professional spacing without overflowing their cells; verified 78 populated/empty cells at 394px with no overflow.
+- [x] Use a familiar three-line navigation menu button on phones and verify it opens the sidebar; desktop toggle remains unchanged.
 
 - [x] Show total active learners and remaining package allowance in navigation; verified 118 active / 212 remaining including Growth Allowance.
 - [x] Add grid/list choices sharing every existing action for Primary and Nursery classes and streams; verified Primary edit dialogs and stream creation/removal in both sections/views, then removed temporary test records.
