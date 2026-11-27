@@ -104,6 +104,19 @@
   }
 }
 
+/* Keep wheel, touch and keyboard scrolling without visible scrollbar tracks. */
+@media screen {
+  html, body, * {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  *::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+}
+
 /* Compact application pages on phones without affecting report output or printing. */
 @media screen and (max-width: 639px) {
   main h1.text-3xl {

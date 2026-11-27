@@ -1,5 +1,7 @@
 # Roadmap — pricing, payments & feature management
 
+- [ ] Hide visible scrollbars without disabling scrolling; distribute desktop navigation details and retain school-only phone navigation.
+
 - [x] Make the app shell compact on phones; show only the school name in the mobile top bar.
 - [x] Give Terms and Comments phone-friendly card layouts; compact shared cards, tables, tabs and dialogs.
 - [x] Make Marks Entry forms and other wide tables usable without clipping; verify key pages at 394px.
